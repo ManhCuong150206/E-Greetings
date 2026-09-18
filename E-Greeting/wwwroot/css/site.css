@@ -1,31 +1,121 @@
+/* ==========================================================================
+   1. GOOGLE FONTS & BASE STYLES
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 html {
-  font-size: 14px;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    html {
+        font-size: 16px;
+    }
 }
 
 body {
-  margin-bottom: 60px;
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* ==========================================================================
+   2. FORM & BUTTON FOCUS ACCESSIBILITY (DEFAULT ASP.NET CORE)
+   ========================================================================== */
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
 }
+
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* ==========================================================================
+   3. NAVBAR CUSTOM STYLES
+   ========================================================================== */
+.navbar-custom {
+    background: #ffffff;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    padding: 12px 0;
+}
+
+.navbar-brand-custom {
+    font-weight: 700;
+    font-size: 1.4rem;
+    background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-link-custom {
+    font-weight: 500;
+    color: #4a5568 !important;
+    margin: 0 4px;
+    transition: all 0.2s ease-in-out;
+    border-radius: 6px;
+    padding: 8px 12px !important;
+}
+
+    .nav-link-custom:hover {
+        color: #0d6efd !important;
+        background-color: #f0f4ff;
+    }
+
+/* ==========================================================================
+   4. FOOTER CUSTOM STYLES
+   ========================================================================== */
+footer.footer-custom {
+    background-color: #1a202c;
+    color: #a0aec0;
+    margin-top: auto; /* Giữ Footer luôn ở đáy trang */
+}
+
+footer a {
+    color: #cbd5e0;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+    footer a:hover {
+        color: #63b3ed;
+    }
+
+.footer-heading {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 1.2rem;
+}
+
+.social-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: white;
+    transition: background 0.2s;
+}
+
+    .social-icon:hover {
+        background: #0d6efd;
+        color: white;
+    }
