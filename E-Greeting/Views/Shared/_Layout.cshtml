@@ -4,47 +4,243 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - E_Greeting</title>
-    <script type="importmap"></script>
+
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- CSS Libraries -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/E_Greeting.styles.css" asp-append-version="true" />
+
+    <style>
+            body {
+                font-family: 'Poppins', sans-serif;
+                background-color: #f8f9fa;
+                color: #2c3e50;
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+
+            /* Navbar Customization */
+            .navbar-custom {
+                background: #ffffff;
+                box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+                padding: 12px 0;
+            }
+
+            .navbar-brand-custom {
+                font-weight: 700;
+                font-size: 1.4rem;
+                background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .nav-link-custom {
+                font-weight: 500;
+                color: #4a5568 !important;
+                margin: 0 4px;
+                transition: all 0.2s ease-in-out;
+                border-radius: 6px;
+                padding: 8px 12px !important;
+            }
+
+                .nav-link-custom:hover {
+                    color: #0d6efd !important;
+                    background-color: #f0f4ff;
+                }
+
+            /* Footer Customization */
+            footer.footer-custom {
+                background-color: #1a202c;
+                color: #a0aec0;
+                margin-top: auto;
+            }
+
+            footer a {
+                color: #cbd5e0;
+                text-decoration: none;
+                transition: color 0.2s;
+            }
+
+                footer a:hover {
+                    color: #63b3ed;
+                }
+
+            .footer-heading {
+                color: #ffffff;
+                font-weight: 600;
+                font-size: 1.1rem;
+                margin-bottom: 1.2rem;
+            }
+
+            .social-icon {
+                width: 36px;
+                height: 36px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                color: white;
+                transition: background 0.2s;
+            }
+
+                .social-icon:hover {
+                    background: #0d6efd;
+                    color: white;
+                }
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+    <!-- HEADER & NAVBAR -->
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">E_Greeting</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+            <div class="container">
+                <a class="navbar-brand navbar-brand-custom d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-envelope-heart-fill text-primary me-2 fs-3"></i> E-Greeting
+                </a>
+
+                <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link nav-link-custom" asp-controller="Home" asp-action="Index">HOME</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link nav-link-custom dropdown-toggle" href="#" id="catDropdown" role="button" data-bs-toggle="dropdown">
+                                CATEGORIES
+                            </a>
+                            <ul class="dropdown-menu border-0 shadow-sm rounded-3">
+                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="birthday"><i class="bi bi-cake2 me-2 text-warning"></i>Birthday</a></li>
+                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="wedding"><i class="bi bi-heart me-2 text-danger"></i>Wedding</a></li>
+                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="newyear"><i class="bi bi-stars me-2 text-info"></i>New Year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="festivals"><i class="bi bi-balloon me-2 text-success"></i>Festivals</a></li>
+                            </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link nav-link-custom" asp-controller="Subscription" asp-action="Index">SUBSCRIBE</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" asp-controller="Feedback" asp-action="Index">FEEDBACK</a>
                         </li>
                     </ul>
+
+                    <!-- ACCOUNT / AUTH -->
+                    <div class="d-flex align-items-center gap-2">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a class="btn btn-danger btn-sm rounded-pill px-3" asp-controller="Admin" asp-action="Index">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Admin Dashboard
+                                </a>
+                            }
+                            <a class="btn btn-outline-secondary btn-sm rounded-pill px-3" asp-controller="Account" asp-action="Profile">
+                                <i class="bi bi-person-circle me-1"></i> @User.Identity.Name
+                            </a>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-link text-secondary p-0 ms-2 text-decoration-none fs-5">
+                                    <i class="bi bi-box-arrow-right" title="Logout"></i>
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-link text-decoration-none text-dark fw-semibold" asp-controller="Account" asp-action="Login">LOGIN</a>
+                            <a class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold shadow-sm" asp-controller="Account" asp-action="Register">Register here</a>
+                        }
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+    <!-- MAIN CONTENT -->
+    <div class="container my-5">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - E_Greeting - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <!-- MODERN FOOTER -->
+    <footer class="footer-custom pt-5">
+        <div class="container pb-4">
+            <div class="row g-4">
+                <!-- Col 1: About -->
+                <div class="col-lg-4 col-md-6">
+                    <h5 class="footer-heading d-flex align-items-center">
+                        <i class="bi bi-envelope-heart me-2 text-primary"></i> E-Greeting
+                    </h5>
+                    <p class="small">Nền tảng gửi thiệp điện tử trực tuyến giúp bạn truyền tải thông điệp yêu thương, lời chúc mừng sinh nhật, tiệc cưới và các lễ hội một cách cá nhân hóa và ý nghĩa nhất.</p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="social-icon"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="bi bi-twitter-x"></i></a>
+                    </div>
+                </div>
+
+                <!-- Col 2: Quick Links -->
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="footer-heading">Liên kết nhanh</h5>
+                    <ul class="list-unstyled small d-flex flex-column gap-2">
+                        <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Trang chủ</a></li>
+                        <li><a asp-controller="Subscription" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Gói Subscribe</a></li>
+                        <li><a asp-controller="Feedback" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Phản hồi</a></li>
+                        <li><a asp-controller="Account" asp-action="Login"><i class="bi bi-chevron-right me-1"></i> Đăng nhập</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 3: Categories -->
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-heading">Danh mục thiệp</h5>
+                    <ul class="list-unstyled small d-flex flex-column gap-2">
+                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="birthday"><i class="bi bi-cake2 me-2"></i>Thiệp Sinh Nhật</a></li>
+                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="wedding"><i class="bi bi-heart me-2"></i>Thiệp Đám Cưới</a></li>
+                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="newyear"><i class="bi bi-stars me-2"></i>Thiệp Năm Mới</a></li>
+                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="festivals"><i class="bi bi-balloon me-2"></i>Lễ Hội Khác</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4: Contact & Subscription Info -->
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-heading">Dịch vụ gửi thiệp</h5>
+                    <p class="small">Đăng ký dịch vụ tự động để gửi thiệp hàng ngày đến danh sách người thân yêu của bạn.</p>
+                    <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-light btn-sm rounded-pill w-100">
+                        <i class="bi bi-card-checklist me-1"></i> Đăng ký dịch vụ
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright Bar -->
+        <div class="border-top border-secondary py-3" style="background-color: #11151c;">
+            <div class="container text-center text-md-between d-flex flex-column flex-md-row justify-content-between align-items-center small">
+                <p class="mb-0">&copy; 2026 <strong>E-Greeting Web Application</strong>. All rights reserved.</p>
+                <div class="mt-2 mt-md-0">
+                    <a asp-controller="Home" asp-action="Privacy" class="me-3">Chính sách bảo mật</a>
+                    <a href="#">Điều khoản sử dụng</a>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <!-- JS Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+</html>
 </html>
