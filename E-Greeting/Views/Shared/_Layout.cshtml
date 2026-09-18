@@ -33,18 +33,36 @@
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom" asp-controller="Home" asp-action="Index">HOME</a>
                         </li>
+
+                        <!-- CATEGORIES DROPDOWN chuẩn giao diện gốc -->
                         <li class="nav-item dropdown">
                             <a class="nav-link nav-link-custom dropdown-toggle" href="#" id="catDropdown" role="button" data-bs-toggle="dropdown">
                                 CATEGORIES
                             </a>
                             <ul class="dropdown-menu border-0 shadow-sm rounded-3">
-                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="birthday"><i class="bi bi-cake2 me-2 text-warning"></i>Birthday</a></li>
-                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="wedding"><i class="bi bi-heart me-2 text-danger"></i>Wedding</a></li>
-                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="newyear"><i class="bi bi-stars me-2 text-info"></i>New Year</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="festivals"><i class="bi bi-balloon me-2 text-success"></i>Festivals</a></li>
+                                <li>
+                                    <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="birthday">
+                                        <i class="bi bi-cake2 me-2 text-warning"></i>Birthday
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="wedding">
+                                        <i class="bi bi-heart me-2 text-danger"></i>Wedding
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="newyear">
+                                        <i class="bi bi-stars me-2 text-info"></i>New Year
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="festivals">
+                                        <i class="bi bi-balloon me-2 text-success"></i>Festivals
+                                    </a>
+                                </li>
                             </ul>
                         </li>
+
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom" asp-controller="Subscription" asp-action="Index">SUBSCRIBE</a>
                         </li>
@@ -85,7 +103,6 @@
 
     <!-- MAIN CONTENT -->
     <div class="container my-5">
-        <!-- Khung chứa Toast hiển thị thông báo động -->
         <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;"></div>
 
         <main role="main">

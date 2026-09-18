@@ -9,7 +9,7 @@
     </div>
     <div class="card-body d-flex flex-column justify-content-between text-center p-3">
         <h6 class="card-title fw-bold text-truncate mb-2">@Model.Name</h6>
-        <a href="#" class="btn btn-outline-primary btn-sm rounded-pill fw-semibold w-100">
+        <a asp-controller="Card" asp-action="Personalize" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill fw-semibold w-100">
             Tạo thiệp ngay
         </a>
     </div>
