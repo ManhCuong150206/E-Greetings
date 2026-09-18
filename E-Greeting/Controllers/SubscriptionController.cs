@@ -65,7 +65,8 @@ public class SubscriptionController : Controller
             }
         };
 
-        return View(plans);
+        // Chỉ định trực tiếp đường dẫn View để tránh lỗi Cache tìm file
+        return View("~/Views/Subscription/Index.cshtml", plans);
     }
 
     // POST: /Subscription/Subscribe

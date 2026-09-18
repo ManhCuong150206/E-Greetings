@@ -1,167 +1,140 @@
 ﻿@{
-    ViewData["Title"] = "Cá nhân hóa Thiệp";
+    ViewData["Title"] = "Chỉnh Sửa Thiệp - " + ViewBag.CardName;
 }
 
 <div class="container my-4">
-    <div class="d-flex align-items-center mb-4">
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill me-3">
-            <i class="bi bi-arrow-left"></i> Quay lại
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0"><i class="bi bi-palette-fill text-primary me-2"></i>Trình Thiết Kế Thiệp Canva Mini</h3>
+            <p class="text-muted small mb-0">Thêm sticker, chỉnh kiểu chữ, hiệu ứng và nhạc nền trực quan trên thiệp.</p>
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
-        <h3 class="fw-bold mb-0">Cá nhân hóa thiệp của bạn</h3>
     </div>
 
     <div class="row g-4">
-        <!-- BÊN TRÁI: LIVE PREVIEW THIỆP -->
-        <div class="col-lg-6 text-center">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden sticky-top" style="top: 90px;">
-                <div class="position-relative">
-                    <img src="@ViewBag.ImagePath" id="cardPreviewImg" class="w-100 object-fit-cover" style="max-height: 480px;" alt="Card Preview" />
-                    <div class="position-absolute bottom-0 start-0 end-0 p-4 text-white bg-dark bg-opacity-50 text-start" style="backdrop-filter: blur(4px);">
-                        <h6 id="previewSubject" class="fw-bold text-warning mb-1">Tiêu đề lời chúc...</h6>
-                        <p id="previewMessage" class="small mb-0 fst-italic">Nội dung lời chúc của bạn sẽ xuất hiện ở đây...</p>
-                    </div>
+        <!-- THANH CÔNG CỤ NHẬP LIỆU (SIDEBAR) -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+
+                <!-- 1. Nội dung văn bản -->
+                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil-square me-2"></i>Nội dung lời chúc</h6>
+
+                <div class="mb-2">
+                    <label class="form-label extra-small text-muted mb-1">Thân gửi (Người nhận):</label>
+                    <input type="text" id="inputRecipient" class="form-control form-control-sm rounded-3" value="Gửi: Bạn Thân Mến">
                 </div>
-            </div>
-        </div>
 
-        <!-- BÊN PHẢI: FORM NHẬP LỜI CHÚC -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 p-4">
-                <h5 class="fw-bold mb-3"><i class="bi bi-pencil-square text-primary me-2"></i>Điền thông tin thiệp</h5>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Tiêu đề thiệp (Subject)</label>
-                    <input type="text" id="inputSubject" class="form-control rounded-3" placeholder="Ví dụ: Chúc mừng sinh nhật bạn yêu!" />
+                <div class="mb-2">
+                    <label class="form-label extra-small text-muted mb-1">Lời chúc mừng:</label>
+                    <textarea id="inputMessage" class="form-control form-control-sm rounded-3" rows="2">Chúc bạn một ngày tràn đầy niềm vui, hạnh phúc và gặp nhiều may mắn!</textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Lời chúc mừng (Message)</label>
-                    <textarea id="inputMessage" class="form-control rounded-3" rows="5" placeholder="Viết những lời chúc tốt đẹp nhất gửi đến người nhận..."></textarea>
+                    <label class="form-label extra-small text-muted mb-1">Ký tên (Người gửi):</label>
+                    <input type="text" id="inputSender" class="form-control form-control-sm rounded-3" value="Từ: Huy Trần">
                 </div>
 
-                <hr class="my-4">
+                <hr class="my-3">
 
-                <div class="d-grid">
-                    <button type="button" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#sendModal">
-                        <i class="bi bi-send-fill me-2"></i> TIẾP TỤC GỬI THIỆP
-                    </button>
+                <!-- 2. Định dạng chữ Nâng Cao -->
+                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-fonts me-2"></i>Định dạng chữ</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label extra-small text-muted mb-1">Màu chữ</label>
+                        <input type="color" id="textColor" class="form-control form-control-color w-100 rounded-3" value="#2c3e50" title="Chọn màu chữ">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label extra-small text-muted mb-1">Phông chữ</label>
+                        <select id="fontFamily" class="form-select form-select-sm rounded-3">
+                            <option value="Arial">Arial</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Impact">Impact</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- MODAL / POPUP "SEND CARD" -->
-<div class="modal fade" id="sendModal" tabindex="-1" aria-labelledby="sendModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-header-title fw-bold text-primary" id="sendModalLabel">
-                    <i class="bi bi-envelope-paper-heart me-2"></i>Gửi Thiệp Đến Người Nhận
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form id="sendCardForm">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Email người nhận <span class="text-danger">*</span></label>
-                        <input type="email" id="inputRecipientEmail" class="form-control rounded-3" placeholder="name@example.com" required />
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label extra-small text-muted mb-1">Cỡ chữ (px)</label>
+                        <input type="number" id="fontSizeInput" class="form-control form-control-sm rounded-3" value="22" min="12" max="72">
                     </div>
-                    <div class="alert alert-light border small text-muted">
-                        <i class="bi bi-info-circle me-1"></i> Thiệp sẽ được định dạng đẹp mắt và gửi tới email của người nhận ngay lập tức.
+                    <div class="col-6 d-flex align-items-end gap-1">
+                        <button type="button" id="btnBold" class="btn btn-outline-secondary btn-sm w-50 fw-bold" title="In đậm">B</button>
+                        <button type="button" id="btnItalic" class="btn btn-outline-secondary btn-sm w-50 fst-italic" title="In nghiêng">I</button>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" id="btnConfirmSend" class="btn btn-primary rounded-pill px-4 fw-bold">
-                    <span id="btnSendSpinner" class="spinner-border spinner-border-sm d-none me-2" role="status"></span>
-                    <i class="bi bi-send me-1" id="btnSendIcon"></i> Xác Nhận Gửi
+                </div>
+
+                <hr class="my-3">
+
+                <!-- 3. Bộ Sticker / Icon Canva -->
+                <h6 class="fw-bold mb-2 text-primary"><i class="bi bi-emoji-smile me-2"></i>Thêm Sticker & Biểu tượng</h6>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎉">🎉</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎂">🎂</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="❤️">❤️</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎁">🎁</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🌸">🌸</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="⭐">⭐</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="👑">👑</button>
+                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎈">🎈</button>
+                </div>
+
+                <!-- 4. Chèn Ảnh Cá Nhân & Nhạc MP3 -->
+                <div class="mb-2">
+                    <label class="form-label extra-small text-muted mb-1"><i class="bi bi-image me-1"></i>Chèn thêm ảnh cá nhân:</label>
+                    <input type="file" id="imageUploader" accept="image/*" class="form-control form-control-sm rounded-3">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label extra-small text-muted mb-1"><i class="bi bi-music-note-beaming me-1"></i>Nhạc nền MP3:</label>
+                    <input type="file" id="musicUploader" accept="audio/mp3,audio/*" class="form-control form-control-sm rounded-3">
+                </div>
+
+                <!-- 5. Tải Thiệp -->
+                <button id="btnExport" class="btn btn-primary rounded-pill w-100 fw-semibold py-2 shadow-sm">
+                    <i class="bi bi-download me-1"></i> Tải Thiệp Hoàn Thành (PNG)
                 </button>
             </div>
         </div>
+
+        <!-- KHU VỰC HIỂN THỊ THIỆP (CANVAS) -->
+        <div class="col-lg-7 text-center">
+
+            <!-- Thanh Công Cụ Tác Động Đối Tượng Đang Chọn -->
+            <div class="d-flex justify-content-between align-items-center mb-2 bg-light p-2 rounded-3 border">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="extra-small fw-semibold text-muted">Độ trong suốt:</span>
+                    <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="1" class="form-range w-auto" style="width: 100px !important;">
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="btnDeleteObject" class="btn btn-outline-danger btn-sm rounded-pill py-0 px-2" title="Xóa vật thể đang chọn">
+                        <i class="bi bi-trash"></i> Xóa
+                    </button>
+                    <button id="btnToggleMusic" class="btn btn-outline-primary btn-sm rounded-pill py-0 px-2 d-none">
+                        <i class="bi bi-disc-fill me-1"></i> <span id="musicStatus">Tắt Nhạc</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 p-3 d-inline-block bg-white overflow-auto mw-100">
+                <canvas id="cardCanvas" class="border rounded-3"></canvas>
+            </div>
+            <p class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i> Nhấp chuột vào từng chữ hoặc icon trên thiệp để phóng to, xoay vặn hoặc xóa.</p>
+        </div>
     </div>
 </div>
 
+<audio id="bgAudio" loop></audio>
+
+<script>
+    window.cardBgImagePath = "@ViewBag.ImagePath";
+</script>
+
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const inputSubject = document.getElementById("inputSubject");
-            const inputMessage = document.getElementById("inputMessage");
-            const previewSubject = document.getElementById("previewSubject");
-            const previewMessage = document.getElementById("previewMessage");
-            const btnConfirmSend = document.getElementById("btnConfirmSend");
-            const sendModalEl = document.getElementById("sendModal");
-            const sendModal = new bootstrap.Modal(sendModalEl);
-
-            // 1. Lập tức cập nhật chữ trên thiệp khi nhập text (Realtime Live Preview)
-            inputSubject.addEventListener("input", function () {
-                previewSubject.textContent = this.value.trim() || "Tiêu đề lời chúc...";
-            });
-
-            inputMessage.addEventListener("input", function () {
-                previewMessage.textContent = this.value.trim() || "Nội dung lời chúc của bạn sẽ xuất hiện ở đây...";
-            });
-
-            // 2. Xử lý sự kiện gửi AJAX khi bấm "Xác Nhận Gửi"
-            btnConfirmSend.addEventListener("click", function () {
-                const recipientEmail = document.getElementById("inputRecipientEmail").value.trim();
-                const subject = inputSubject.value.trim();
-                const message = inputMessage.value.trim();
-
-                if (!recipientEmail) {
-                    showToast("Vui lòng nhập Email người nhận!", "danger");
-                    return;
-                }
-
-                // Bật hiệu ứng Loading
-                toggleLoading(true);
-
-                // Gửi dữ liệu bằng Fetch API tới backend /Card/SendCard
-                fetch('/Card/SendCard', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        cardId: @ViewBag.CardId,
-                        recipientEmail: recipientEmail,
-                        subject: subject,
-                        message: message
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        toggleLoading(false);
-                        if (data.success) {
-                            sendModal.hide();
-                            showToast(data.message, "success");
-                            // Reset form
-                            document.getElementById("sendCardForm").reset();
-                        } else {
-                            showToast(data.message, "danger");
-                        }
-                    })
-                    .catch(error => {
-                        toggleLoading(false);
-                        console.error("Error:", error);
-                        showToast("Lỗi hệ thống! Không thể gửi thiệp vào lúc này.", "danger");
-                    });
-            });
-
-            function toggleLoading(isLoading) {
-                const spinner = document.getElementById("btnSendSpinner");
-                const icon = document.getElementById("btnSendIcon");
-                if (isLoading) {
-                    spinner.classList.remove("d-none");
-                    icon.classList.add("d-none");
-                    btnConfirmSend.disabled = true;
-                } else {
-                    spinner.classList.add("d-none");
-                    icon.classList.remove("d-none");
-                    btnConfirmSend.disabled = false;
-                }
-            }
-        });
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="~/js/personalize.js" asp-append-version="true"></script>
 }

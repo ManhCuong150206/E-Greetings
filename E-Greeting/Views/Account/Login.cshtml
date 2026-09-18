@@ -1,0 +1,64 @@
+﻿@{
+    ViewData["Title"] = "Đăng Nhập - E-Greeting";
+}
+
+<div class="row justify-content-center my-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="text-center mb-4">
+                <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex p-3 mb-2">
+                    <i class="bi bi-box-arrow-in-right fs-2"></i>
+                </div>
+                <h3 class="fw-bold text-dark">Đăng Nhập</h3>
+                <p class="text-muted small">Truy cập tài khoản E-Greeting để quản lý và tạo thiệp</p>
+            </div>
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.Error
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <form asp-controller="Account" asp-action="Login" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="bi bi-envelope me-1"></i> Email</label>
+                    <input type="email" name="email" class="form-control rounded-3" placeholder="nhapemail@example.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold mb-0"><i class="bi bi-lock me-1"></i> Mật khẩu</label>
+                        <a href="#" class="small text-decoration-none text-primary">Quên mật khẩu?</a>
+                    </div>
+                    <input type="password" name="password" class="form-control rounded-3" placeholder="••••••••" required>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" name="rememberMe" value="true" id="rememberMe">
+                    <label class="form-check-label small text-muted" for="rememberMe">
+                        Ghi nhớ đăng nhập
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold py-2 shadow-sm mb-3">
+                    Đăng Nhập
+                </button>
+
+                <div class="text-center small text-muted">
+                    Chưa có tài khoản?
+                    <a asp-controller="Account" asp-action="Register" class="fw-semibold text-primary text-decoration-none">Register here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,57 @@
+﻿@{
+    ViewData["Title"] = "Đăng Ký Tài Khoản - E-Greeting";
+}
+
+<div class="row justify-content-center my-5">
+    <div class="col-md-7 col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="text-center mb-4">
+                <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex p-3 mb-2">
+                    <i class="bi bi-person-plus-fill fs-2"></i>
+                </div>
+                <h3 class="fw-bold text-dark">Tạo Tài Khoản Mới</h3>
+                <p class="text-muted small">Đăng ký ngay để trải nghiệm đầy đủ tính năng thiết kế thiệp độc đáo</p>
+            </div>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.Error
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <form asp-controller="Account" asp-action="Register" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="bi bi-person me-1"></i> Họ và Tên <span class="text-danger">*</span></label>
+                    <input type="text" name="fullName" class="form-control rounded-3" placeholder="Nguyễn Văn A" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold"><i class="bi bi-envelope me-1"></i> Địa chỉ Email <span class="text-danger">*</span></label>
+                    <input type="email" name="email" class="form-control rounded-3" placeholder="nhapemail@example.com" required>
+                </div>
+
+                <div class="row g-2 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="bi bi-lock me-1"></i> Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control rounded-3" placeholder="••••••••" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold"><i class="bi bi-shield-check me-1"></i> Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="confirmPassword" class="form-control rounded-3" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold py-2 shadow-sm mb-3">
+                    Tạo Tài Khoản
+                </button>
+
+                <div class="text-center small text-muted">
+                    Đã có tài khoản?
+                    <a asp-controller="Account" asp-action="Login" class="fw-semibold text-primary text-decoration-none">Đăng nhập ngay</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
