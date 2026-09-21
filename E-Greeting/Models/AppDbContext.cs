@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace E_Greeting.Models;
 
@@ -24,6 +22,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<SentCard> SentCards { get; set; }
+
+    public virtual DbSet<Service> Services { get; set; }
 
     public virtual DbSet<Subscription> Subscriptions { get; set; }
 
@@ -182,6 +182,22 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_SentCard_Template");
         });
 
+        modelBuilder.Entity<Service>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Service__3213E83FA65AD915");
+
+            entity.ToTable("Service");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("name");
+            entity.Property(e => e.Price)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("price");
+        });
+
         modelBuilder.Entity<Subscription>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Subscrip__3213E83FB4C4DF78");
@@ -194,16 +210,17 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            entity.Property(e => e.NameSub)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("name_sub");
+            entity.Property(e => e.ServiceId).HasColumnName("service_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
 
             entity.HasOne(d => d.Account).WithMany(p => p.Subscriptions)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Subscription_Account");
+
+            entity.HasOne(d => d.Service).WithMany(p => p.Subscriptions)
+                .HasForeignKey(d => d.ServiceId)
+                .HasConstraintName("FK_Subscription_Service");
         });
 
         modelBuilder.Entity<SubscriptionRecipient>(entity =>
