@@ -1,0 +1,48 @@
+﻿@model IEnumerable<E_Greeting.Models.Category>
+
+@{
+    ViewData["Title"] = "Quản lý Danh mục thiệp";
+}
+
+<div class="container mt-4">
+    <h2>Quản lý Danh mục Thiệp (Category)</h2>
+
+    <!-- Form Thêm mới danh mục -->
+    <div class="card my-3 p-3">
+        <h4>Thêm Danh mục Mới</h4>
+        <form asp-action="Create" method="post" class="row g-3">
+            <div class="col-auto">
+                <input type="text" name="Name" class="form-control" placeholder="Nhập tên danh mục..." required />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Thêm mới</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bảng hiển thị danh sách -->
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Tên Danh Mục</th>
+                <th width="200">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Name</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Sửa</a>
+                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                            <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
