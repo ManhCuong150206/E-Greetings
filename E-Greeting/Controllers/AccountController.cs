@@ -1,54 +1,55 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace E_Greeting.Controllers;
+﻿using E_Greeting.Service;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 public class AccountController : Controller
 {
-    // GET: /Account/Login
-    public IActionResult Login() => View();
+    private readonly IAccountService _accountService;
 
-    // POST: /Account/Login
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Login(string email, string password, bool rememberMe)
+    public AccountController(IAccountService accountService)
     {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        _accountService = accountService;
+    }
+
+    [HttpGet]
+    public IActionResult Login()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Login(LoginViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var account = await _accountService.LoginAsync(model.Email, model.Password);
+
+        if (account == null)
         {
-            ViewBag.Error = "Vui lòng nhập đầy đủ Email và Mật khẩu!";
-            return View();
+            ModelState.AddModelError("", "Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa");
+            return View(model);
         }
 
-        // Tạm thời giả lập đăng nhập thành công (sẽ kết nối Entity Framework sau)
-        TempData["SuccessMessage"] = "Đăng nhập thành công! Chào mừng bạn quay trở lại.";
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, account.Id.ToString()),
+            new(ClaimTypes.Name, account.Name),
+            new(ClaimTypes.Role, account.Role)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
         return RedirectToAction("Index", "Home");
     }
 
-    // GET: /Account/Register
-    public IActionResult Register() => View();
-
-    // POST: /Account/Register
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Register(string fullName, string email, string password, string confirmPassword)
+    public async Task<IActionResult> Logout()
     {
-        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            ViewBag.Error = "Vui lòng nhập đầy đủ các thông tin bắt buộc!";
-            return View();
-        }
-
-        if (password != confirmPassword)
-        {
-            ViewBag.Error = "Mật khẩu xác nhận không trùng khớp!";
-            return View();
-        }
-
-        // Tạm thời giả lập đăng ký thành công
-        TempData["SuccessMessage"] = "Đăng ký tài khoản thành công! Vui lòng đăng nhập.";
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
-
-    // POST: /Account/Logout
-    [HttpPost]
-    public IActionResult Logout() => RedirectToAction("Index", "Home");
 }

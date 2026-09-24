@@ -1,12 +1,23 @@
-using Microsoft.EntityFrameworkCore;
 using E_Greeting.Models;
+using E_Greeting.Service;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Cấu hình Services của đồng đội
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
+    });
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Cấu hình kết nối SQL Server dùng Tên Server chuẩn
+// Cấu hình Entity Framework Core kết nối CSDL từ appsettings.json
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -20,7 +31,11 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// Cấu hình Middleware Xác thực và Phân quyền
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapStaticAssets();
 
 app.MapControllerRoute(
