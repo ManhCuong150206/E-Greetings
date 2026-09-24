@@ -29,7 +29,7 @@ public class AccountController : Controller
 
         if (account == null)
         {
-            ModelState.AddModelError("", "Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa");
+            ViewBag.Error = "Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa";
             return View(model);
         }
 
