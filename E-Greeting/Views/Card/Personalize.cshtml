@@ -1,140 +1,121 @@
-﻿@{
-    ViewData["Title"] = "Chỉnh Sửa Thiệp - " + ViewBag.CardName;
+﻿@model E_Greeting.Models.Template
+
+@{
+    ViewData["Title"] = "Trình Tạo Thiệp - Card Editor";
 }
 
 <div class="container my-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h3 class="fw-bold text-dark mb-0"><i class="bi bi-palette-fill text-primary me-2"></i>Trình Thiết Kế Thiệp Canva Mini</h3>
-            <p class="text-muted small mb-0">Thêm sticker, chỉnh kiểu chữ, hiệu ứng và nhạc nền trực quan trên thiệp.</p>
-        </div>
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
-        </a>
-    </div>
+    <h3 class="mb-4">Tùy Chỉnh Thiệp Chúc Mừng</h3>
+    <div class="row">
+        <!-- BÊN TRÁI: LIVE PREVIEW & CANVAS KÉO THẢ -->
+        <div class="col-md-7 mb-4">
+            <div class="card shadow-sm p-3 text-center" style="background-color: #f8f9fa;">
+                <h5 class="card-title text-muted">Xem Trước (Xem & Kéo thả trực tiếp)</h5>
 
-    <div class="row g-4">
-        <!-- THANH CÔNG CỤ NHẬP LIỆU (SIDEBAR) -->
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+                <!-- Khung chứa Thiệp (Canvas) -->
+                <div id="card-preview-area" class="position-relative overflow-hidden rounded mx-auto shadow-sm"
+                     style="width: 500px; height: 380px; background-color: #fff;">
 
-                <!-- 1. Nội dung văn bản -->
-                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-pencil-square me-2"></i>Nội dung lời chúc</h6>
+                    <!-- Ảnh nền Thiệp -->
+                    <img id="preview-image" src="@(Model?.ImagePath ?? "https://picsum.photos/800/600")"
+                         class="w-100 h-100 style-cover" style="object-fit: cover;" alt="Card Image" />
 
-                <div class="mb-2">
-                    <label class="form-label extra-small text-muted mb-1">Thân gửi (Người nhận):</label>
-                    <input type="text" id="inputRecipient" class="form-control form-control-sm rounded-3" value="Gửi: Bạn Thân Mến">
-                </div>
-
-                <div class="mb-2">
-                    <label class="form-label extra-small text-muted mb-1">Lời chúc mừng:</label>
-                    <textarea id="inputMessage" class="form-control form-control-sm rounded-3" rows="2">Chúc bạn một ngày tràn đầy niềm vui, hạnh phúc và gặp nhiều may mắn!</textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label extra-small text-muted mb-1">Ký tên (Người gửi):</label>
-                    <input type="text" id="inputSender" class="form-control form-control-sm rounded-3" value="Từ: Huy Trần">
-                </div>
-
-                <hr class="my-3">
-
-                <!-- 2. Định dạng chữ Nâng Cao -->
-                <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-fonts me-2"></i>Định dạng chữ</h6>
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <label class="form-label extra-small text-muted mb-1">Màu chữ</label>
-                        <input type="color" id="textColor" class="form-control form-control-color w-100 rounded-3" value="#2c3e50" title="Chọn màu chữ">
+                    <!-- Khung chữ mặc định (Có thể kéo thả) -->
+                    <div class="draggable-element position-absolute p-2 rounded text-center cursor-move"
+                         style="top: 40%; left: 15%; width: 70%; color: #000000; font-family: 'Arial'; font-size: 20px; background: rgba(255,255,255,0.6); cursor: move; user-select: none;">
+                        <span class="text-content">Chúc bạn một ngày vui vẻ!</span>
                     </div>
+                </div>
+
+                <!-- Nhạc nền xem trước -->
+                <div class="mt-3">
+                    <audio id="audio-player" controls class="w-100 d-none"></audio>
+                </div>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: BẢNG CÔNG CỤ EDIT -->
+        <div class="col-md-5">
+            <div class="card shadow-sm p-3">
+                <h5 class="card-title mb-3">Công Cụ Chỉnh Sửa</h5>
+
+                <!-- 1. Nút Thêm Chữ / Thêm Sticker -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" id="btn-add-text" class="btn btn-outline-primary btn-sm w-50">
+                        + Thêm khung chữ
+                    </button>
+                    <button type="button" id="btn-clear-canvas" class="btn btn-outline-danger btn-sm w-50">
+                        Xóa bớt vật thể
+                    </button>
+                </div>
+
+                <!-- 2. Nhập Lời Chúc (Cho khung chữ đang chọn) -->
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Nội dung chữ:</label>
+                    <textarea id="input-message" class="form-control" rows="2" placeholder="Nhập chữ...">Chúc bạn một ngày vui vẻ!</textarea>
+                </div>
+
+                <!-- 3. Format Font & Màu Chữ -->
+                <div class="row mb-3">
                     <div class="col-6">
-                        <label class="form-label extra-small text-muted mb-1">Phông chữ</label>
-                        <select id="fontFamily" class="form-select form-select-sm rounded-3">
+                        <label class="form-label">Font chữ:</label>
+                        <select id="select-font" class="form-select">
                             <option value="Arial">Arial</option>
-                            <option value="Georgia">Georgia</option>
-                            <option value="Courier New">Courier New</option>
-                            <option value="Impact">Impact</option>
-                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="'Courier New', Courier, monospace">Courier New</option>
+                            <option value="'Georgia', serif">Georgia</option>
+                            <option value="'Comic Sans MS', cursive">Comic Sans</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="row g-2 mb-3">
                     <div class="col-6">
-                        <label class="form-label extra-small text-muted mb-1">Cỡ chữ (px)</label>
-                        <input type="number" id="fontSizeInput" class="form-control form-control-sm rounded-3" value="22" min="12" max="72">
-                    </div>
-                    <div class="col-6 d-flex align-items-end gap-1">
-                        <button type="button" id="btnBold" class="btn btn-outline-secondary btn-sm w-50 fw-bold" title="In đậm">B</button>
-                        <button type="button" id="btnItalic" class="btn btn-outline-secondary btn-sm w-50 fst-italic" title="In nghiêng">I</button>
+                        <label class="form-label">Màu chữ:</label>
+                        <input type="color" id="input-color" class="form-control form-control-color w-100" value="#000000" />
                     </div>
                 </div>
 
-                <hr class="my-3">
-
-                <!-- 3. Bộ Sticker / Icon Canva -->
-                <h6 class="fw-bold mb-2 text-primary"><i class="bi bi-emoji-smile me-2"></i>Thêm Sticker & Biểu tượng</h6>
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎉">🎉</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎂">🎂</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="❤️">❤️</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎁">🎁</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🌸">🌸</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="⭐">⭐</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="👑">👑</button>
-                    <button type="button" class="btn btn-white btn-sm border rounded-circle btn-sticker fs-5 p-1" data-sticker="🎈">🎈</button>
+                <!-- 4. Gắn Sticker -->
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold">Thêm Sticker / Biểu tượng:</label>
+                    <div class="d-flex gap-2 flex-wrap fs-3">
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">❤️</span>
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">🎂</span>
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">🎉</span>
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">🌸</span>
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">🎁</span>
+                        <span class="sticker-opt cursor-pointer" style="cursor:pointer">✨</span>
+                    </div>
                 </div>
 
-                <!-- 4. Chèn Ảnh Cá Nhân & Nhạc MP3 -->
+                <!-- 5. Chọn Nhạc Nền -->
+                <div class="mb-3">
+                    <label class="form-label">Nhạc nền:</label>
+                    <select id="select-audio" class="form-select">
+                        <option value="">-- Không chọn nhạc --</option>
+                        <option value="/audio/Nhạc nền 1.mp3">Nhạc nền 1</option>
+                        <option value="/audio/Nhạc nền 2.mp3">Nhạc nền 2</option>
+                    </select>
+                </div>
+
+                <hr />
+
+                <!-- 6. Thông Tin Gửi -->
                 <div class="mb-2">
-                    <label class="form-label extra-small text-muted mb-1"><i class="bi bi-image me-1"></i>Chèn thêm ảnh cá nhân:</label>
-                    <input type="file" id="imageUploader" accept="image/*" class="form-control form-control-sm rounded-3">
+                    <label class="form-label">Email Người Nhận (*):</label>
+                    <input type="email" id="input-recipient" class="form-control" placeholder="nguoinhan@example.com" required />
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label extra-small text-muted mb-1"><i class="bi bi-music-note-beaming me-1"></i>Nhạc nền MP3:</label>
-                    <input type="file" id="musicUploader" accept="audio/mp3,audio/*" class="form-control form-control-sm rounded-3">
+                    <label class="form-label">Tiêu đề Email:</label>
+                    <input type="text" id="input-subject" class="form-control" value="Thiệp chúc mừng dành riêng cho bạn!" />
                 </div>
 
-                <!-- 5. Tải Thiệp -->
-                <button id="btnExport" class="btn btn-primary rounded-pill w-100 fw-semibold py-2 shadow-sm">
-                    <i class="bi bi-download me-1"></i> Tải Thiệp Hoàn Thành (PNG)
+                <button id="btn-save-card" class="btn btn-success btn-lg w-100 mt-2">
+                    Lưu & Gửi Thiệp
                 </button>
             </div>
-        </div>
-
-        <!-- KHU VỰC HIỂN THỊ THIỆP (CANVAS) -->
-        <div class="col-lg-7 text-center">
-
-            <!-- Thanh Công Cụ Tác Động Đối Tượng Đang Chọn -->
-            <div class="d-flex justify-content-between align-items-center mb-2 bg-light p-2 rounded-3 border">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="extra-small fw-semibold text-muted">Độ trong suốt:</span>
-                    <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="1" class="form-range w-auto" style="width: 100px !important;">
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <button id="btnDeleteObject" class="btn btn-outline-danger btn-sm rounded-pill py-0 px-2" title="Xóa vật thể đang chọn">
-                        <i class="bi bi-trash"></i> Xóa
-                    </button>
-                    <button id="btnToggleMusic" class="btn btn-outline-primary btn-sm rounded-pill py-0 px-2 d-none">
-                        <i class="bi bi-disc-fill me-1"></i> <span id="musicStatus">Tắt Nhạc</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm rounded-4 p-3 d-inline-block bg-white overflow-auto mw-100">
-                <canvas id="cardCanvas" class="border rounded-3"></canvas>
-            </div>
-            <p class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i> Nhấp chuột vào từng chữ hoặc icon trên thiệp để phóng to, xoay vặn hoặc xóa.</p>
         </div>
     </div>
 </div>
 
-<audio id="bgAudio" loop></audio>
-
-<script>
-    window.cardBgImagePath = "@ViewBag.ImagePath";
-</script>
-
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-    <script src="~/js/personalize.js" asp-append-version="true"></script>
+    <script src="~/js/personalize.js"></script>
 }

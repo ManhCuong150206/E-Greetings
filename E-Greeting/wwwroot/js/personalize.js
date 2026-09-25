@@ -1,281 +1,164 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
-    // 1. Khởi tạo Canvas
-    const canvas = new fabric.Canvas('cardCanvas', {
-        width: 650,
-        height: 480
-    });
+    const cardArea = document.getElementById("card-preview-area");
+    const inputMessage = document.getElementById("input-message");
+    const selectFont = document.getElementById("select-font");
+    const inputColor = document.getElementById("input-color");
+    const selectAudio = document.getElementById("select-audio");
+    const audioPlayer = document.getElementById("audio-player");
+    const btnSaveCard = document.getElementById("btn-save-card");
+    const btnAddText = document.getElementById("btn-add-text");
+    const btnClearCanvas = document.getElementById("btn-clear-canvas");
 
-    const bgImageUrl = window.cardBgImagePath || "";
+    let activeElement = document.querySelector(".draggable-element");
 
-    // 2. Khởi tạo các đoạn chữ ban đầu
-    const recipientInput = document.getElementById('inputRecipient');
-    const messageInput = document.getElementById('inputMessage');
-    const senderInput = document.getElementById('inputSender');
+    // 1. KHỞI TẠO TÍNH NĂNG KÉO THẢ (DRAG & DROP)
+    function makeDraggable(element) {
+        let isDragging = false;
+        let offsetX = 0, offsetY = 0;
 
-    const recipientText = new fabric.IText(recipientInput ? recipientInput.value : '', {
-        left: 50,
-        top: 60,
-        fontFamily: 'Arial',
-        fontSize: 24,
-        fontWeight: 'bold',
-        fill: '#2c3e50',
-        cornerStyle: 'circle'
-    });
+        element.addEventListener("mousedown", function (e) {
+            isDragging = true;
+            activeElement = element;
 
-    const messageText = new fabric.IText(messageInput ? messageInput.value : '', {
-        left: 50,
-        top: 150,
-        fontFamily: 'Arial',
-        fontSize: 20,
-        fill: '#2c3e50',
-        width: 550,
-        splitByGrapheme: true,
-        cornerStyle: 'circle'
-    });
+            // Đổi viền để nhận biết vật thể đang chọn
+            document.querySelectorAll(".draggable-element").forEach(el => el.style.outline = "none");
+            element.style.outline = "2px dashed #0d6efd";
 
-    const senderText = new fabric.IText(senderInput ? senderInput.value : '', {
-        left: 350,
-        top: 380,
-        fontFamily: 'Arial',
-        fontSize: 22,
-        fontStyle: 'italic',
-        fill: '#2c3e50',
-        cornerStyle: 'circle'
-    });
-
-    // 3. Render nền và chữ
-    if (bgImageUrl) {
-        fabric.Image.fromURL(bgImageUrl, function (img) {
-            img.set({
-                scaleX: canvas.width / img.width,
-                scaleY: canvas.height / img.height,
-                selectable: false,
-                evented: false
-            });
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-
-            canvas.add(recipientText);
-            canvas.add(messageText);
-            canvas.add(senderText);
-            canvas.renderAll();
-        }, { crossOrigin: 'anonymous' });
-    }
-
-    // --- LIVE BINDING NHẬP LIỆU ---
-    if (recipientInput) {
-        recipientInput.addEventListener('input', function () {
-            recipientText.set('text', this.value || ' ');
-            canvas.renderAll();
-        });
-    }
-
-    if (messageInput) {
-        messageInput.addEventListener('input', function () {
-            messageText.set('text', this.value || ' ');
-            canvas.renderAll();
-        });
-    }
-
-    if (senderInput) {
-        senderInput.addEventListener('input', function () {
-            senderText.set('text', this.value || ' ');
-            canvas.renderAll();
-        });
-    }
-
-    // --- ĐỊNH DẠNG VĂN BẢN NÂNG CAO ---
-    const textColorInput = document.getElementById('textColor');
-    if (textColorInput) {
-        textColorInput.addEventListener('input', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isType('i-text')) {
-                activeObj.set('fill', this.value);
-            } else {
-                canvas.getObjects('i-text').forEach(obj => obj.set('fill', this.value));
+            // Nếu là khung chữ thì đồng bộ nội dung ra ô gõ text
+            const textSpan = element.querySelector(".text-content");
+            if (textSpan) {
+                inputMessage.value = textSpan.textContent;
             }
-            canvas.renderAll();
+
+            const rect = element.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+        });
+
+        document.addEventListener("mousemove", function (e) {
+            if (!isDragging || activeElement !== element) return;
+
+            const containerRect = cardArea.getBoundingClientRect();
+            let x = e.clientX - containerRect.left - offsetX;
+            let y = e.clientY - containerRect.top - offsetY;
+
+            // Giới hạn không cho kéo văng ra ngoài khung thiệp
+            x = Math.max(0, Math.min(x, containerRect.width - element.offsetWidth));
+            y = Math.max(0, Math.min(y, containerRect.height - element.offsetHeight));
+
+            element.style.left = x + "px";
+            element.style.top = y + "px";
+        });
+
+        document.addEventListener("mouseup", function () {
+            isDragging = false;
         });
     }
 
-    const fontFamilySelect = document.getElementById('fontFamily');
-    if (fontFamilySelect) {
-        fontFamilySelect.addEventListener('change', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isType('i-text')) {
-                activeObj.set('fontFamily', this.value);
-            } else {
-                canvas.getObjects('i-text').forEach(obj => obj.set('fontFamily', this.value));
-            }
-            canvas.renderAll();
-        });
-    }
+    // Áp dụng kéo thả cho phần tử mặc định ban đầu
+    if (activeElement) makeDraggable(activeElement);
 
-    // Cỡ chữ
-    const fontSizeInput = document.getElementById('fontSizeInput');
-    if (fontSizeInput) {
-        fontSizeInput.addEventListener('input', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isType('i-text')) {
-                activeObj.set('fontSize', parseInt(this.value, 10) || 20);
-                canvas.renderAll();
-            }
-        });
-    }
-
-    // In đậm / In nghiêng
-    const btnBold = document.getElementById('btnBold');
-    if (btnBold) {
-        btnBold.addEventListener('click', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isType('i-text')) {
-                const isBold = activeObj.fontWeight === 'bold';
-                activeObj.set('fontWeight', isBold ? 'normal' : 'bold');
-                this.classList.toggle('btn-primary', !isBold);
-                this.classList.toggle('btn-outline-secondary', isBold);
-                canvas.renderAll();
-            }
-        });
-    }
-
-    const btnItalic = document.getElementById('btnItalic');
-    if (btnItalic) {
-        btnItalic.addEventListener('click', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isType('i-text')) {
-                const isItalic = activeObj.fontStyle === 'italic';
-                activeObj.set('fontStyle', isItalic ? 'normal' : 'italic');
-                this.classList.toggle('btn-primary', !isItalic);
-                this.classList.toggle('btn-outline-secondary', isItalic);
-                canvas.renderAll();
-            }
-        });
-    }
-
-    // --- BỘ STICKER ICON ---
-    document.querySelectorAll('.btn-sticker').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const emoji = this.getAttribute('data-sticker');
-            const stickerText = new fabric.Text(emoji, {
-                left: canvas.width / 2 - 20,
-                top: canvas.height / 2 - 20,
-                fontSize: 45,
-                cornerStyle: 'circle'
-            });
-            canvas.add(stickerText);
-            canvas.setActiveObject(stickerText);
-            canvas.renderAll();
-        });
-    });
-
-    // --- TÙY CHỈNH ĐỐI TƯỢNG ĐANG CHỌN (XÓA / ĐỘ TRONG SUỐT) ---
-    const opacitySlider = document.getElementById('opacitySlider');
-    if (opacitySlider) {
-        opacitySlider.addEventListener('input', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj) {
-                activeObj.set('opacity', parseFloat(this.value));
-                canvas.renderAll();
-            }
-        });
-    }
-
-    const btnDeleteObject = document.getElementById('btnDeleteObject');
-    if (btnDeleteObject) {
-        btnDeleteObject.addEventListener('click', function () {
-            const activeObj = canvas.getActiveObject();
-            if (activeObj) {
-                canvas.remove(activeObj);
-                canvas.discardActiveObject();
-                canvas.renderAll();
-            }
-        });
-    }
-
-    // Lắng nghe sự kiện click đối tượng để đồng bộ thanh công cụ
-    canvas.on('selection:created', updateSelectionUI);
-    canvas.on('selection:updated', updateSelectionUI);
-
-    function updateSelectionUI(e) {
-        const activeObj = e.selected[0];
-        if (activeObj) {
-            if (opacitySlider) opacitySlider.value = activeObj.opacity || 1;
-            if (activeObj.isType('i-text') && fontSizeInput) {
-                fontSizeInput.value = activeObj.fontSize;
-            }
+    // 2. TỰ ĐỘNG CẬP NHẬT CHỮ / FONT / MÀU SẮC CHO PHẦN TỬ ĐANG CHỌN
+    inputMessage.addEventListener("input", function () {
+        if (activeElement) {
+            const textSpan = activeElement.querySelector(".text-content");
+            if (textSpan) textSpan.textContent = this.value || "Lời chúc...";
         }
-    }
+    });
 
-    // --- UPLOAD ẢNH CÁ NHÂN & XUẤT PNG ---
-    const imageUploader = document.getElementById('imageUploader');
-    if (imageUploader) {
-        imageUploader.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
+    selectFont.addEventListener("change", function () {
+        if (activeElement) activeElement.style.fontFamily = this.value;
+    });
 
-            const reader = new FileReader();
-            reader.onload = function (f) {
-                fabric.Image.fromURL(f.target.result, function (img) {
-                    img.scaleToWidth(130);
-                    img.set({
-                        left: 260,
-                        top: 260,
-                        cornerStyle: 'circle'
-                    });
-                    canvas.add(img);
-                    canvas.setActiveObject(img);
-                });
-            };
-            reader.readAsDataURL(file);
+    inputColor.addEventListener("input", function () {
+        if (activeElement) activeElement.style.color = this.value;
+    });
+
+    // 3. THÊM KHUNG CHỮ MỚI
+    btnAddText.addEventListener("click", function () {
+        const newDiv = document.createElement("div");
+        newDiv.className = "draggable-element position-absolute p-1 text-center";
+        newDiv.style.cssText = "top: 20px; left: 20px; color: #000; font-family: Arial; font-size: 18px; cursor: move; user-select: none; background: rgba(255,255,255,0.5);";
+        newDiv.innerHTML = `<span class="text-content">Lời chúc mới</span>`;
+
+        cardArea.appendChild(newDiv);
+        makeDraggable(newDiv);
+        newDiv.dispatchEvent(new Event("mousedown"));
+    });
+
+    // 4. CHỌN VÀ THÊM STICKER
+    document.querySelectorAll(".sticker-opt").forEach(sticker => {
+        sticker.addEventListener("click", function () {
+            const emoji = this.textContent;
+            const stickerDiv = document.createElement("div");
+            stickerDiv.className = "draggable-element position-absolute";
+            stickerDiv.style.cssText = "top: 50px; left: 50px; font-size: 35px; cursor: move; user-select: none;";
+            stickerDiv.innerHTML = `<span>${emoji}</span>`;
+
+            cardArea.appendChild(stickerDiv);
+            makeDraggable(stickerDiv);
         });
-    }
+    });
 
-    const btnExport = document.getElementById('btnExport');
-    if (btnExport) {
-        btnExport.addEventListener('click', function () {
-            const dataURL = canvas.toDataURL({ format: 'png', quality: 1 });
-            const link = document.createElement('a');
-            link.download = 'Thiệp_EGreeting.png';
-            link.href = dataURL;
-            link.click();
-        });
-    }
+    // 5. XÓA VẬT THỂ ĐANG CHỌN
+    btnClearCanvas.addEventListener("click", function () {
+        if (activeElement && cardArea.children.length > 1) {
+            activeElement.remove();
+            activeElement = null;
+        }
+    });
 
-    // --- NHẠC NỀN MP3 ---
-    const bgAudio = document.getElementById('bgAudio');
-    const musicUploader = document.getElementById('musicUploader');
-    const btnToggleMusic = document.getElementById('btnToggleMusic');
-    const musicStatus = document.getElementById('musicStatus');
+    // 6. PHÁT NHẠC
+    selectAudio.addEventListener("change", function () {
+        if (this.value) {
+            audioPlayer.src = this.value;
+            audioPlayer.classList.remove("d-none");
+            audioPlayer.play();
+        } else {
+            audioPlayer.pause();
+            audioPlayer.classList.add("d-none");
+        }
+    });
 
-    if (musicUploader && bgAudio && btnToggleMusic && musicStatus) {
-        musicUploader.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
+    // 7. GỬI DỮ LIỆU VỀ BE (SaveCardConfig)
+    btnSaveCard.addEventListener("click", async function () {
+        const recipientEmail = document.getElementById("input-recipient").value.trim();
+        const subject = document.getElementById("input-subject").value.trim();
 
-            const audioUrl = URL.createObjectURL(file);
-            bgAudio.src = audioUrl;
+        if (!recipientEmail) {
+            alert("Vui lòng nhập Email người nhận!");
+            return;
+        }
 
-            bgAudio.play().then(() => {
-                btnToggleMusic.classList.remove('d-none');
-                musicStatus.innerText = "Tắt Nhạc";
-                btnToggleMusic.className = "btn btn-outline-primary btn-sm rounded-pill py-0 px-2";
-            }).catch(() => {
-                btnToggleMusic.classList.remove('d-none');
-                musicStatus.innerText = "Bật Nhạc";
-                btnToggleMusic.className = "btn btn-outline-secondary btn-sm rounded-pill py-0 px-2";
+        const payload = {
+            templateId: 1,
+            recipientEmail: recipientEmail,
+            subject: subject,
+            message: inputMessage.value,
+            audioUrl: selectAudio.value
+        };
+
+        try {
+            btnSaveCard.disabled = true;
+            btnSaveCard.innerText = "Đang lưu...";
+
+            const response = await fetch("/Card/SaveCardConfig", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
-        });
 
-        btnToggleMusic.addEventListener('click', function () {
-            if (!bgAudio.paused) {
-                bgAudio.pause();
-                musicStatus.innerText = "Bật Nhạc";
-                this.className = "btn btn-outline-secondary btn-sm rounded-pill py-0 px-2";
+            const result = await response.json();
+            if (result.success) {
+                alert("Đã lưu thiệp thành công!");
             } else {
-                bgAudio.play().then(() => {
-                    musicStatus.innerText = "Tắt Nhạc";
-                    this.className = "btn btn-outline-primary btn-sm rounded-pill py-0 px-2";
-                });
+                alert("Lỗi: " + result.message);
             }
-        });
-    }
+        } catch (err) {
+            alert("Lỗi kết nối Server!");
+        } finally {
+            btnSaveCard.disabled = false;
+            btnSaveCard.innerText = "Lưu & Gửi Thiệp";
+        }
+    });
 });

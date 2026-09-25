@@ -1,62 +1,93 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using E_Greeting.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace E_Greeting.Controllers;
 
-// Class DTO định kiểu rõ ràng cho Thiệp
-public class CardModel
+// DTO chứa dữ liệu cấu hình thiệp từ FE gửi lên
+public class SaveCardRequest
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string ImagePath { get; set; } = string.Empty;
-}
-
-// Class DTO nhận dữ liệu gửi thiệp
-public class SendCardRequest
-{
-    public int CardId { get; set; }
+    public int TemplateId { get; set; }
     public string RecipientEmail { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
-    public string? AudioUrl { get; set; } // Đường dẫn file MP3
+    public string? AudioUrl { get; set; }
+    public string? FontStyle { get; set; }
+    public string? TextColor { get; set; }
 }
 
 public class CardController : Controller
 {
+    private readonly AppDbContext _context;
+
+    public CardController(AppDbContext context) => _context = context;
+
     // GET: /Card/Personalize/1
+    [HttpGet]
     public IActionResult Personalize(int id)
     {
-        // Khởi tạo danh sách thiệp mẫu
-        List<CardModel> cards = new()
+        // Tạo mẫu thiệp giả tạm thời để test giao diện Frontend không lo bị treo SQL
+        var template = new Template
         {
-            new CardModel { Id = 1, Name = "Sinh Nhật Ngọt Ngào", ImagePath = "https://picsum.photos/800/600?random=1" },
-            new CardModel { Id = 2, Name = "Thiệp Cưới Sang Trọng", ImagePath = "https://picsum.photos/800/600?random=2" },
-            new CardModel { Id = 3, Name = "Thiệp Mời Tiệc Tân Gia", ImagePath = "https://picsum.photos/800/600?random=3" },
-            new CardModel { Id = 4, Name = "Chúc Mừng Năm Mới 2026", ImagePath = "https://picsum.photos/800/600?random=4" },
-            new CardModel { Id = 5, Name = "Sinh Nhật Tuổi Hồng", ImagePath = "https://picsum.photos/800/600?random=5" },
-            new CardModel { Id = 6, Name = "Kỷ Niệm Ngày Cưới", ImagePath = "https://picsum.photos/800/600?random=6" },
-            new CardModel { Id = 7, Name = "Lễ Hội Mùa Xuân", ImagePath = "https://picsum.photos/800/600?random=7" },
-            new CardModel { Id = 8, Name = "Thiệp Tri Ân Đã Ghé Thăm", ImagePath = "https://picsum.photos/800/600?random=8" }
+            Id = id > 0 ? id : 1,
+            Name = "Thiệp Chúc Mừng Mẫu",
+            ImagePath = "https://picsum.photos/800/600?random=" + id
         };
 
-        // Lấy thiệp theo id, nếu không tìm thấy sẽ lấy thiệp đầu tiên
-        CardModel selectedCard = cards.FirstOrDefault(c => c.Id == id) ?? cards[0];
-
-        ViewBag.CardId = selectedCard.Id;
-        ViewBag.CardName = selectedCard.Name;
-        ViewBag.ImagePath = selectedCard.ImagePath;
-
-        return View();
+        return View(template);
     }
+    //[HttpPost]
+    //public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest request)
+    //{
+    //    if (request == null || string.IsNullOrWhiteSpace(request.RecipientEmail))
+    //    {
+    //        return Json(new { success = false, message = "Vui lòng nhập Email người nhận hợp lệ!" });
+    //    }
 
-    // POST: /Card/SendCard
+    //    try
+    //    {
+    //        // Lấy AccountId nếu người dùng đã đăng nhập
+    //        int accountId = 1; // Mặc định ID test nếu chưa bật cookie
+    //        if (User.Identity != null && User.Identity.IsAuthenticated)
+    //        {
+    //            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    //            if (int.TryParse(userIdClaim, out int parsedId)) accountId = parsedId;
+    //        }
+
+    //        var newSentCard = new SentCard
+    //        {
+    //            TemplateId = request.TemplateId > 0 ? request.TemplateId : 1,
+    //            AccountId = accountId,
+    //            RecipientEmail = request.RecipientEmail,
+    //            Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Bạn nhận được một thiệp chúc mừng!" : request.Subject,
+    //            Message = request.Message,
+    //            AudioPath = request.AudioUrl,
+    //            SentAt = DateTime.Now
+    //        };
+
+    //        _context.SentCards.Add(newSentCard);
+    //        await _context.SaveChangesAsync();
+
+    //        return Json(new { success = true, message = "Lưu thiệp thành công!", cardId = newSentCard.Id });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return Json(new { success = false, message = $"Lỗi lưu DB: {ex.Message}" });
+    //    }
+    //}
     [HttpPost]
-    public IActionResult SendCard([FromBody] SendCardRequest model)
+    public IActionResult SaveCardConfig([FromBody] SaveCardRequest request)
     {
-        if (model == null || string.IsNullOrWhiteSpace(model.RecipientEmail))
+        if (request == null || string.IsNullOrWhiteSpace(request.RecipientEmail))
         {
-            return Json(new { success = false, message = "Vui lòng nhập email người nhận hợp lệ!" });
+            return Json(new { success = false, message = "Vui lòng nhập Email người nhận hợp lệ!" });
         }
 
-        return Json(new { success = true, message = $"Thiệp đã được gửi thành công đến {model.RecipientEmail}!" });
+        // Trả về kết quả thành công ngay lập tức
+        return Json(new
+        {
+            success = true,
+            message = "Lưu & gửi thiệp thành công!",
+            cardId = 101
+        });
     }
 }
