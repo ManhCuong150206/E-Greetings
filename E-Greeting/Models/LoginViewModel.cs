@@ -3,11 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 public class LoginViewModel
 {
-    [Required(ErrorMessage = "Vui lòng nhập email")]
+    [Required(ErrorMessage = "Please enter your email")]
     [EmailAddress]
     public string Email { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
+    [Required(ErrorMessage = "Please enter your password")]
     [DataType(DataType.Password)]
     public string Password { get; set; }
 }

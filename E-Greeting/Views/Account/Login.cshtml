@@ -1,5 +1,6 @@
-﻿@{
-    ViewData["Title"] = "Đăng Nhập - E-Greeting";
+﻿@model LoginViewModel
+@{
+    ViewData["Title"] = "Login - E-Greeting";
 }
 
 <div class="row justify-content-center my-5">
@@ -9,8 +10,8 @@
                 <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex p-3 mb-2">
                     <i class="bi bi-box-arrow-in-right fs-2"></i>
                 </div>
-                <h3 class="fw-bold text-dark">Đăng Nhập</h3>
-                <p class="text-muted small">Truy cập tài khoản E-Greeting để quản lý và tạo thiệp</p>
+                <h3 class="fw-bold text-dark">Login</h3>
+                <p class="text-muted small">Access your E-Greeting account to manage and create cards</p>
             </div>
 
             @if (TempData["SuccessMessage"] != null)
@@ -32,30 +33,30 @@
             <form asp-controller="Account" asp-action="Login" method="post">
                 <div class="mb-3">
                     <label class="form-label fw-semibold"><i class="bi bi-envelope me-1"></i> Email</label>
-                    <input type="email" name="email" class="form-control rounded-3" placeholder="nhapemail@example.com" required>
+                    <input asp-for="Email" class="form-control rounded-3" placeholder="email@example.com" />
                 </div>
 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold mb-0"><i class="bi bi-lock me-1"></i> Mật khẩu</label>
-                        <a href="#" class="small text-decoration-none text-primary">Quên mật khẩu?</a>
+                        <label class="form-label fw-semibold mb-0"><i class="bi bi-lock me-1"></i> Password</label>
+                        <a href="#" class="small text-decoration-none text-primary">Forgot password?</a>
                     </div>
-                    <input type="password" name="password" class="form-control rounded-3" placeholder="••••••••" required>
+                    <input asp-for="Password" class="form-control rounded-3" placeholder="••••••••" />
                 </div>
 
                 <div class="form-check mb-4">
                     <input class="form-check-input" type="checkbox" name="rememberMe" value="true" id="rememberMe">
                     <label class="form-check-label small text-muted" for="rememberMe">
-                        Ghi nhớ đăng nhập
+                        Remember me
                     </label>
                 </div>
 
                 <button type="submit" class="btn btn-primary rounded-pill w-100 fw-semibold py-2 shadow-sm mb-3">
-                    Đăng Nhập
+                    Login
                 </button>
 
                 <div class="text-center small text-muted">
-                    Chưa có tài khoản?
+                    Don't have an account?
                     <a asp-controller="Account" asp-action="Register" class="fw-semibold text-primary text-decoration-none">Register here</a>
                 </div>
             </form>
