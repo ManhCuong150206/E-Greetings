@@ -36,12 +36,18 @@
 
                         <!-- CATEGORIES DROPDOWN chuẩn giao diện gốc -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link nav-link-custom dropdown-toggle" href="#" id="catDropdown" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link nav-link-custom dropdown-toggle" asp-controller="Category" asp-action="Index" id="catDropdown" role="button" data-bs-toggle="dropdown">
                                 CATEGORIES
                             </a>
                             <ul class="dropdown-menu border-0 shadow-sm rounded-3">
                                 <li>
-                                    <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="birthday">
+                                    <a class="dropdown-item py-2" asp-controller="theloai" asp-action="Index">
+                                       <i class="bi bi-border-width me-2 text-default"></i>All
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" asp-controller="theloai" asp-action="sinh-nhat">
+										@* asp-route-id="birthday" *@
                                         <i class="bi bi-cake2 me-2 text-warning"></i>Birthday
                                     </a>
                                 </li>
