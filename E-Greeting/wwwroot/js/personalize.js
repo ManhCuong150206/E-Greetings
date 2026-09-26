@@ -130,12 +130,18 @@
             return;
         }
 
+        // Bỏ viền nét đứt đang chọn trên vật thể trước khi lưu
+        document.querySelectorAll(".draggable-element").forEach(el => el.style.outline = "none");
+
+        // Lấy toàn bộ HTML canvas
+        const cardHtml = cardArea.innerHTML;
+
         const payload = {
             templateId: 1,
             recipientEmail: recipientEmail,
             subject: subject,
-            message: inputMessage.value,
-            audioUrl: selectAudio.value
+            audioUrl: selectAudio.value,
+            cardHtmlContent: cardHtml
         };
 
         try {
@@ -150,7 +156,20 @@
 
             const result = await response.json();
             if (result.success) {
-                alert("Đã lưu thiệp thành công!");
+                const fullCardLink = window.location.origin + result.cardUrl;
+
+                // Tự động copy link thiệp vào clipboard
+                try {
+                    await navigator.clipboard.writeText(fullCardLink);
+                } catch (e) {
+                    console.log("Chưa cấp quyền clipboard:", e);
+                }
+
+                // Thông báo thành công
+                alert("🎉 " + result.message + "\n\nLink thiệp đã được copy. Bấm OK để tới trang xem thiệp!");
+
+                // 🚀 CHUYỂN TRANG NGAY TRÊN TAB HIỆN TẠI (KHÔNG MỞ TAB MỚI)
+                window.location.href = result.cardUrl;
             } else {
                 alert("Lỗi: " + result.message);
             }

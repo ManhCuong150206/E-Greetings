@@ -1,23 +1,31 @@
 ﻿using E_Greeting.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 
 namespace E_Greeting.Controllers;
 
-// DTO chứa dữ liệu cấu hình thiệp từ FE gửi lên
+// DTO hứng toàn bộ dữ liệu giao diện từ FE
 public class SaveCardRequest
 {
     public int TemplateId { get; set; }
     public string RecipientEmail { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
     public string? AudioUrl { get; set; }
-    public string? FontStyle { get; set; }
-    public string? TextColor { get; set; }
+    public string CardHtmlContent { get; set; } = string.Empty; // Lưu toàn bộ HTML thiệp (chữ, font, màu, sticker, vị trí kéo thả)
+}
+
+public class ReplyRequest
+{
+    public int CardId { get; set; }
+    public string ReplyMessage { get; set; } = string.Empty;
 }
 
 public class CardController : Controller
 {
     private readonly AppDbContext _context;
+
+    // Bộ nhớ tạm lưu thiệp trên Server
+    private static readonly ConcurrentDictionary<int, SaveCardRequest> _cardMemoryStore = new();
 
     public CardController(AppDbContext context) => _context = context;
 
@@ -25,7 +33,6 @@ public class CardController : Controller
     [HttpGet]
     public IActionResult Personalize(int id)
     {
-        // Tạo mẫu thiệp giả tạm thời để test giao diện Frontend không lo bị treo SQL
         var template = new Template
         {
             Id = id > 0 ? id : 1,
@@ -35,45 +42,8 @@ public class CardController : Controller
 
         return View(template);
     }
-    //[HttpPost]
-    //public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest request)
-    //{
-    //    if (request == null || string.IsNullOrWhiteSpace(request.RecipientEmail))
-    //    {
-    //        return Json(new { success = false, message = "Vui lòng nhập Email người nhận hợp lệ!" });
-    //    }
 
-    //    try
-    //    {
-    //        // Lấy AccountId nếu người dùng đã đăng nhập
-    //        int accountId = 1; // Mặc định ID test nếu chưa bật cookie
-    //        if (User.Identity != null && User.Identity.IsAuthenticated)
-    //        {
-    //            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    //            if (int.TryParse(userIdClaim, out int parsedId)) accountId = parsedId;
-    //        }
-
-    //        var newSentCard = new SentCard
-    //        {
-    //            TemplateId = request.TemplateId > 0 ? request.TemplateId : 1,
-    //            AccountId = accountId,
-    //            RecipientEmail = request.RecipientEmail,
-    //            Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Bạn nhận được một thiệp chúc mừng!" : request.Subject,
-    //            Message = request.Message,
-    //            AudioPath = request.AudioUrl,
-    //            SentAt = DateTime.Now
-    //        };
-
-    //        _context.SentCards.Add(newSentCard);
-    //        await _context.SaveChangesAsync();
-
-    //        return Json(new { success = true, message = "Lưu thiệp thành công!", cardId = newSentCard.Id });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return Json(new { success = false, message = $"Lỗi lưu DB: {ex.Message}" });
-    //    }
-    //}
+    // POST: Lưu cấu hình thiệp
     [HttpPost]
     public IActionResult SaveCardConfig([FromBody] SaveCardRequest request)
     {
@@ -82,12 +52,57 @@ public class CardController : Controller
             return Json(new { success = false, message = "Vui lòng nhập Email người nhận hợp lệ!" });
         }
 
-        // Trả về kết quả thành công ngay lập tức
+        int newCardId = new Random().Next(1000, 9999);
+        _cardMemoryStore[newCardId] = request;
+
+        string viewUrl = $"/Card/ViewCard/{newCardId}";
+
         return Json(new
         {
             success = true,
             message = "Lưu & gửi thiệp thành công!",
-            cardId = 101
+            cardId = newCardId,
+            cardUrl = viewUrl
+        });
+    }
+
+    // GET: /Card/ViewCard/1024
+    [HttpGet]
+    public IActionResult ViewCard(int id)
+    {
+        if (_cardMemoryStore.TryGetValue(id, out var card))
+        {
+            ViewBag.CardId = id;
+            ViewBag.SenderEmail = card.RecipientEmail;
+            ViewBag.AudioUrl = card.AudioUrl ?? "";
+            ViewBag.CardHtmlContent = card.CardHtmlContent; // Đưa nguyên vẹn HTML sang View
+            ViewBag.OpenAt = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+        }
+        else
+        {
+            ViewBag.CardId = id;
+            ViewBag.SenderEmail = "nguoidung@example.com";
+            ViewBag.AudioUrl = "";
+            ViewBag.CardHtmlContent = "<div class='p-4 text-center text-muted'>Thiệp không tồn tại hoặc đã hết hạn.</div>";
+            ViewBag.OpenAt = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+        }
+
+        return View();
+    }
+
+    // POST: Lời cảm ơn từ người nhận
+    [HttpPost]
+    public IActionResult ReplyCard([FromBody] ReplyRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.ReplyMessage))
+        {
+            return Json(new { success = false, message = "Vui lòng nhập nội dung cảm ơn!" });
+        }
+
+        return Json(new
+        {
+            success = true,
+            message = "Đã gửi lời cảm ơn đến người tặng thiệp!"
         });
     }
 }
