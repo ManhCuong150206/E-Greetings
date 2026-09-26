@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using E_Greeting.Models;
+using System.Linq;
 
 public class AdminController : Controller
 {
@@ -10,10 +12,13 @@ public class AdminController : Controller
         _context = context;
     }
 
-    // Lấy danh sách Category
+    // Hiển thị danh sách Category & Template
     public IActionResult Index()
     {
-        var categories = _context.Categories.ToList();
+        var categories = _context.Categories
+            .Include(c => c.Templates)
+            .ToList();
+
         return View(categories);
     }
 
@@ -25,12 +30,13 @@ public class AdminController : Controller
         {
             _context.Categories.Add(category);
             _context.SaveChanges();
+            TempData["SuccessMessage"] = "Thêm danh mục thành công!";
             return RedirectToAction(nameof(Index));
         }
-        return View(category);
+        return View(nameof(Index), _context.Categories.Include(c => c.Templates).ToList());
     }
 
-    // 1. Hiển thị Form Sửa Category
+    // Hiển thị Form Sửa Category
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -39,7 +45,7 @@ public class AdminController : Controller
         return View(category);
     }
 
-    // 2. Xử lý Cập nhật Category vào CSDL
+    // Cập nhật Category
     [HttpPost]
     public IActionResult Edit(Category category)
     {
@@ -47,12 +53,13 @@ public class AdminController : Controller
         {
             _context.Categories.Update(category);
             _context.SaveChanges();
+            TempData["SuccessMessage"] = "Cập nhật danh mục thành công!";
             return RedirectToAction(nameof(Index));
         }
         return View(category);
     }
 
-    // 3. Xử lý Xóa Category
+    // Xóa Category
     [HttpPost]
     public IActionResult Delete(int id)
     {
@@ -61,6 +68,7 @@ public class AdminController : Controller
         {
             _context.Categories.Remove(category);
             _context.SaveChanges();
+            TempData["SuccessMessage"] = "Xóa danh mục thành công!";
         }
         return RedirectToAction(nameof(Index));
     }
