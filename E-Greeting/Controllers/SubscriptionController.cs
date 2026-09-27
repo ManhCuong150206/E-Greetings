@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using E_Greeting.Models;
+using E_Greeting.Service;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace E_Greeting.Controllers;
 
@@ -9,80 +14,126 @@ public class SubscriptionModel
     public decimal Price { get; set; }
     public string Duration { get; set; } = "tháng";
     public List<string> Features { get; set; } = new();
-    public bool IsPopular { get; set; } = false;
 }
 
 public class SubscriptionController : Controller
 {
-    // GET: /Subscription
+    private readonly IServiceService _serviceService;
+    private readonly AppDbContext _context;
+    private readonly IConfiguration _config;
+
+    public SubscriptionController(IServiceService serviceService, AppDbContext context, IConfiguration config)
+    {
+        _serviceService = serviceService;
+        _context = context;
+        _config = config;
+    }
+
     public IActionResult Index()
     {
-        var plans = new List<SubscriptionModel>
-        {
-            new() {
-                Id = 1,
-                Name = "Gói Cơ Bản (Basic)",
-                Price = 0,
-                Duration = "Miễn phí",
-                Features = new List<string>
-                {
-                    "Gửi tối đa 5 thiệp/tháng",
-                    "Sử dụng mẫu thiệp cơ bản",
-                    "Đính kèm Logo E-Greeting",
-                    "Hỗ trợ qua Email"
-                },
-                IsPopular = false
-            },
-            new() {
-                Id = 2,
-                Name = "Gói Cao Cấp (Premium)",
-                Price = 99000,
-                Duration = "tháng",
-                Features = new List<string>
-                {
-                    "Gửi thiệp KHÔNG GIỚI HẠN",
-                    "Mở khóa toàn bộ mẫu VIP",
-                    "Tự động gửi thiệp theo lịch hẹn",
-                    "Xóa bỏ Logo / Watermark",
-                    "Hỗ trợ ưu tiên 24/7"
-                },
-                IsPopular = true
-            },
-            new() {
-                Id = 3,
-                Name = "Gói Doanh Nghiệp (Pro)",
-                Price = 299000,
-                Duration = "tháng",
-                Features = new List<string>
-                {
-                    "Tất cả tính năng gói Premium",
-                    "Chèn logo thương hiệu riêng",
-                    "Gửi thiệp hàng loạt qua danh sách Email",
-                    "Báo cáo chi tiết lượt mở thiệp",
-                    "Hỗ trợ kỹ thuật riêng 1-1"
-                },
-                IsPopular = false
-            }
-        };
-
-        // Chỉ định trực tiếp đường dẫn View để tránh lỗi Cache tìm file
+        var plans = _serviceService.GetAllPlans();
         return View("~/Views/Subscription/Index.cshtml", plans);
     }
 
-    // POST: /Subscription/Subscribe
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Subscribe(int planId)
     {
-        if (User.Identity != null && !User.Identity.IsAuthenticated)
+        if (User.Identity == null || !User.Identity.IsAuthenticated)
         {
             TempData["ErrorMessage"] = "Bạn vui lòng đăng nhập trước khi đăng ký gói dịch vụ!";
             return RedirectToAction("Login", "Account");
         }
 
-        // TODO: Kết nối CSDL để lưu Subscriber/Subscription tại đây nếu cần
+        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        TempData["SuccessMessage"] = "Đăng ký gói dịch vụ thành công! Cảm ơn bạn đã tin tưởng E-Greeting.";
-        return RedirectToAction("Index");
+        if (planId == 0)
+        {
+            var freeSub = new Subscription
+            {
+                AccountId = accountId,
+                ServiceId = null,
+                StartDate = DateOnly.FromDateTime(DateTime.Now),
+                EndDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(1)),
+                IsActive = true
+            };
+            _context.Subscriptions.Add(freeSub);
+            _context.SaveChanges();
+
+            TempData["SuccessMessage"] = "Đã kích hoạt Gói Cơ Bản!";
+            return RedirectToAction("Index");
+        }
+
+        var service = _context.Services.Find(planId);
+        if (service == null)
+        {
+            TempData["ErrorMessage"] = "Gói dịch vụ không tồn tại.";
+            return RedirectToAction("Index");
+        }
+
+        var subscription = new Subscription
+        {
+            AccountId = accountId,
+            ServiceId = service.Id,
+            StartDate = DateOnly.FromDateTime(DateTime.Now),
+            EndDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(1)),
+            IsActive = false
+        };
+        _context.Subscriptions.Add(subscription);
+        _context.SaveChanges();
+
+        var payment = new Payment
+        {
+            SubscriptionId = subscription.Id,
+            Amount = service.Price,
+            PaymentDate = DateOnly.FromDateTime(DateTime.Now),
+            Status = "UNPAID",
+            PaymentMethod = "SePay"
+        };
+        _context.Payments.Add(payment);
+        _context.SaveChanges();
+
+        return RedirectToAction("Checkout", new { paymentId = payment.Id });
+    }
+
+    [Authorize]
+    public IActionResult Checkout(int paymentId)
+    {
+        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var payment = _context.Payments
+            .Include(p => p.Subscription)
+            .ThenInclude(s => s.Service)
+            .FirstOrDefault(p => p.Id == paymentId);
+
+        if (payment == null) return NotFound();
+        if (payment.Subscription.AccountId != accountId) return Forbid();
+
+        var code = $"DH{payment.Id}";
+        var bankAccount = _config["SePay:BankAccount"];
+        var bankShortName = _config["SePay:BankShortName"];
+
+        ViewBag.QrUrl = $"https://vietqr.app/img?acc={bankAccount}&bank={bankShortName}&amount={(long)payment.Amount}&des={code}";
+        ViewBag.BankAccount = bankAccount;
+        ViewBag.BankShortName = bankShortName;
+        ViewBag.Code = code;
+
+        return View(payment);
+    }
+
+    [Authorize]
+    [HttpGet]
+    public IActionResult CheckStatus(int paymentId)
+    {
+        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var payment = _context.Payments
+            .Include(p => p.Subscription)
+            .FirstOrDefault(p => p.Id == paymentId);
+
+        if (payment == null || payment.Subscription.AccountId != accountId)
+            return Json(new { status = "not_found" });
+
+        return Json(new { status = payment.Status });
     }
 }

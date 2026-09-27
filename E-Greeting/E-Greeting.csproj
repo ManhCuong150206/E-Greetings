@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>E_Greeting</RootNamespace>
+    <UserSecretsId>9a8cf38d-7e7f-4eeb-96d9-c0bf954d5226</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

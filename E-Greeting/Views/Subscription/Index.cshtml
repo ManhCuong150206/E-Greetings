@@ -23,13 +23,7 @@
         @foreach (var plan in Model)
         {
             <div class="col-lg-4 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 p-4 position-relative h-100 @(plan.IsPopular ? "border border-2 border-primary shadow" : "")">
-                    @if (plan.IsPopular)
-                    {
-                        <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-primary px-3 py-2 fs-7">
-                            <i class="bi bi-star-fill me-1"></i> Phổ Biến Nhất
-                        </span>
-                    }
+                <div class="card border-0 shadow-sm rounded-4 p-4 position-relative h-100">
 
                     <div class="text-center my-3">
                         <h4 class="fw-bold text-dark mb-3">@plan.Name</h4>
@@ -52,8 +46,8 @@
 
                     <form asp-controller="Subscription" asp-action="Subscribe" method="post" class="mt-auto">
                         <input type="hidden" name="planId" value="@plan.Id" />
-                        <button type="submit" class="btn @(plan.IsPopular ? "btn-primary" : "btn-outline-primary") rounded-pill w-100 fw-semibold py-2">
-                            @(plan.Price == 0 ? "Sử Dụng Miễn Phí" : "Đăng Ký Ngay")
+                        <button type="submit" class="btn btn-outline-primary rounded-pill w-100 fw-semibold py-2">
+                            @(plan.Price == 0 ? "Bạn đang sử dụng" : "Đăng Ký Ngay")
                         </button>
                     </form>
                 </div>

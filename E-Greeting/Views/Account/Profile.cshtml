@@ -1,0 +1,61 @@
+﻿@model E_Greeting.Models.Account
+@{
+    ViewData["Title"] = "Quản lý Hồ Sơ Cá Nhân";
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h3 class="mb-4 text-primary"><i class="bi bi-person-circle"></i> Hồ Sơ Cá Nhân</h3>
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+
+            <!-- FORM 1: SỬA HỌ TÊN -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white font-weight-bold">Thông tin tài khoản</div>
+                <div class="card-body">
+                    <form asp-action="UpdateProfile" method="post">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Email (Không thể sửa)</label>
+                            <input value="@Model.Email" class="form-control" readonly />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Họ và tên</label>
+                            <input type="text" name="name" value="@Model.Name" class="form-control" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu Thay Đổi</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- FORM 2: ĐỔI MẬT KHẨU -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white font-weight-bold text-danger">Đổi Mật Khẩu</div>
+                <div class="card-body">
+                    <form asp-action="ChangePassword" method="post">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Mật khẩu hiện tại</label>
+                            <input type="password" name="currentPassword" class="form-control" required />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Mật khẩu mới</label>
+                            <input type="password" name="newPassword" class="form-control" required />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label class="form-label">Xác nhận mật khẩu mới</label>
+                            <input type="password" name="confirmPassword" class="form-control" required />
+                        </div>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-key"></i> Đổi Mật Khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

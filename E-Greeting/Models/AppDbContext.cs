@@ -37,7 +37,6 @@ public partial class AppDbContext : DbContext
     {
         // Để trống hàm này để Entity Framework dùng chuỗi kết nối từ Program.cs
     }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Account>(entity =>
@@ -190,6 +189,7 @@ public partial class AppDbContext : DbContext
             entity.ToTable("Service");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Features).HasColumnName("features");
             entity.Property(e => e.Name)
                 .HasMaxLength(255)
                 .IsUnicode(false)

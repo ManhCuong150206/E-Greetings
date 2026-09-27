@@ -1,5 +1,6 @@
 using E_Greeting.Models;
 using E_Greeting.Service;
+using E_Greeting.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Cấu hình Services
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -14,6 +16,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
 
+<<<<<<< HEAD
+builder.Services.AddScoped<IServiceService, ServiceService>();
+// Add services to the container.
+=======
+>>>>>>> eb24f6b9f1929a4c9cbd3ea3f8ee497dc2fde9a1
 builder.Services.AddControllersWithViews();
 
 // Kết nối SQL Server
