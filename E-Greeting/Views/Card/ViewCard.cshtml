@@ -1,0 +1,64 @@
+﻿@{
+    ViewData["Title"] = "Thiệp Chúc Mừng Dành Cho Bạn";
+    var senderInfo = ViewBag.SenderName ?? ViewBag.SenderEmail ?? "Người bạn thân";
+}
+
+<div class="container my-5 text-center" style="max-width: 650px;">
+    <!-- THÔNG BÁO TỪ NGƯỜI GỬI -->
+    <div class="mb-3">
+        <span class="badge bg-danger fs-6 px-3 py-2">🎁 Bạn nhận được một tấm thiệp từ @senderInfo</span>
+        <p class="text-muted small mt-2">Đã mở lúc: @ViewBag.OpenAt</p>
+    </div>
+
+    <!-- KHUNG HIỂN THỊ THIỆP (KHỚP 100% GIAO DIỆN CHỈNH SỬA) -->
+    <div class="card shadow-lg border-0 overflow-hidden position-relative mx-auto rounded-3"
+         style="width: 100%; height: 400px; background-color: #000;">
+
+        @if (!string.IsNullOrEmpty(ViewBag.CardHtmlContent as string))
+        {
+            <!-- Render toàn bộ nội dung canvas (tất cả các khung chữ, sticker, font, màu sắc) -->
+            @Html.Raw(ViewBag.CardHtmlContent)
+        }
+        else
+        {
+            <!-- Dữ liệu dự phòng nếu chưa có HTML canvas -->
+            <img src="@ViewBag.ImagePath" class="w-100 h-100" style="object-fit: cover; opacity: 0.9;" alt="Card background" />
+
+            <div class="position-absolute top-50 start-50 translate-middle w-75 p-3 rounded"
+                 style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(4px);">
+                <p class="mb-0" style="font-family: @ViewBag.FontFamily; color: @ViewBag.Color; font-size: 22px; font-weight: bold;">
+                    @ViewBag.Message
+                </p>
+            </div>
+        }
+    </div>
+
+    <!-- TRÌNH PHÁT NHẠC NỀN -->
+    @if (!string.IsNullOrEmpty(ViewBag.AudioUrl as string))
+    {
+        <div class="my-4 p-3 bg-light rounded shadow-sm d-flex align-items-center justify-content-center gap-3">
+            <span>🎵 Nhạc nền thiệp:</span>
+            <audio id="card-audio" controls autoplay loop style="height: 35px;">
+                <source src="@ViewBag.AudioUrl" type="audio/mpeg">
+            </audio>
+        </div>
+    }
+
+    <hr class="my-4" />
+
+    <!-- HẠNG MỤC 3: FORM GỬI LỜI CẢM ƠN (RECIPIENT INTERACTION) -->
+    <div class="card p-4 shadow-sm text-start bg-white rounded-3">
+        <h5 class="card-title text-primary mb-3">💌 Gửi lời cảm ơn / Phản hồi</h5>
+        <div class="mb-3">
+            <textarea id="reply-message" class="form-control" rows="3"
+                      placeholder="Cảm ơn bạn vì tấm thiệp rất đáng yêu này..."></textarea>
+        </div>
+        <button id="btn-send-reply" class="btn btn-primary w-100 fw-bold py-2">
+            Gửi Phản Hồi
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/view-card.js"></script>
+}
