@@ -14,6 +14,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
 
+builder.Services.AddScoped<IServiceService, ServiceService>();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

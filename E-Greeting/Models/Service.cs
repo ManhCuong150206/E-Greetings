@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace E_Greeting.Models;
+﻿namespace E_Greeting.Models;
 
 public partial class Service
 {
@@ -10,6 +7,8 @@ public partial class Service
     public string Name { get; set; } = null!;
 
     public decimal Price { get; set; }
+
+    public string? Features { get; set; }
 
     public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 }
