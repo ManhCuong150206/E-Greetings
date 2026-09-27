@@ -13,7 +13,7 @@
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
@@ -32,7 +32,7 @@
         </form>
     </div>
 
-    <!-- Bảng hiển thị danh sách Category -->
+    <!-- Bảng danh sách Category -->
     <div class="card shadow-sm rounded-3">
         <div class="card-body p-0">
             <table class="table table-hover table-striped align-middle mb-0">
@@ -40,7 +40,7 @@
                     <tr>
                         <th width="80">ID</th>
                         <th>Tên Danh Mục</th>
-                        <th>Danh sách Template trực thuộc</th>
+                        <th class="text-center">Quản lý Mẫu Thiệp</th>
                         <th width="200" class="text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -51,26 +51,13 @@
                             <td class="fw-bold">#@item.Id</td>
                             <td class="fw-semibold">@item.Name</td>
 
-                            <!-- Danh sách Template trực thuộc -->
-                            <td>
-                                @if (item.Templates != null && item.Templates.Any())
-                                {
-                                    <div class="d-flex flex-wrap gap-1">
-                                        @foreach (var tpl in item.Templates)
-                                        {
-                                            <span class="badge bg-info text-dark p-2">
-                                                <i class="bi bi-card-image me-1"></i>Template #@tpl.Id
-                                            </span>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small">Chưa có mẫu thiệp nào</span>
-                                }
+                            <!-- Action Chuyển hướng tới danh sách Template của Category này -->
+                            <td class="text-center">
+                                <a asp-action="Templates" asp-route-categoryId="@item.Id" class="btn btn-sm btn-outline-info rounded-pill fw-semibold">
+                                    <i class="bi bi-images me-1"></i> Xem danh sách (@(item.Templates?.Count ?? 0) Template)
+                                </a>
                             </td>
 
-                            <!-- Cột Thao tác CRUD -->
                             <td class="text-center">
                                 <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning me-1 fw-semibold">
                                     <i class="bi bi-pencil-square"></i> Sửa

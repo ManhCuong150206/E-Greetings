@@ -1,0 +1,70 @@
+﻿@model IEnumerable<E_Greeting.Models.Template>
+
+@{
+    ViewData["Title"] = "Danh sách Template - " + ViewBag.CategoryName;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4><i class="bi bi-images text-primary"></i> Quản lý Template thuộc Danh mục: <span class="text-primary">@ViewBag.CategoryName</span></h4>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary me-2 rounded-pill">
+                <i class="bi bi-arrow-left"></i> Quay lại Category
+            </a>
+            <a asp-action="CreateTemplate" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-success rounded-pill fw-semibold">
+                <i class="bi bi-plus-lg me-1"></i> Thêm Template Mới (Canvas Editor)
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3 mt-2">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var item in Model)
+            {
+                <!-- Đọc đường dẫn Ảnh Đại Diện từ ConfigData JSON (Nếu không có thì dùng ImagePath) -->
+                string displayThumb = item.ImagePath;
+                if (!string.IsNullOrWhiteSpace(item.ConfigData))
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(item.ConfigData);
+                        if (doc.RootElement.TryGetProperty("preview_thumbnail", out var thumbProp))
+                        {
+                            string jsonThumb = thumbProp.GetString();
+                            if (!string.IsNullOrWhiteSpace(jsonThumb)) displayThumb = jsonThumb;
+                        }
+                    }
+                    catch { }
+                }
+
+                <div class="col-md-3">
+                    <div class="card h-100 shadow-sm border-0">
+                        <img src="@displayThumb" class="card-img-top" style="height: 200px; object-fit: cover;" alt="@item.Name">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold">@item.Name</h6>
+                            <span class="badge @(item.IsFree ? "bg-success" : "bg-warning text-dark")">
+                                @(item.IsFree ? "Miễn Phí" : "Gói VIP")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="bi bi-folder-x fs-1"></i>
+                <p class="mt-2">Chưa có mẫu thiệp nào thuộc danh mục này.</p>
+            </div>
+        }
+    </div>
+</div>
