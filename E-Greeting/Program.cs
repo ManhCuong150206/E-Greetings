@@ -18,7 +18,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
 
+
 // Add services to the container.
+
+
+builder.Services.AddScoped<IServiceService, ServiceService>();
+
+
 builder.Services.AddControllersWithViews();
 
 // Kết nối SQL Server

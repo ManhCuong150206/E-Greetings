@@ -51,7 +51,7 @@ public class AccountController : Controller
             new(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new(ClaimTypes.Name, account.Name ?? account.Email),
             new(ClaimTypes.Email, account.Email), // Bổ sung Claim Email để tự động dùng khi gửi thiệp
-            new(ClaimTypes.Role, account.Role)
+            new(ClaimTypes.Role, account.Role.Trim().ToLower() == "admin" ? "Admin" : account.Role.Trim())
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
