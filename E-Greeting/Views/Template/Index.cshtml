@@ -1,0 +1,8 @@
+﻿ @model IEnumerable<Template>
+<h2>Tepmlate</h2>
+@foreach(var tem in Model)
+{
+	<h2>@tem.Name</h2>
+	<img src="@tem.ImagePath" width="120px" alt="@tem.ImagePath" />
+}
+
