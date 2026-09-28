@@ -1,17 +1,10 @@
 ﻿using E_Greeting.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization; 
 
-[Authorize(Roles = "Admin,ADMIN")] // CHẶN CHẶT CHẼ: Chỉ Admin mới được truy cập Controller này
+[Authorize(Roles = "Admin")] // CHẶN CHẶT CHẼ: Chỉ Admin mới được truy cập Controller này
 public class AdminController : Controller
 {
     private readonly AppDbContext _context;
@@ -55,8 +48,7 @@ public class AdminController : Controller
     public IActionResult Edit(int id)
     {
         var category = _context.Categories.Find(id);
-        if (category == null) return NotFound();
-        return View(category);
+        return category == null ? NotFound() : View(category);
     }
 
     [HttpPost]
@@ -163,14 +155,7 @@ public class AdminController : Controller
                 ["preview_thumbnail"] = thumbUrl
             };
 
-            if (root.TryGetProperty("elements", out var elementsProp))
-            {
-                configDict["elements"] = elementsProp;
-            }
-            else
-            {
-                configDict["elements"] = new object[] { };
-            }
+            configDict["elements"] = root.TryGetProperty("elements", out var elementsProp) ? elementsProp : (new object[] { });
 
             finalConfigJson = JsonSerializer.Serialize(configDict);
         }
