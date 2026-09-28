@@ -108,12 +108,13 @@ public class SubscriptionController : Controller
 
         if (payment == null) return NotFound();
         if (payment.Subscription.AccountId != accountId) return Forbid();
-
+        if (payment.Status == "PAID")
+            return RedirectToAction("Success", new { paymentId = payment.Id });
         var code = $"DH{payment.Id}";
         var bankAccount = _config["SePay:BankAccount"];
         var bankShortName = _config["SePay:BankShortName"];
 
-        ViewBag.QrUrl = $"https://vietqr.app/img?acc={bankAccount}&bank={bankShortName}&amount={(long)payment.Amount}&des={code}";
+        ViewBag.QrUrl = $"https://qr.sepay.vn/img?acc={bankAccount}&bank={bankShortName}&amount={(long)payment.Amount}&des={code}";
         ViewBag.BankAccount = bankAccount;
         ViewBag.BankShortName = bankShortName;
         ViewBag.Code = code;
@@ -135,5 +136,19 @@ public class SubscriptionController : Controller
             return Json(new { status = "not_found" });
 
         return Json(new { status = payment.Status });
+    }
+    [Authorize]
+    public IActionResult Success(int paymentId)
+    {
+        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var payment = _context.Payments
+            .Include(p => p.Subscription)
+            .ThenInclude(s => s.Service)
+            .FirstOrDefault(p => p.Id == paymentId);
+
+        return payment == null || payment.Subscription.AccountId != accountId || payment.Status != "PAID"
+            ? RedirectToAction("Index")
+            : View(payment);
     }
 }

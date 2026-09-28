@@ -1,4 +1,5 @@
 ﻿using E_Greeting.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 namespace E_Greeting.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("webhook/sepay")]
 public class SePayWebhookController : ControllerBase
 {
@@ -37,11 +39,9 @@ public class SePayWebhookController : ControllerBase
         if (data.transferType != "in" || string.IsNullOrEmpty(data.content))
             return Ok(new { success = true });
 
-        var match = Regex.Match(data.content, @"DH(\d+)");
-        if (!match.Success)
+        var match = Regex.Match(data.content, @"DH(\d+)", RegexOptions.IgnoreCase);
+        if (!match.Success || !int.TryParse(match.Groups[1].Value, out int paymentId))
             return Ok(new { success = true });
-
-        int paymentId = int.Parse(match.Groups[1].Value);
 
         var payment = _context.Payments
             .Include(p => p.Subscription)
@@ -49,9 +49,12 @@ public class SePayWebhookController : ControllerBase
 
         if (payment != null && data.transferAmount >= payment.Amount)
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
             payment.Status = "PAID";
-            payment.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
-            payment.Subscription?.IsActive = true;
+            payment.PaymentDate = today;
+            payment.Subscription.IsActive = true;
+            payment.Subscription.StartDate = today;
+            payment.Subscription.EndDate = today.AddMonths(1);
             _context.SaveChanges();
         }
 

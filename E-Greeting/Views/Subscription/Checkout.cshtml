@@ -1,5 +1,62 @@
-﻿pu@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model E_Greeting.Models.Payment
+
 @{
+    ViewData["Title"] = "Thanh toán - E-Greeting";
+}
+
+<div class="container my-4" style="max-width: 720px;">
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <h3 class="fw-bold text-center mb-1">Thanh toán gói @(Model.Subscription.Service?.Name)</h3>
+        <p class="text-center text-muted mb-4">Quét mã QR bằng app ngân hàng để thanh toán</p>
+
+        <div class="row g-4 align-items-center">
+            <div class="col-md-6 text-center">
+                <img src="@ViewBag.QrUrl" alt="QR thanh toán" class="img-fluid rounded-3 border" />
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr><td class="text-muted">Ngân hàng</td><td class="fw-semibold">@ViewBag.BankShortName</td></tr>
+                    <tr><td class="text-muted">Số tài khoản</td><td class="fw-semibold">@ViewBag.BankAccount</td></tr>
+                    <tr><td class="text-muted">Số tiền</td><td class="fw-bold text-primary">@Model.Amount.ToString("N0") VNĐ</td></tr>
+                    <tr><td class="text-muted">Nội dung</td><td class="fw-bold text-danger">@ViewBag.Code</td></tr>
+                </table>
+                <div class="alert alert-warning small mt-3 mb-0">
+                    Nhập <b>đúng nội dung chuyển khoản</b> để hệ thống tự xác nhận.
+                </div>
+            </div>
+        </div>
+
+        <div id="statusBox" class="text-center mt-4">
+            <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+            <span class="text-muted">Đang chờ thanh toán...</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const checkUrl = '@Url.Action("CheckStatus", "Subscription", new { paymentId = Model.Id })';
+        const successUrl = '@Url.Action("Success", "Subscription", new { paymentId = Model.Id })';
+        const maxMs = 10 * 60 * 1000;
+        const startTime = Date.now();
+
+        const timer = setInterval(async () => {
+            if (Date.now() - startTime > maxMs) {
+                clearInterval(timer);
+                document.getElementById('statusBox').innerHTML =
+                    '<span class="text-danger">Hết thời gian chờ. Nếu đã chuyển tiền, vui lòng tải lại trang.</span>';
+                return;
+            }
+            try {
+                const res = await fetch(checkUrl);
+                const data = await res.json();
+                if (data.status === 'PAID') {
+                    clearInterval(timer);
+                    document.getElementById('statusBox').innerHTML =
+                        '<span class="text-success fw-bold">Thanh toán thành công! Đang chuyển trang...</span>';
+                    setTimeout(() => window.location.href = successUrl, 1000);
+                }
+            } catch (e) { console.error(e); }
+        }, 3000);
+    </script>
 }
