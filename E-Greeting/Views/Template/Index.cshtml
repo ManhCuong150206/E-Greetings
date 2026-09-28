@@ -6,3 +6,7 @@
 	<img src="@tem.ImagePath" width="120px" alt="@tem.ImagePath" />
 }
 
+@foreach (var cate in ViewBag.Category)
+{
+	<button>@cate.Name</button>
+}

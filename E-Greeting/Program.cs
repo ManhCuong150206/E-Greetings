@@ -1,5 +1,6 @@
 using E_Greeting.Models;
 using E_Greeting.Service;
+using E_Greeting.Service.Categories;
 using E_Greeting.Service.Templates;
 using E_Greeting.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -12,6 +13,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<ITemplateService,TemplateService>();
+builder.Services.AddScoped<ICategoryService,CategoryService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

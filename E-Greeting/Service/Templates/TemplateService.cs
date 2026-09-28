@@ -7,7 +7,7 @@ namespace E_Greeting.Service.Templates
     {
         public async Task<IEnumerable<Template>> GetTemplates()
         {
-            return await context.Templates.ToListAsync();
+            return await context.Templates.Include(c => c.Category).ToListAsync();
         }
     }
 }
