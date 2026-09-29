@@ -138,6 +138,9 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.TemplateId).HasColumnName("template_id");
+            entity.Property(e => e.SubscriptionId).HasColumnName("subscription_id");
+
             entity.Property(e => e.AudioPath)
                 .HasMaxLength(255)
                 .IsUnicode(false)
@@ -165,19 +168,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Subject)
                 .HasMaxLength(255)
                 .HasColumnName("subject");
-            entity.Property(e => e.SubscriptionId).HasColumnName("subscription_id");
-            entity.Property(e => e.TemplateId).HasColumnName("template_id");
 
-            entity.HasOne(d => d.Account).WithMany(p => p.SentCards)
+            // Cấu hình các mối quan hệ (Relationships)
+            entity.HasOne(d => d.Account)
+                .WithMany(p => p.SentCards)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SentCard_Account");
 
-            entity.HasOne(d => d.Subscription).WithMany(p => p.SentCards)
+            entity.HasOne(d => d.Subscription)
+                .WithMany(p => p.SentCards)
                 .HasForeignKey(d => d.SubscriptionId)
                 .HasConstraintName("FK_SentCard_Subscription");
 
-            entity.HasOne(d => d.Template).WithMany(p => p.SentCards)
+            entity.HasOne(d => d.Template)
+                .WithMany(p => p.SentCards)
                 .HasForeignKey(d => d.TemplateId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SentCard_Template");
