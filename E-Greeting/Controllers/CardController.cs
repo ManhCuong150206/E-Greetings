@@ -15,6 +15,7 @@ public class SaveCardRequest
     public string Subject { get; set; } = string.Empty;
     public string? ImagePath { get; set; }
     public string? AudioPath { get; set; }
+    public string? SubscriptionId { get; set; }
     public string CardHtmlContent { get; set; } = string.Empty;
 }
 
@@ -148,7 +149,7 @@ public class CardController : Controller
     {
         // Nạp thông tin SentCard kèm theo Template
         var card = await _context.SentCards
-            .Include(c => c.Template)
+            .Include(c => c.TemplateId)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (card != null)
@@ -162,7 +163,7 @@ public class CardController : Controller
 
             // --- ĐÃ SỬA LẠI ĐÂY ---
             // ƯU TIÊN 1: Lấy ảnh nền gốc của Template mẫu (để giữ nguyên khung thiệp trang trí)
-            string bgImage = card.Template?.ImagePath;
+            string bgImage = card.TemplateId.HasValue ? _context.Templates.FirstOrDefault(t => t.Id == card.TemplateId.Value)?.ImagePath : null;
 
             // ƯU TIÊN 2: Nếu thiệp không thuộc Template nào thì mới dùng card.ImagePath
             if (string.IsNullOrEmpty(bgImage))

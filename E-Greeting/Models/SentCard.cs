@@ -13,7 +13,7 @@ public class SentCard
     public int? AccountId { get; set; }
     public virtual Account? Account { get; set; }
 
-    public int TemplateId { get; set; }
+    public int? TemplateId { get; set; }
 
     public int? SubscriptionId { get; set; }
 
@@ -33,7 +33,7 @@ public class SentCard
     public DateTime? SentAt { get; set; }
 
     [Column("open_at")]
-    public DateTime? OpenAt { get; set; }
+    public Boolean OpenAt { get; set; }
 
     [Column("recipient_reply")]
     public string? RecipientReply { get; set; }
