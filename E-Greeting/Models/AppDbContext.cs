@@ -35,8 +35,9 @@ public partial class AppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        // Để trống hàm này để Entity Framework dùng chuỗi kết nối từ Program.cs
+
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Account>(entity =>
@@ -256,13 +257,10 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("image_path");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.IsFree)
                 .HasDefaultValue(true)
                 .HasColumnName("is_free");
-            entity.Property(e => e.LayoutType)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("layout_type");
             entity.Property(e => e.Name)
                 .HasMaxLength(150)
                 .HasColumnName("name");

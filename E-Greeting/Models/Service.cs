@@ -1,4 +1,7 @@
-﻿namespace E_Greeting.Models;
+﻿using System;
+using System.Collections.Generic;
+
+namespace E_Greeting.Models;
 
 public partial class Service
 {

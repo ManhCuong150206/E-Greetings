@@ -13,11 +13,9 @@ public class SentCard
     public int? AccountId { get; set; }
     public virtual Account? Account { get; set; }
 
-    public int? TemplateId { get; set; }
-    public virtual Template? Template { get; set; }
+    public int TemplateId { get; set; }
 
     public int? SubscriptionId { get; set; }
-    public virtual Subscription? Subscription { get; set; }
 
     // --- Ánh xạ chính xác vào các cột Snake_case trong CSDL ---
     [Column("image_path", TypeName = "nvarchar(max)")]
