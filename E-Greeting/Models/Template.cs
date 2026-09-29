@@ -14,16 +14,16 @@ public partial class Template
     public string Name { get; set; } = null!;
 
     [Column("image_path")]
-    public string? ImagePath { get; set; }
+    public string ImagePath { get; set; } = null!;
 
     [Column("category_id")]
     public int CategoryId { get; set; }
 
     [Column("config_data")]
-    public string? ConfigData { get; set; }
+    public string? ConfigData { get; set; } 
 
     [Column("is_free")]
-    public bool IsFree { get; set; }
+    public bool IsFree { get; set; } = true;
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;

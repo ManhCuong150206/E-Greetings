@@ -15,8 +15,20 @@ public class HomeController : Controller
     // GET: / (Trang chủ)
     public async Task<IActionResult> Index()
     {
-        // Truy vấn danh sách mẫu thiệp từ CSDL
-        var templates = await _context.Templates.ToListAsync();
+        // 1. Chặn Admin vào giao diện User: Nếu tài khoản đang đăng nhập là Admin -> Chuyển thẳng tới Admin Dashboard
+        if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            if (User.IsInRole("Admin") || User.IsInRole("ADMIN"))
+            {
+                return RedirectToAction("Dashboard", "Admin"); // Đổi thành "Index" nếu action mặc định của AdminController là Index
+            }
+        }
+
+        // 2. Nếu là User bình thường hoặc Khách chưa đăng nhập -> Hiển thị danh sách Template
+        var templates = await _context.Templates
+            .Where(t => t.IsActive == true)
+            .ToListAsync();
+
         return View(templates);
     }
 
