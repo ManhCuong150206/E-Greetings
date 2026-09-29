@@ -148,9 +148,7 @@ public class CardController : Controller
     public async Task<IActionResult> ViewCard(int id)
     {
         // Nạp thông tin SentCard kèm theo Template
-        var card = await _context.SentCards
-            .Include(c => c.TemplateId)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        var card = await _context.SentCards.FirstOrDefaultAsync(c => c.Id == id);
 
         if (card != null)
         {
