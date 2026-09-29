@@ -257,16 +257,12 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("image_path");
-            entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.IsFree)
                 .HasDefaultValue(true)
                 .HasColumnName("is_free");
-<<<<<<< HEAD
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-=======
->>>>>>> dec44cdd333b59f91d6119fcc2bec2058dc871be
             entity.Property(e => e.Name)
                 .HasMaxLength(150)
                 .HasColumnName("name");

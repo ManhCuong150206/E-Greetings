@@ -3,17 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-<<<<<<< HEAD
 using System.Threading.Tasks;
 
 namespace E_Greeting.Controllers
-=======
-
-[Authorize(Roles = "Admin")] // CHẶN CHẶT CHẼ: Chỉ Admin mới được truy cập Controller này
-public class AdminController : Controller
->>>>>>> dec44cdd333b59f91d6119fcc2bec2058dc871be
 {
-    [Authorize(Roles = "Admin,ADMIN")]
+    [Authorize(Roles = "Admin,ADMIN")] // Phân quyền chỉ cho tài khoản Admin truy cập
     public class AdminController : Controller
     {
         private readonly AppDbContext _context;
@@ -21,91 +15,8 @@ public class AdminController : Controller
 
         public AdminController(AppDbContext context, IWebHostEnvironment environment)
         {
-<<<<<<< HEAD
             _context = context;
             _environment = environment;
-=======
-            _context.Categories.Add(category);
-            _context.SaveChanges();
-            TempData["SuccessMessage"] = "Thêm danh mục thành công!";
-            return RedirectToAction(nameof(Index));
-        }
-        return View(nameof(Index), _context.Categories.Include(c => c.Templates).ToList());
-    }
-
-    [HttpGet]
-    public IActionResult Edit(int id)
-    {
-        var category = _context.Categories.Find(id);
-        return category == null ? NotFound() : View(category);
-    }
-
-    [HttpPost]
-    public IActionResult Edit(Category category)
-    {
-        if (ModelState.IsValid)
-        {
-            _context.Categories.Update(category);
-            _context.SaveChanges();
-            TempData["SuccessMessage"] = "Cập nhật danh mục thành công!";
-            return RedirectToAction(nameof(Index));
-        }
-        return View(category);
-    }
-
-    [HttpPost]
-    public IActionResult Delete(int id)
-    {
-        var category = _context.Categories.Find(id);
-        if (category != null)
-        {
-            _context.Categories.Remove(category);
-            _context.SaveChanges();
-            TempData["SuccessMessage"] = "Xóa danh mục thành công!";
-        }
-        return RedirectToAction(nameof(Index));
-    }
-
-    // --- QUẢN LÝ TEMPLATE THEO CATEGORY ---
-
-    // Danh sách Template trực thuộc 1 Category
-    public IActionResult Templates(int categoryId)
-    {
-        var category = _context.Categories
-            .Include(c => c.Templates)
-            .FirstOrDefault(c => c.Id == categoryId);
-
-        if (category == null) return NotFound();
-
-        ViewBag.CategoryName = category.Name;
-        ViewBag.CategoryId = category.Id;
-        return View(category.Templates.ToList());
-    }
-
-    // GET: Form Thêm mới Template (Dùng Canvas Editor)
-    [HttpGet]
-    public IActionResult CreateTemplate(int categoryId)
-    {
-        ViewBag.CategoryId = categoryId;
-        ViewBag.Categories = _context.Categories.ToList();
-        return View();
-    }
-
-    // POST: Lưu Template Mới (Xử lý 2 Ảnh + Ghép JSON config_data)
-    [HttpPost]
-    public async Task<IActionResult> CreateTemplate(
-        int categoryId,
-        string name,
-        bool isFree,
-        IFormFile imageFile,       // 1. Ảnh Bìa Thô (Background Canvas)
-        IFormFile? thumbnailFile,  // 2. Ảnh Bìa Card (Preview Thumbnail)
-        string configData)
-    {
-        if (string.IsNullOrWhiteSpace(name) || imageFile == null)
-        {
-            TempData["ErrorMessage"] = "Vui lòng nhập tên Template và Upload Ảnh Bìa Thô!";
-            return RedirectToAction(nameof(CreateTemplate), new { categoryId });
->>>>>>> dec44cdd333b59f91d6119fcc2bec2058dc871be
         }
 
         // 1. Dashboard Mặc Định
@@ -195,7 +106,7 @@ public class AdminController : Controller
             return View();
         }
 
-        // POST: Lưu Template Mới
+        // POST: Lưu Template Mới (Xử lý 2 Ảnh + Ghép JSON config_data)
         [HttpPost]
         public async Task<IActionResult> CreateTemplate(
             int categoryId,
@@ -275,12 +186,8 @@ public class AdminController : Controller
                 IsActive = true
             };
 
-<<<<<<< HEAD
             _context.Templates.Add(template);
             await _context.SaveChangesAsync();
-=======
-            configDict["elements"] = root.TryGetProperty("elements", out var elementsProp) ? elementsProp : (new object[] { });
->>>>>>> dec44cdd333b59f91d6119fcc2bec2058dc871be
 
             TempData["SuccessMessage"] = "Tạo mẫu Template mới thành công!";
             return RedirectToAction(nameof(Templates), new { categoryId });
