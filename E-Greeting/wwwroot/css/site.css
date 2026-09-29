@@ -119,3 +119,89 @@ footer a {
         background: #0d6efd;
         color: white;
     }
+
+/* Container bao bọc toàn bộ khu vực sửa thiệp */
+.card-edit-wrapper {
+    width: 100%;
+    max-width: 850px; /* Độ rộng tối đa của khung thiệp */
+    margin: 0 auto;
+    background-color: #f1f3f5;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+/* Khung Canvas làm việc chính */
+#cardArea {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff;
+    overflow: hidden; /* Đảm bảo nội dung kéo thả không tràn ra ngoài */
+    border-radius: 8px;
+}
+
+    /* Thẻ <img> hiển thị hình nền thiệp */
+    #cardArea img.bg-card-img {
+        width: 100%;
+        height: auto;
+        max-height: 650px; /* Giới hạn chiều cao không vượt quá màn hình */
+        object-fit: contain; /* QUAN TRỌNG: Giữ nguyên tỷ lệ, hiển thị 100% bức ảnh không bị xén */
+        display: block;
+        margin: 0 auto;
+    }
+.draggable-text-box {
+    position: absolute;
+    background: transparent !important; /* Trong suốt hoàn toàn */
+    border: 1px dashed transparent;
+    padding: 6px 10px;
+    cursor: move;
+    user-select: none;
+    z-index: 2;
+    box-sizing: border-box;
+    min-width: 100px;
+    min-height: 40px;
+    resize: both; /* Cho phép kéo góc dưới phải để chỉnh kích thước khung */
+    overflow: auto; /* Cần thiết để kích hoạt tính năng resize của CSS */
+    word-wrap: break-word;
+    white-space: pre-wrap; /* Giữ nguyên các dòng ngắt nét */
+}
+
+    /* Hiệu ứng viền nét đứt màu xanh khi hover hoặc click chọn */
+    .draggable-text-box:hover,
+    .draggable-text-box.active {
+        border: 1.5px dashed #0d6efd !important;
+        outline: none;
+    }
+
+    /* Tay nắm kéo co dãn kích thước (Resize handle) ở góc dưới phải */
+    .draggable-text-box::-webkit-resizer {
+        background-color: #0d6efd;
+        border-radius: 2px;
+    }
+
+.draggable-text-box {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
+}
+
+    /* Triệt tiêu thanh cuộn trên mọi trình duyệt */
+    .draggable-text-box::-webkit-scrollbar,
+    .text-content::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+.draggable-text-box,
+.text-content {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+}

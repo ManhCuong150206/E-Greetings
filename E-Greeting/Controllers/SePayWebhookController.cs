@@ -1,21 +1,26 @@
 ﻿using E_Greeting.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 
 namespace E_Greeting.Controllers;
 
 [ApiController]
+[AllowAnonymous]
 [Route("webhook/sepay")]
 public class SePayWebhookController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
+    private readonly IMemoryCache _cache;
 
-    public SePayWebhookController(AppDbContext context, IConfiguration config)
+    public SePayWebhookController(AppDbContext context, IConfiguration config, IMemoryCache cache)
     {
         _context = context;
         _config = config;
+        _cache = cache;
     }
 
     public class SePayPayload
@@ -37,22 +42,34 @@ public class SePayWebhookController : ControllerBase
         if (data.transferType != "in" || string.IsNullOrEmpty(data.content))
             return Ok(new { success = true });
 
-        var match = Regex.Match(data.content, @"DH(\d+)");
-        if (!match.Success)
+        var match = Regex.Match(data.content, @"DH(\d+)", RegexOptions.IgnoreCase);
+        if (!match.Success || !int.TryParse(match.Groups[1].Value, out int paymentId))
             return Ok(new { success = true });
-
-        int paymentId = int.Parse(match.Groups[1].Value);
 
         var payment = _context.Payments
             .Include(p => p.Subscription)
             .FirstOrDefault(p => p.Id == paymentId && p.Status == "UNPAID");
 
-        if (payment != null && data.transferAmount >= payment.Amount)
+        if (payment != null)
         {
-            payment.Status = "PAID";
-            payment.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
-            payment.Subscription?.IsActive = true;
-            _context.SaveChanges();
+            bool hasCreatedAt = _cache.TryGetValue($"payment_created_{payment.Id}", out DateTime createdAt);
+            bool stillValid = hasCreatedAt && DateTime.Now <= createdAt.AddMinutes(2);
+
+            if (!stillValid)
+            {
+                payment.Status = "EXPIRED";
+                _context.SaveChanges();
+            }
+            else if (data.transferAmount >= payment.Amount)
+            {
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                payment.Status = "PAID";
+                payment.PaymentDate = today;
+                payment.Subscription.IsActive = true;
+                payment.Subscription.StartDate = today;
+                payment.Subscription.EndDate = today.AddMonths(1);
+                _context.SaveChanges();
+            }
         }
 
         return Ok(new { success = true });
