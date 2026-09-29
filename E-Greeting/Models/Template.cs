@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace E_Greeting.Models;
+﻿namespace E_Greeting.Models;
 
 public partial class Template
 {
@@ -13,11 +10,11 @@ public partial class Template
 
     public int CategoryId { get; set; }
 
-    public string? LayoutType { get; set; }
-
     public string? ConfigData { get; set; }
 
     public bool IsFree { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public virtual Category Category { get; set; } = null!;
 
