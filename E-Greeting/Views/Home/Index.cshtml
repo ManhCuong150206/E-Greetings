@@ -33,7 +33,7 @@
     <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
         <div class="row g-3 align-items-center">
             <!-- Ô Tìm Kiếm -->
-            <div class="col-lg-5 col-md-6">
+            <div class="col-lg-6 col-md-6">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
                     <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Tìm tên thiệp (ví dụ: Sinh nhật, Đám cưới...)" />
@@ -41,23 +41,13 @@
             </div>
 
             <!-- Lọc Theo Chủ Đề -->
-            <div class="col-lg-3 col-md-3">
+            <div class="col-lg-5 col-md-5">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">Tất cả chủ đề</option>
                     <option value="1">Sinh nhật (Birthday)</option>
                     <option value="2">Đám cưới (Wedding)</option>
                     <option value="3">Kỷ niệm (Anniversary)</option>
                     <option value="4">Lễ hội (Festivals)</option>
-                </select>
-            </div>
-
-            <!-- Lọc Theo Dáng Thiệp -->
-            <div class="col-lg-3 col-md-3">
-                <select id="typeFilter" class="form-select bg-light border-0 fw-medium">
-                    <option value="all">Tất cả dáng thiệp</option>
-                    <option value="vertical">Thiệp Dọc</option>
-                    <option value="horizontal">Thiệp Ngang</option>
-                    <option value="double">Thiệp Gấp 2 Trang</option>
                 </select>
             </div>
 
@@ -78,15 +68,13 @@
         {
             @foreach (var card in Model)
             {
-                // Chuẩn hóa dáng thiệp & danh mục để filter
-                var layoutType = string.IsNullOrWhiteSpace(card.LayoutType) ? "vertical" : card.LayoutType.ToLower();
+                // Chuẩn hóa danh mục & đường dẫn ảnh để filter
                 var categoryId = card.CategoryId.ToString();
                 var imgPath = string.IsNullOrEmpty(card.ImagePath) ? "/images/default-card.jpg" : card.ImagePath;
 
                 <div class="col card-item"
                      data-name="@card.Name?.ToLower()"
-                     data-category="@categoryId"
-                     data-type="@layoutType">
+                     data-category="@categoryId">
 
                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover position-relative">
                         <!-- Nhãn Miễn Phí / Trả Phí -->
@@ -94,7 +82,7 @@
                             @(card.IsFree ? "Miễn phí" : "Trả phí")
                         </span>
 
-                        <!-- Khung Chứa Ảnh (Tự điều chỉnh vừa vặn theo dáng thiệp) -->
+                        <!-- Khung Chứa Ảnh -->
                         <div class="card-img-container bg-light d-flex align-items-center justify-content-center p-2"
                              style="height: 280px; overflow: hidden;">
                             <img src="@imgPath"
@@ -105,10 +93,7 @@
 
                         <!-- Nội Dung Thiệp -->
                         <div class="card-body d-flex flex-column p-3">
-                            <h6 class="card-title fw-bold text-dark text-truncate mb-2">@card.Name</h6>
-                            <p class="card-text text-muted small mb-3">
-                                Kiểu dáng: <span class="badge bg-secondary opacity-75">@layoutType.ToUpper()</span>
-                            </p>
+                            <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
 
                             <!-- Nút Chọn Tạo Thiệp -->
                             <a href="/Card/Personalize/@card.Id" class="btn btn-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
@@ -152,7 +137,6 @@
         document.addEventListener("DOMContentLoaded", function () {
             const searchInput = document.getElementById("searchInput");
             const categoryFilter = document.getElementById("categoryFilter");
-            const typeFilter = document.getElementById("typeFilter");
             const btnReset = document.getElementById("btnReset");
             const cardItems = document.querySelectorAll(".card-item");
             const noResults = document.getElementById("noResults");
@@ -162,19 +146,16 @@
             function filterCards() {
                 const keyword = searchInput.value.toLowerCase().trim();
                 const selectedCategory = categoryFilter.value;
-                const selectedType = typeFilter.value;
                 let visibleCount = 0;
 
                 cardItems.forEach(item => {
                     const name = item.getAttribute("data-name") || "";
                     const category = item.getAttribute("data-category") || "";
-                    const type = item.getAttribute("data-type") || "";
 
                     const matchSearch = name.includes(keyword);
                     const matchCategory = (selectedCategory === "all" || category === selectedCategory);
-                    const matchType = (selectedType === "all" || type === selectedType);
 
-                    if (matchSearch && matchCategory && matchType) {
+                    if (matchSearch && matchCategory) {
                         item.classList.remove("d-none");
                         visibleCount++;
                     } else {
@@ -192,13 +173,11 @@
             // Gán sự kiện bộ lọc
             if (searchInput) searchInput.addEventListener("keyup", filterCards);
             if (categoryFilter) categoryFilter.addEventListener("change", filterCards);
-            if (typeFilter) typeFilter.addEventListener("change", filterCards);
 
             if (btnReset) {
                 btnReset.addEventListener("click", function () {
                     searchInput.value = "";
                     categoryFilter.value = "all";
-                    typeFilter.value = "all";
                     filterCards();
                 });
             }
