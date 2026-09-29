@@ -1,7 +1,71 @@
 ﻿@{
     ViewData["Title"] = "Thiệp Chúc Mừng Dành Cho Bạn";
     var senderInfo = ViewBag.SenderName ?? ViewBag.SenderEmail ?? "Người bạn thân";
+    string bgImage = ViewBag.ImagePath as string ?? "";
 }
+
+<!-- CSS Chuẩn hóa hiển thị khớp 100% với lúc thiết kế ở trang Personalize -->
+<style>
+    /* 1. Khung chứa thiệp chuẩn tỷ lệ 4:3 (600px x 450px) */
+    #card-preview-area {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 600px !important;
+        height: 450px !important; /* Đổi từ 400px thành 450px để khớp tỷ lệ lúc chỉnh sửa */
+        background-size: 100% 100% !important; /* Giúp ảnh template trọn vẹn 100%, không bị cắt viền */
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-color: #ffffff;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+
+        /* 2. Đảm bảo các phần tử chữ & ảnh đặt đúng vị trí tuyệt đối */
+        #card-preview-area .draggable-element,
+        #card-preview-area .draggable-text-box {
+            position: absolute !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            cursor: default !important;
+        }
+
+        /* 3. Giữ nguyên định dạng ngắt dòng, khoảng cách chữ chuẩn như lúc nhập */
+        #card-preview-area .text-content,
+        #card-preview-area p,
+        #card-preview-area div {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            word-break: break-word !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* 4. Định dạng ảnh cá nhân được chèn vào bên trong */
+        #card-preview-area img:not(.bg-template) {
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 5. Triệt tiêu hoàn toàn thanh cuộn scrollbar */
+        #card-preview-area::-webkit-scrollbar,
+        .draggable-text-box::-webkit-scrollbar,
+        .text-content::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+    #card-preview-area,
+    .draggable-text-box,
+    .text-content {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+    }
+</style>
 
 <div class="container my-5 text-center" style="max-width: 650px;">
     <!-- THÔNG BÁO TỪ NGƯỜI GỬI -->
@@ -10,43 +74,31 @@
         <p class="text-muted small mt-2">Đã mở lúc: @ViewBag.OpenAt</p>
     </div>
 
-    <!-- KHUNG HIỂN THỊ THIỆP (KHỚP 100% GIAO DIỆN CHỈNH SỬA) -->
-    <div class="card shadow-lg border-0 overflow-hidden position-relative mx-auto rounded-3"
-         style="width: 100%; height: 400px; background-color: #000;">
+    <!-- KHUNG HIỂN THỊ THIỆP -->
+    <div id="card-preview-area"
+         class="card shadow-lg border-0 rounded-3"
+         style="background-image: url('@bgImage');">
 
         @if (!string.IsNullOrEmpty(ViewBag.CardHtmlContent as string))
         {
-            <!-- Render toàn bộ nội dung canvas (tất cả các khung chữ, sticker, font, màu sắc) -->
             @Html.Raw(ViewBag.CardHtmlContent)
-        }
-        else
-        {
-            <!-- Dữ liệu dự phòng nếu chưa có HTML canvas -->
-            <img src="@ViewBag.ImagePath" class="w-100 h-100" style="object-fit: cover; opacity: 0.9;" alt="Card background" />
-
-            <div class="position-absolute top-50 start-50 translate-middle w-75 p-3 rounded"
-                 style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(4px);">
-                <p class="mb-0" style="font-family: @ViewBag.FontFamily; color: @ViewBag.Color; font-size: 22px; font-weight: bold;">
-                    @ViewBag.Message
-                </p>
-            </div>
         }
     </div>
 
     <!-- TRÌNH PHÁT NHẠC NỀN -->
-    @if (!string.IsNullOrEmpty(ViewBag.AudioUrl as string))
+    @if (!string.IsNullOrEmpty(ViewBag.AudioPath as string))
     {
         <div class="my-4 p-3 bg-light rounded shadow-sm d-flex align-items-center justify-content-center gap-3">
             <span>🎵 Nhạc nền thiệp:</span>
             <audio id="card-audio" controls autoplay loop style="height: 35px;">
-                <source src="@ViewBag.AudioUrl" type="audio/mpeg">
+                <source src="@ViewBag.AudioPath" type="audio/mpeg">
             </audio>
         </div>
     }
 
     <hr class="my-4" />
 
-    <!-- HẠNG MỤC 3: FORM GỬI LỜI CẢM ƠN (RECIPIENT INTERACTION) -->
+    <!-- FORM GỬI LỜI CẢM ƠN -->
     <div class="card p-4 shadow-sm text-start bg-white rounded-3">
         <h5 class="card-title text-primary mb-3">💌 Gửi lời cảm ơn / Phản hồi</h5>
         <div class="mb-3">
@@ -60,5 +112,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/view-card.js"></script>
+    <script src="~/js/view-card.js" asp-append-version="true"></script>
 }
