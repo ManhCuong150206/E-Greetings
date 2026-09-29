@@ -30,7 +30,6 @@
         {
             @foreach (var item in Model)
             {
-                <!-- Đọc đường dẫn Ảnh Đại Diện từ ConfigData JSON (Nếu không có thì dùng ImagePath) -->
                 string displayThumb = item.ImagePath;
                 if (!string.IsNullOrWhiteSpace(item.ConfigData))
                 {
@@ -47,13 +46,32 @@
                 }
 
                 <div class="col-md-3">
-                    <div class="card h-100 shadow-sm border-0">
-                        <img src="@displayThumb" class="card-img-top" style="height: 200px; object-fit: cover;" alt="@item.Name">
-                        <div class="card-body">
-                            <h6 class="card-title fw-bold">@item.Name</h6>
-                            <span class="badge @(item.IsFree ? "bg-success" : "bg-warning text-dark")">
-                                @(item.IsFree ? "Miễn Phí" : "Gói VIP")
-                            </span>
+                    <div class="card h-100 shadow-sm border-0 d-flex flex-column justify-content-between @(!item.IsActive ? "opacity-75 bg-light" : "")">
+                        <div>
+                            <div class="position-relative">
+                                <img src="@displayThumb" class="card-img-top" style="height: 200px; object-fit: cover;" alt="@item.Name">
+                                <span class="position-absolute top-0 end-0 badge m-2 @(item.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(item.IsActive ? "Đang Hiển Thị" : "Đã Ẩn")
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold text-truncate">@item.Name</h6>
+                                <span class="badge @(item.IsFree ? "bg-info text-dark" : "bg-warning text-dark")">
+                                    @(item.IsFree ? "Miễn Phí (Free)" : "Trả Phí (VIP)")
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="card-footer bg-white border-top-0 d-flex justify-content-between p-2">
+                            <a asp-action="EditTemplate" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning fw-semibold">
+                                <i class="bi bi-pencil-square"></i> Sửa
+                            </a>
+                            <form asp-action="ToggleTemplateStatus" asp-route-id="@item.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm @(item.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                    <i class="bi @(item.IsActive ? "bi-eye-slash" : "bi-eye") me-1"></i>
+                                    @(item.IsActive ? "Ẩn Thiệp" : "Hiện Thiệp")
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

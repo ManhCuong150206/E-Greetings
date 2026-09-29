@@ -482,3 +482,4 @@ $RECYCLE.BIN/
 *.swp
 appsettings.json
 appsettings.Development.json
+/E-Greeting/Controllers/AdminController.cs

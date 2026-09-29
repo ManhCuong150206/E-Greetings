@@ -1,34 +1,173 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
+    // ==========================================
+    // 1. KHAI BÁO CÁC PHẦN TỬ DOM
+    // ==========================================
     const cardArea = document.getElementById("card-preview-area");
     const inputMessage = document.getElementById("input-message");
+    const inputCardTemplateContent = document.getElementById("input-card-template-content");
     const selectFont = document.getElementById("select-font");
+    const selectFontSize = document.getElementById("select-fontsize");
     const inputColor = document.getElementById("input-color");
+    const btnBold = document.getElementById("btn-bold");
+    const btnItalic = document.getElementById("btn-italic");
     const selectAudio = document.getElementById("select-audio");
     const audioPlayer = document.getElementById("audio-player");
     const btnSaveCard = document.getElementById("btn-save-card");
     const btnAddText = document.getElementById("btn-add-text");
     const btnClearCanvas = document.getElementById("btn-clear-canvas");
 
-    let activeElement = document.querySelector(".draggable-element");
+    // Thanh trượt điều chỉnh độ rộng khung chữ
+    const sliderTextWidth = document.getElementById("slider-text-width");
+    const valTextWidth = document.getElementById("val-text-width");
 
-    // 1. KHỞI TẠO TÍNH NĂNG KÉO THẢ (DRAG & DROP)
+    // Ô nhập liệu nội dung theo dòng (Template Fields)
+    const tplSalutation = document.getElementById("tpl-salutation");
+    const tplRecipient = document.getElementById("tpl-recipient");
+    const tplMessage = document.getElementById("tpl-message");
+    const tplSender = document.getElementById("tpl-sender");
+
+    // Khai báo công cụ quản lý Ảnh
+    const inputUploadImage = document.getElementById("input-upload-image");
+    const imageTools = document.getElementById("image-tools");
+    const sliderImgWidth = document.getElementById("slider-img-width");
+    const sliderImgRadius = document.getElementById("slider-img-radius");
+    const valImgWidth = document.getElementById("val-img-width");
+    const valImgRadius = document.getElementById("val-img-radius");
+    const btnImgCircle = document.getElementById("btn-img-circle");
+    const btnSendBack = document.getElementById("btn-send-back");
+    const btnBringFront = document.getElementById("btn-bring-front");
+
+    // Vật thể đang được chọn (Chữ / Sticker / Ảnh)
+    let activeElement = document.querySelector(".draggable-text-box, .draggable-element");
+
+    // Lưu trữ đường dẫn base64 ảnh upload gần nhất
+    let uploadedImagePath = "";
+
+    // Hàm hỗ trợ chuyển mã màu RGB sang HEX
+    function rgbToHex(rgbStr) {
+        if (!rgbStr || rgbStr.startsWith('#')) return rgbStr || "#000000";
+        const matches = rgbStr.match(/\d+/g);
+        if (!matches || matches.length < 3) return '#000000';
+        const r = parseInt(matches[0]).toString(16).padStart(2, '0');
+        const g = parseInt(matches[1]).toString(16).padStart(2, '0');
+        const b = parseInt(matches[2]).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+    }
+
+    // ==========================================
+    // 2. TỰ ĐỘNG GHÉP NỘI DUNG TỪ CÁC Ô INPUT
+    // ==========================================
+    function buildTemplateText() {
+        const salutation = tplSalutation?.value.trim() || "";
+        const recipient = tplRecipient?.value.trim() || "";
+        const message = tplMessage?.value.trim() || "";
+        const sender = tplSender?.value.trim() || "";
+
+        let lines = [];
+        const line1 = [salutation, recipient].filter(Boolean).join(" ");
+        if (line1) lines.push(line1);
+
+        if (message) {
+            if (lines.length > 0) lines.push("");
+            lines.push(message);
+        }
+
+        if (sender) {
+            if (lines.length > 0) lines.push("");
+            lines.push(sender);
+        }
+
+        return lines.join("\n");
+    }
+
+    // ==========================================
+    // 3. ĐỒNG BỘ CÔNG CỤ THEO VẬT THỂ ĐANG CHỌN
+    // ==========================================
+    function syncControlsWithElement(element) {
+        if (!element) return;
+
+        const imgTag = element.querySelector("img");
+
+        if (imgTag) {
+            // NẾU LÀ ẢNH: Hiện bảng công cụ ảnh
+            if (imageTools) imageTools.classList.remove("d-none");
+
+            const currentWidth = parseInt(imgTag.style.width) || imgTag.offsetWidth || 120;
+            const currentRadius = parseInt(imgTag.style.borderRadius) || 0;
+
+            if (sliderImgWidth) sliderImgWidth.value = currentWidth;
+            if (valImgWidth) valImgWidth.innerText = currentWidth + "px";
+
+            if (sliderImgRadius) sliderImgRadius.value = currentRadius;
+            if (valImgRadius) valImgRadius.innerText = currentRadius + "%";
+        } else {
+            // NẾU LÀ CHỮ / STICKER: Ẩn công cụ ảnh
+            if (imageTools) imageTools.classList.add("d-none");
+
+            const textSpan = element.querySelector(".text-content");
+            if (textSpan) {
+                const currentText = textSpan.innerText || textSpan.textContent;
+                if (inputMessage) inputMessage.value = currentText;
+                if (inputCardTemplateContent) inputCardTemplateContent.value = currentText;
+            }
+
+            // Đồng bộ độ rộng khung chữ với thanh slider
+            const currentTextWidth = parseInt(element.style.width) || element.offsetWidth || 300;
+            if (sliderTextWidth) sliderTextWidth.value = currentTextWidth;
+            if (valTextWidth) valTextWidth.innerText = currentTextWidth + "px";
+
+            if (selectFont && element.style.fontFamily) {
+                selectFont.value = element.style.fontFamily.replace(/['"]/g, '');
+            }
+
+            if (selectFontSize && element.style.fontSize) {
+                selectFontSize.value = element.style.fontSize;
+            }
+
+            if (inputColor && element.style.color) {
+                inputColor.value = rgbToHex(element.style.color);
+            }
+
+            if (btnBold) {
+                const isBold = element.style.fontWeight === "bold" || element.style.fontWeight === "700";
+                btnBold.classList.toggle("btn-primary", isBold);
+                btnBold.classList.toggle("btn-outline-secondary", !isBold);
+            }
+
+            if (btnItalic) {
+                const isItalic = element.style.fontStyle === "italic";
+                btnItalic.classList.toggle("btn-primary", isItalic);
+                btnItalic.classList.toggle("btn-outline-secondary", !isItalic);
+            }
+        }
+    }
+
+    // ==========================================
+    // 4. KHỞI TẠO TÍNH NĂNG KÉO THẢ (DRAG & DROP)
+    // ==========================================
     function makeDraggable(element) {
         let isDragging = false;
         let offsetX = 0, offsetY = 0;
+
+        const textSpan = element.querySelector(".text-content");
+        if (textSpan) {
+            textSpan.style.whiteSpace = "pre-wrap";
+        }
 
         element.addEventListener("mousedown", function (e) {
             isDragging = true;
             activeElement = element;
 
-            // Đổi viền để nhận biết vật thể đang chọn
-            document.querySelectorAll(".draggable-element").forEach(el => el.style.outline = "none");
-            element.style.outline = "2px dashed #0d6efd";
+            // Bỏ hiệu ứng chọn của tất cả các phần tử khác
+            document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(el => {
+                el.classList.remove("active");
+                el.style.outline = "none";
+            });
 
-            // Nếu là khung chữ thì đồng bộ nội dung ra ô gõ text
-            const textSpan = element.querySelector(".text-content");
-            if (textSpan) {
-                inputMessage.value = textSpan.textContent;
-            }
+            // Kích hoạt phần tử hiện tại
+            element.classList.add("active");
+
+            syncControlsWithElement(element);
 
             const rect = element.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
@@ -42,7 +181,6 @@
             let x = e.clientX - containerRect.left - offsetX;
             let y = e.clientY - containerRect.top - offsetY;
 
-            // Giới hạn không cho kéo văng ra ngoài khung thiệp
             x = Math.max(0, Math.min(x, containerRect.width - element.offsetWidth));
             y = Math.max(0, Math.min(y, containerRect.height - element.offsetHeight));
 
@@ -55,129 +193,313 @@
         });
     }
 
-    // Áp dụng kéo thả cho phần tử mặc định ban đầu
-    if (activeElement) makeDraggable(activeElement);
+    // Khởi tạo kéo thả cho vật thể mặc định ban đầu
+    document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(el => {
+        makeDraggable(el);
+    });
 
-    // 2. TỰ ĐỘNG CẬP NHẬT CHỮ / FONT / MÀU SẮC CHO PHẦN TỬ ĐANG CHỌN
-    inputMessage.addEventListener("input", function () {
+    if (activeElement) {
+        syncControlsWithElement(activeElement);
+    }
+
+    // ==========================================
+    // 5. CẬP NHẬT CHỮ TỪ Ô NHẬP LIỆU
+    // ==========================================
+    function updateCardTextFromInputs() {
+        if (!activeElement || activeElement.querySelector("img")) {
+            activeElement = document.querySelector(".draggable-text-box, .draggable-element:not(:has(img))");
+        }
+
         if (activeElement) {
             const textSpan = activeElement.querySelector(".text-content");
-            if (textSpan) textSpan.textContent = this.value || "Lời chúc...";
+            if (textSpan) {
+                textSpan.innerText = buildTemplateText();
+            }
         }
+    }
+
+    document.querySelectorAll(".tpl-field").forEach(input => {
+        input.addEventListener("input", updateCardTextFromInputs);
     });
 
-    selectFont.addEventListener("change", function () {
-        if (activeElement) activeElement.style.fontFamily = this.value;
-    });
+    // Thay đổi độ rộng khung chữ bằng Thanh trượt (Slider)
+    if (sliderTextWidth) {
+        sliderTextWidth.addEventListener("input", function () {
+            const newWidth = this.value + "px";
+            if (valTextWidth) valTextWidth.innerText = newWidth;
 
-    inputColor.addEventListener("input", function () {
-        if (activeElement) activeElement.style.color = this.value;
-    });
+            if (activeElement && !activeElement.querySelector("img")) {
+                activeElement.style.width = newWidth;
+            }
+        });
+    }
 
-    // 3. THÊM KHUNG CHỮ MỚI
-    btnAddText.addEventListener("click", function () {
-        const newDiv = document.createElement("div");
-        newDiv.className = "draggable-element position-absolute p-1 text-center";
-        newDiv.style.cssText = "top: 20px; left: 20px; color: #000; font-family: Arial; font-size: 18px; cursor: move; user-select: none; background: rgba(255,255,255,0.5);";
-        newDiv.innerHTML = `<span class="text-content">Lời chúc mới</span>`;
+    // ==========================================
+    // 6. THÊM VÀ TÙY CHỈNH ẢNH CÁ NHÂN
+    // ==========================================
+    if (inputUploadImage) {
+        inputUploadImage.addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        cardArea.appendChild(newDiv);
-        makeDraggable(newDiv);
-        newDiv.dispatchEvent(new Event("mousedown"));
-    });
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                uploadedImagePath = event.target.result;
 
-    // 4. CHỌN VÀ THÊM STICKER
+                const imgContainer = document.createElement("div");
+                imgContainer.className = "draggable-element position-absolute d-inline-block";
+                imgContainer.style.cssText = "top: 40px; left: 40px; cursor: move; user-select: none; z-index: 1;";
+
+                const img = document.createElement("img");
+                img.src = uploadedImagePath;
+                img.style.cssText = "width: 120px; height: 120px; object-fit: cover; border-radius: 0%; display: block; pointer-events: none;";
+
+                imgContainer.appendChild(img);
+                cardArea.prepend(imgContainer);
+
+                makeDraggable(imgContainer);
+                imgContainer.dispatchEvent(new Event("mousedown"));
+                inputUploadImage.value = "";
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Biến ảnh thành Hình Tròn (50%)
+    if (btnImgCircle) {
+        btnImgCircle.addEventListener("click", function () {
+            if (activeElement) {
+                const img = activeElement.querySelector("img");
+                if (img) {
+                    const isCircle = img.style.borderRadius === "50%";
+                    if (isCircle) {
+                        img.style.borderRadius = "0%";
+                        if (sliderImgRadius) sliderImgRadius.value = 0;
+                        if (valImgRadius) valImgRadius.innerText = "0%";
+                    } else {
+                        img.style.borderRadius = "50%";
+                        img.style.height = img.style.width;
+                        if (sliderImgRadius) sliderImgRadius.value = 50;
+                        if (valImgRadius) valImgRadius.innerText = "50%";
+                    }
+                }
+            }
+        });
+    }
+
+    // Chuyển ảnh Xuống dưới / Lên trên
+    if (btnSendBack) {
+        btnSendBack.addEventListener("click", function () {
+            if (activeElement) activeElement.style.zIndex = "1";
+        });
+    }
+
+    if (btnBringFront) {
+        btnBringFront.addEventListener("click", function () {
+            if (activeElement) activeElement.style.zIndex = "10";
+        });
+    }
+
+    // Slider chỉnh kích thước ảnh
+    if (sliderImgWidth) {
+        sliderImgWidth.addEventListener("input", function () {
+            if (activeElement) {
+                const img = activeElement.querySelector("img");
+                if (img) {
+                    img.style.width = this.value + "px";
+                    if (img.style.borderRadius === "50%") {
+                        img.style.height = this.value + "px";
+                    }
+                    if (valImgWidth) valImgWidth.innerText = this.value + "px";
+                }
+            }
+        });
+    }
+
+    // Slider chỉnh bo góc ảnh (%)
+    if (sliderImgRadius) {
+        sliderImgRadius.addEventListener("input", function () {
+            if (activeElement) {
+                const img = activeElement.querySelector("img");
+                if (img) {
+                    img.style.borderRadius = this.value + "%";
+                    if (parseInt(this.value) === 50) {
+                        img.style.height = img.style.width;
+                    }
+                    if (valImgRadius) valImgRadius.innerText = this.value + "%";
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. ĐỊNH DẠNG VĂN BẢN (FONT, COLOR, BOLD, ITALIC)
+    // ==========================================
+    if (selectFont) {
+        selectFont.addEventListener("change", function () {
+            if (activeElement) activeElement.style.fontFamily = this.value;
+        });
+    }
+
+    if (selectFontSize) {
+        selectFontSize.addEventListener("change", function () {
+            if (activeElement) activeElement.style.fontSize = this.value;
+        });
+    }
+
+    if (inputColor) {
+        inputColor.addEventListener("input", function () {
+            if (activeElement) activeElement.style.color = this.value;
+        });
+    }
+
+    if (btnBold) {
+        btnBold.addEventListener("click", function () {
+            if (activeElement) {
+                const isCurrentlyBold = activeElement.style.fontWeight === "bold" || activeElement.style.fontWeight === "700";
+                activeElement.style.fontWeight = isCurrentlyBold ? "normal" : "bold";
+                this.classList.toggle("btn-primary", !isCurrentlyBold);
+                this.classList.toggle("btn-outline-secondary", isCurrentlyBold);
+            }
+        });
+    }
+
+    if (btnItalic) {
+        btnItalic.addEventListener("click", function () {
+            if (activeElement) {
+                const isCurrentlyItalic = activeElement.style.fontStyle === "italic";
+                activeElement.style.fontStyle = isCurrentlyItalic ? "normal" : "italic";
+                this.classList.toggle("btn-primary", !isCurrentlyItalic);
+                this.classList.toggle("btn-outline-secondary", isCurrentlyItalic);
+            }
+        });
+    }
+
+    // ==========================================
+    // 8. THÊM CHỮ MỚI & STICKER
+    // ==========================================
+    if (btnAddText) {
+        btnAddText.addEventListener("click", function () {
+            const newDiv = document.createElement("div");
+            newDiv.className = "draggable-text-box position-absolute active";
+            newDiv.style.cssText = "top: 20px; left: 20px; width: 300px; color: #000000; font-family: Arial; font-size: 18px;";
+            newDiv.innerHTML = `<span class="text-content">Lời chúc mới</span>`;
+
+            cardArea.appendChild(newDiv);
+            makeDraggable(newDiv);
+            newDiv.dispatchEvent(new Event("mousedown"));
+        });
+    }
+
     document.querySelectorAll(".sticker-opt").forEach(sticker => {
         sticker.addEventListener("click", function () {
             const emoji = this.textContent;
             const stickerDiv = document.createElement("div");
             stickerDiv.className = "draggable-element position-absolute";
-            stickerDiv.style.cssText = "top: 50px; left: 50px; font-size: 35px; cursor: move; user-select: none;";
+            stickerDiv.style.cssText = "top: 50px; left: 50px; font-size: 35px; cursor: move; user-select: none; z-index: 3;";
             stickerDiv.innerHTML = `<span>${emoji}</span>`;
 
             cardArea.appendChild(stickerDiv);
             makeDraggable(stickerDiv);
+            stickerDiv.dispatchEvent(new Event("mousedown"));
         });
     });
 
-    // 5. XÓA VẬT THỂ ĐANG CHỌN
-    btnClearCanvas.addEventListener("click", function () {
-        if (activeElement && cardArea.children.length > 1) {
-            activeElement.remove();
-            activeElement = null;
-        }
-    });
+    // ==========================================
+    // 9. XÓA VẬT THỂ DANG CHỌN
+    // ==========================================
+    if (btnClearCanvas) {
+        btnClearCanvas.addEventListener("click", function () {
+            if (activeElement && cardArea.children.length > 1) {
+                if (activeElement.querySelector("img")) {
+                    uploadedImagePath = "";
+                }
+                activeElement.remove();
+                activeElement = null;
+                if (imageTools) imageTools.classList.add("d-none");
+            }
+        });
+    }
 
-    // 6. PHÁT NHẠC
-    selectAudio.addEventListener("change", function () {
-        if (this.value) {
-            audioPlayer.src = this.value;
-            audioPlayer.classList.remove("d-none");
-            audioPlayer.play();
-        } else {
-            audioPlayer.pause();
-            audioPlayer.classList.add("d-none");
-        }
-    });
+    // ==========================================
+    // 10. PHÁT NHẠC NỀN
+    // ==========================================
+    if (selectAudio && audioPlayer) {
+        selectAudio.addEventListener("change", function () {
+            if (this.value) {
+                audioPlayer.src = this.value;
+                audioPlayer.classList.remove("d-none");
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+                audioPlayer.classList.add("d-none");
+            }
+        });
+    }
 
-    // 7. GỬI DỮ LIỆU VỀ BE (SaveCardConfig)
-    btnSaveCard.addEventListener("click", async function () {
-        const recipientEmail = document.getElementById("input-recipient").value.trim();
-        const subject = document.getElementById("input-subject").value.trim();
+    // ==========================================
+    // 11. GỬI VÀ LƯU CẤU HÌNH THIỆP
+    // ==========================================
+    if (btnSaveCard) {
+        btnSaveCard.addEventListener("click", async function () {
+            const recipientEmail = (document.getElementById("input-recipient")?.value ||
+                document.getElementById("tpl-recipient")?.value || "").trim();
 
-        if (!recipientEmail) {
-            alert("Vui lòng nhập Email người nhận!");
-            return;
-        }
+            const subject = (document.getElementById("input-subject")?.value || "Thiệp chúc mừng").trim();
 
-        // Bỏ viền nét đứt đang chọn trên vật thể trước khi lưu
-        document.querySelectorAll(".draggable-element").forEach(el => el.style.outline = "none");
+            if (!recipientEmail) {
+                alert("Vui lòng nhập Email người nhận!");
+                return;
+            }
 
-        // Lấy toàn bộ HTML canvas
-        const cardHtml = cardArea.innerHTML;
-
-        const payload = {
-            templateId: 1,
-            recipientEmail: recipientEmail,
-            subject: subject,
-            audioUrl: selectAudio.value,
-            cardHtmlContent: cardHtml
-        };
-
-        try {
-            btnSaveCard.disabled = true;
-            btnSaveCard.innerText = "Đang lưu...";
-
-            const response = await fetch("/Card/SaveCardConfig", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+            // Xóa hết khung viền chọn trước khi lấy HTML lưu vào CSDL
+            document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(el => {
+                el.classList.remove("active");
+                el.style.outline = "none";
             });
 
-            const result = await response.json();
-            if (result.success) {
-                const fullCardLink = window.location.origin + result.cardUrl;
+            const cardHtml = cardArea.innerHTML;
+            const imgElement = cardArea.querySelector("img");
+            const finalImagePath = uploadedImagePath || (imgElement ? imgElement.src : "");
+            const audioPath = selectAudio ? selectAudio.value : "";
+            const templateId = document.getElementById("template-id")?.value || 1;
 
-                // Tự động copy link thiệp vào clipboard
-                try {
-                    await navigator.clipboard.writeText(fullCardLink);
-                } catch (e) {
-                    console.log("Chưa cấp quyền clipboard:", e);
+            const payload = {
+                templateId: parseInt(templateId),
+                recipientEmail: recipientEmail,
+                subject: subject,
+                imagePath: finalImagePath,
+                audioPath: audioPath,
+                cardHtmlContent: cardHtml
+            };
+
+            try {
+                btnSaveCard.disabled = true;
+                btnSaveCard.innerText = "Đang lưu...";
+
+                const response = await fetch("/Card/SaveCardConfig", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    const fullCardLink = window.location.origin + result.cardUrl;
+                    try {
+                        await navigator.clipboard.writeText(fullCardLink);
+                    } catch (e) { }
+                    alert("🎉 " + result.message + "\n\nLink thiệp đã được copy!");
+                    window.location.href = result.cardUrl;
+                } else {
+                    alert("Lỗi: " + result.message);
                 }
-
-                // Thông báo thành công
-                alert("🎉 " + result.message + "\n\nLink thiệp đã được copy. Bấm OK để tới trang xem thiệp!");
-
-                // 🚀 CHUYỂN TRANG NGAY TRÊN TAB HIỆN TẠI (KHÔNG MỞ TAB MỚI)
-                window.location.href = result.cardUrl;
-            } else {
-                alert("Lỗi: " + result.message);
+            } catch (err) {
+                alert("Lỗi kết nối Server!");
+            } finally {
+                btnSaveCard.disabled = false;
+                btnSaveCard.innerText = "Lưu & Gửi Thiệp";
             }
-        } catch (err) {
-            alert("Lỗi kết nối Server!");
-        } finally {
-            btnSaveCard.disabled = false;
-            btnSaveCard.innerText = "Lưu & Gửi Thiệp";
-        }
-    });
+        });
+    }
 });

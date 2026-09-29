@@ -1,0 +1,363 @@
+﻿@model E_Greeting.Models.Template
+
+@{
+    ViewData["Title"] = "Chỉnh Sửa Template - Admin Editor";
+}
+
+<div class="container-fluid my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="bi bi-pencil-square me-2 text-warning"></i> Trình Chỉnh Sửa Template #@Model.Id</h3>
+        <a asp-action="Templates" asp-route-categoryId="@Model.CategoryId" class="btn btn-outline-secondary rounded-pill">
+            <i class="bi bi-arrow-left"></i> Hủy & Quay lại
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="EditTemplate" method="post" enctype="multipart/form-data" id="form-edit-template">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <input type="hidden" name="configData" id="input-config-data" />
+
+        <div class="row">
+            <!-- BÊN TRÁI: LIVE CANVAS KÉO THẢ EDITOR -->
+            <div class="col-md-7">
+                <div class="card shadow-sm p-3 bg-light text-center">
+                    <h6 class="fw-bold text-muted mb-2">Vùng Thiết Kế Ảnh Bìa & Text Mẫu (Canvas)</h6>
+                    
+                    <div id="admin-canvas-area" class="position-relative overflow-hidden rounded mx-auto border bg-white shadow-sm"
+                         style="width: 500px; height: 380px; user-select: none;">
+                        
+                        <!-- Ảnh Bìa Thô Canvas Hiện Tại -->
+                        <img id="preview-background" src="@Model.ImagePath" class="w-100 h-100" style="object-fit: cover;" alt="Background Canvas" />
+
+                        <!-- Vùng nạp dynamic elements từ configData cũ bằng Javascript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- BÊN PHẢI: BẢNG THÔNG TIN & THUỘC TÍNH TEMPLATE -->
+            <div class="col-md-5">
+                <div class="card shadow-sm p-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Thông Tin Template</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên Template (*)</label>
+                        <input type="text" name="name" class="form-control" value="@Model.Name" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Thuộc Danh Mục</label>
+                        <select name="categoryId" class="form-select">
+                            @if (ViewBag.Categories != null)
+                            {
+                                foreach (var cat in (List<E_Greeting.Models.Category>)ViewBag.Categories)
+                                {
+                                    <option value="@cat.Id" selected="@(cat.Id == Model.CategoryId)">@cat.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Gói Quyền Lợi</label>
+                            <select name="isFree" class="form-select">
+                                <option value="true" selected="@Model.IsFree">Miễn Phí (Free)</option>
+                                <option value="false" selected="@(!Model.IsFree)">Trả Phí (VIP Premium)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Trạng Thái Hiển Thị</label>
+                            <select name="isActive" class="form-select">
+                                <option value="true" selected="@Model.IsActive">Hiển Thị (Active)</option>
+                                <option value="false" selected="@(!Model.IsActive)">Ẩn (Inactive)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 1. Thay Ảnh Bìa Thô mới -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">1. Thay Ảnh Bìa Thô mới (Nếu có)</label>
+                        <input type="file" name="imageFile" id="input-bg-file" class="form-control" accept="image/*" />
+                        <small class="text-muted">Bỏ trống nếu giữ nguyên ảnh bìa hiện tại.</small>
+                    </div>
+
+                    <!-- 2. Thay Ảnh Bìa Card Preview mới -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">2. Thay Ảnh Bìa Card Preview mới (Nếu có)</label>
+                        <input type="file" name="thumbnailFile" class="form-control" accept="image/*" />
+                        <small class="text-muted">Bỏ trống nếu giữ nguyên ảnh preview hiện tại.</small>
+                    </div>
+
+                    <hr />
+
+                    <h6 class="fw-bold text-primary">Công Cụ Đặt Text Mẫu Cho User</h6>
+                    
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" id="btn-add-text" class="btn btn-sm btn-outline-primary w-50">
+                            <i class="bi bi-plus-circle me-1"></i> Thêm Khung Chữ
+                        </button>
+                        <button type="button" id="btn-delete-text" class="btn btn-sm btn-outline-danger w-50">
+                            <i class="bi bi-trash me-1"></i> Xóa Khung Chữ
+                        </button>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Nội dung chữ đang chọn:</label>
+                        <input type="text" id="tool-text-val" class="form-control" value="" placeholder="Nhập văn bản..." />
+                    </div>
+
+                    <!-- Bộ Công Cụ Định Dạng Font, Size, Bold, Italic & Màu Chữ -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Font chữ:</label>
+                            <select id="tool-font" class="form-select form-select-sm">
+                                <option value="Arial">Arial</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Comic Sans MS">Comic Sans</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Kích thước (Size):</label>
+                            <select id="tool-size" class="form-select form-select-sm">
+                                <option value="14px">14px</option>
+                                <option value="16px">16px</option>
+                                <option value="18px">18px</option>
+                                <option value="20px">20px</option>
+                                <option value="24px">24px</option>
+                                <option value="28px">28px</option>
+                                <option value="32px">32px</option>
+                                <option value="36px">36px</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <label class="form-label small fw-semibold">Màu chữ:</label>
+                            <input type="color" id="tool-color" class="form-control form-control-color w-100" value="#000000" />
+                        </div>
+                        <div class="col-6 mt-2 d-flex align-items-end gap-1">
+                            <button type="button" id="btn-toggle-bold" class="btn btn-sm btn-outline-dark flex-fill fw-bold" title="In đậm">
+                                B
+                            </button>
+                            <button type="button" id="btn-toggle-italic" class="btn btn-sm btn-outline-dark flex-fill fst-italic" title="In nghiêng">
+                                I
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 mt-2 fw-semibold">
+                        <i class="bi bi-save me-1"></i> Lưu Cập Nhật Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        let selectedItem = null;
+        const rawConfig = @Html.Raw(string.IsNullOrWhiteSpace(Model.ConfigData) ? "{}" : Model.ConfigData);
+
+        // Helper chuyển đổi màu RGB sang Hex
+        function rgbToHex(rgb) {
+            if (!rgb) return '#000000';
+            const res = rgb.match(/\d+/g);
+            return res ? "#" + res.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('') : rgb;
+        }
+
+        // 1. Preview Ảnh Bìa Thô mới khi chọn file
+        document.getElementById('input-bg-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    document.getElementById('preview-background').src = evt.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Binding sự kiện Click & Drag cho Element chữ
+        function bindElementEvents(el) {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.draggable-item').forEach(item => {
+                    item.classList.remove('active-element');
+                    item.style.border = 'none';
+                });
+                selectedItem = el;
+                selectedItem.classList.add('active-element');
+                selectedItem.style.border = '2px dashed #0d6efd';
+
+                // Đổ thuộc tính vào form công cụ
+                document.getElementById('tool-text-val').value = selectedItem.querySelector('.text-val').innerText;
+                document.getElementById('tool-font').value = selectedItem.style.fontFamily.replace(/['"]/g, '') || 'Arial';
+                document.getElementById('tool-size').value = selectedItem.style.fontSize || '20px';
+                document.getElementById('tool-color').value = rgbToHex(selectedItem.style.color) || '#000000';
+
+                const isBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
+                const isItalic = selectedItem.style.fontStyle === 'italic';
+
+                document.getElementById('btn-toggle-bold').classList.toggle('btn-dark', isBold);
+                document.getElementById('btn-toggle-bold').classList.toggle('btn-outline-dark', !isBold);
+
+                document.getElementById('btn-toggle-italic').classList.toggle('btn-dark', isItalic);
+                document.getElementById('btn-toggle-italic').classList.toggle('btn-outline-dark', !isItalic);
+            });
+
+            // Kéo thả chuột
+            let isDragging = false, offsetCustomX = 0, offsetCustomY = 0;
+            const container = document.getElementById('admin-canvas-area');
+
+            el.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                const rect = el.getBoundingClientRect();
+                offsetCustomX = e.clientX - rect.left;
+                offsetCustomY = e.clientY - rect.top;
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging || selectedItem !== el) return;
+                const containerRect = container.getBoundingClientRect();
+                let leftPX = e.clientX - containerRect.left - offsetCustomX;
+                let topPX = e.clientY - containerRect.top - offsetCustomY;
+
+                let leftPercent = (leftPX / containerRect.width) * 100;
+                let topPercent = (topPX / containerRect.height) * 100;
+
+                leftPercent = Math.max(0, Math.min(leftPercent, 80));
+                topPercent = Math.max(0, Math.min(topPercent, 90));
+
+                el.style.left = leftPercent.toFixed(2) + '%';
+                el.style.top = topPercent.toFixed(2) + '%';
+            });
+
+            document.addEventListener('mouseup', function() { isDragging = false; });
+        }
+
+        // 3. Nạp danh sách elements chữ từ ConfigData cũ
+        function loadExistingElements() {
+            const canvas = document.getElementById('admin-canvas-area');
+            const elements = (rawConfig && rawConfig.elements) ? rawConfig.elements : [];
+
+            if (elements.length > 0) {
+                elements.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'draggable-item position-absolute p-2 rounded text-center';
+                    el.style.top = item.top || '35%';
+                    el.style.left = item.left || '15%';
+                    el.style.width = '70%';
+                    el.style.color = item.color || '#000000';
+                    el.style.fontFamily = item.fontFamily || 'Arial';
+                    el.style.fontSize = item.fontSize || '20px';
+                    el.style.fontWeight = item.fontWeight || 'normal';
+                    el.style.fontStyle = item.fontStyle || 'normal';
+                    el.style.background = 'rgba(255,255,255,0.75)';
+                    el.style.cursor = 'move';
+                    el.innerHTML = `<span class="text-val">${item.content || 'Lời Chúc Mẫu Dành Cho User'}</span>`;
+
+                    canvas.appendChild(el);
+                    bindElementEvents(el);
+                });
+            } else {
+                // Thêm 1 element mặc định nếu chưa có dữ liệu cũ
+                const el = document.createElement('div');
+                el.className = 'draggable-item position-absolute p-2 rounded text-center';
+                el.style.cssText = 'top: 35%; left: 15%; width: 70%; color: #000000; font-family: Arial; font-size: 20px; font-weight: normal; font-style: normal; background: rgba(255,255,255,0.75); cursor: move;';
+                el.innerHTML = '<span class="text-val">Lời Chúc Mẫu Dành Cho User</span>';
+                canvas.appendChild(el);
+                bindElementEvents(el);
+            }
+
+            // Click vào element đầu tiên
+            const firstEl = document.querySelector('.draggable-item');
+            if (firstEl) firstEl.click();
+        }
+
+        loadExistingElements();
+
+        // 4. Xử lý sự kiện chỉnh sửa thuộc tính chữ Real-time
+        document.getElementById('tool-text-val').addEventListener('input', function(e) {
+            if (selectedItem) selectedItem.querySelector('.text-val').innerText = e.target.value || ' ';
+        });
+
+        document.getElementById('tool-font').addEventListener('change', function(e) {
+            if (selectedItem) selectedItem.style.fontFamily = e.target.value;
+        });
+
+        document.getElementById('tool-size').addEventListener('change', function(e) {
+            if (selectedItem) selectedItem.style.fontSize = e.target.value;
+        });
+
+        document.getElementById('tool-color').addEventListener('input', function(e) {
+            if (selectedItem) selectedItem.style.color = e.target.value;
+        });
+
+        document.getElementById('btn-toggle-bold').addEventListener('click', function() {
+            if (selectedItem) {
+                const isCurrentBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
+                selectedItem.style.fontWeight = isCurrentBold ? 'normal' : 'bold';
+                this.classList.toggle('btn-dark', !isCurrentBold);
+                this.classList.toggle('btn-outline-dark', isCurrentBold);
+            }
+        });
+
+        document.getElementById('btn-toggle-italic').addEventListener('click', function() {
+            if (selectedItem) {
+                const isCurrentItalic = selectedItem.style.fontStyle === 'italic';
+                selectedItem.style.fontStyle = isCurrentItalic ? 'normal' : 'italic';
+                this.classList.toggle('btn-dark', !isCurrentItalic);
+                this.classList.toggle('btn-outline-dark', isCurrentItalic);
+            }
+        });
+
+        // 5. Thêm / Xóa Khung Chữ
+        document.getElementById('btn-add-text').addEventListener('click', function() {
+            const newEl = document.createElement('div');
+            newEl.className = 'draggable-item position-absolute p-2 rounded text-center';
+            newEl.style.cssText = 'top: 50%; left: 20%; width: 60%; color: #000000; font-family: Arial; font-size: 20px; font-weight: normal; font-style: normal; background: rgba(255,255,255,0.75); cursor: move;';
+            newEl.innerHTML = '<span class="text-val">Chữ Mới Thêm</span>';
+
+            document.getElementById('admin-canvas-area').appendChild(newEl);
+            bindElementEvents(newEl);
+            newEl.click();
+        });
+
+        document.getElementById('btn-delete-text').addEventListener('click', function() {
+            const allItems = document.querySelectorAll('.draggable-item');
+            if (allItems.length > 1 && selectedItem) {
+                selectedItem.remove();
+                selectedItem = document.querySelector('.draggable-item');
+                if (selectedItem) selectedItem.click();
+            } else {
+                alert('Phải giữ lại ít nhất 1 khung chữ mẫu!');
+            }
+        });
+
+        // 6. Đóng gói JSON khi Submit Form
+        document.getElementById('form-edit-template').addEventListener('submit', function(e) {
+            const elements = [];
+            document.querySelectorAll('#admin-canvas-area .draggable-item').forEach(el => {
+                elements.push({
+                    content: el.querySelector('.text-val').innerText,
+                    top: el.style.top || '35%',
+                    left: el.style.left || '15%',
+                    fontFamily: el.style.fontFamily || 'Arial',
+                    fontSize: el.style.fontSize || '20px',
+                    fontWeight: el.style.fontWeight || 'normal',
+                    fontStyle: el.style.fontStyle || 'normal',
+                    color: el.style.color || '#000000'
+                });
+            });
+
+            document.getElementById('input-config-data').value = JSON.stringify({ elements: elements });
+        });
+    </script>
+}

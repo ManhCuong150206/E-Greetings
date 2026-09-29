@@ -1,18 +1,7 @@
-﻿@{
-    ViewData["Title"] = "Trang Chủ - E-Greeting";
+﻿@model IEnumerable<E_Greeting.Models.Template>
 
-    // Dữ liệu giả tổng hợp nhiều kiểu dáng thiệp để test Filter & Phân trang
-    var mockCards = new List<dynamic>
-    {
-        new { Id = 1, Name = "Sinh Nhật Ngọt Ngào", Type = "vertical", Category = "birthday", ImagePath = "https://picsum.photos/300/400?random=1" },
-        new { Id = 2, Name = "Thiệp Cưới Sang Trọng", Type = "horizontal", Category = "wedding", ImagePath = "https://picsum.photos/400/250?random=2" },
-        new { Id = 3, Name = "Thiệp Mời Tiệc Tân Gia", Type = "double", Category = "festivals", ImagePath = "https://picsum.photos/350/400?random=3" },
-        new { Id = 4, Name = "Chúc Mừng Năm Mới 2026", Type = "horizontal", Category = "newyear", ImagePath = "https://picsum.photos/400/250?random=4" },
-        new { Id = 5, Name = "Sinh Nhật Tuổi Hồng", Type = "vertical", Category = "birthday", ImagePath = "https://picsum.photos/300/400?random=5" },
-        new { Id = 6, Name = "Kỷ Niệm Ngày Cưới", Type = "double", Category = "wedding", ImagePath = "https://picsum.photos/350/400?random=6" },
-        new { Id = 7, Name = "Lễ Hội Mùa Xuân", Type = "vertical", Category = "festivals", ImagePath = "https://picsum.photos/300/400?random=7" },
-        new { Id = 8, Name = "Thiệp Tri Ân Đã Ghé Thăm", Type = "horizontal", Category = "festivals", ImagePath = "https://picsum.photos/400/250?random=8" }
-    };
+@{
+    ViewData["Title"] = "Trang Chủ - E-Greeting";
 }
 
 <!-- 1. HERO BANNER -->
@@ -44,7 +33,7 @@
     <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
         <div class="row g-3 align-items-center">
             <!-- Ô Tìm Kiếm -->
-            <div class="col-lg-5 col-md-6">
+            <div class="col-lg-6 col-md-6">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
                     <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Tìm tên thiệp (ví dụ: Sinh nhật, Đám cưới...)" />
@@ -52,23 +41,13 @@
             </div>
 
             <!-- Lọc Theo Chủ Đề -->
-            <div class="col-lg-3 col-md-3">
+            <div class="col-lg-5 col-md-5">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">Tất cả chủ đề</option>
-                    <option value="birthday">Birthday (Sinh nhật)</option>
-                    <option value="wedding">Wedding (Đám cưới)</option>
-                    <option value="newyear">New Year (Năm mới)</option>
-                    <option value="festivals">Festivals (Lễ hội)</option>
-                </select>
-            </div>
-
-            <!-- Lọc Theo Dáng Thiệp -->
-            <div class="col-lg-3 col-md-3">
-                <select id="typeFilter" class="form-select bg-light border-0 fw-medium">
-                    <option value="all">Tất cả dáng thiệp</option>
-                    <option value="vertical">Thiệp Dọc</option>
-                    <option value="horizontal">Thiệp Ngang</option>
-                    <option value="double">Thiệp Gấp 2 Trang</option>
+                    <option value="1">Sinh nhật (Birthday)</option>
+                    <option value="2">Đám cưới (Wedding)</option>
+                    <option value="3">Kỷ niệm (Anniversary)</option>
+                    <option value="4">Lễ hội (Festivals)</option>
                 </select>
             </div>
 
@@ -82,33 +61,57 @@
     </div>
 </section>
 
-<!-- 3. DANH SÁCH THIỆP (CARD GRID) -->
+<!-- 3. DANH SÁCH THIỆP TỪ DATABASE (CARD GRID) -->
 <section class="mb-5">
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4" id="cardGrid">
-        @foreach (var card in mockCards)
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="cardGrid">
+        @if (Model != null && Model.Any())
         {
-            <div class="col card-item" data-name="@card.Name.ToLower()" data-category="@card.Category" data-type="@card.Type">
-                @if (card.Type == "vertical")
-                {
-                    @await Html.PartialAsync("_VerticalCard", (object)card)
-                }
-                else if (card.Type == "horizontal")
-                {
-                    @await Html.PartialAsync("_HorizontalCard", (object)card)
-                }
-                else
-                {
-                    @await Html.PartialAsync("_DoublePageCard", (object)card)
-                }
-            </div>
+            @foreach (var card in Model)
+            {
+                // Chuẩn hóa danh mục & đường dẫn ảnh để filter
+                var categoryId = card.CategoryId.ToString();
+                var imgPath = string.IsNullOrEmpty(card.ImagePath) ? "/images/default-card.jpg" : card.ImagePath;
+
+                <div class="col card-item"
+                     data-name="@card.Name?.ToLower()"
+                     data-category="@categoryId">
+
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover position-relative">
+                        <!-- Nhãn Miễn Phí / Trả Phí -->
+                        <span class="position-absolute top-0 end-0 m-2 badge z-2 @(card.IsFree ? "bg-success" : "bg-warning text-dark")">
+                            @(card.IsFree ? "Miễn phí" : "Trả phí")
+                        </span>
+
+                        <!-- Khung Chứa Ảnh -->
+                        <div class="card-img-container bg-light d-flex align-items-center justify-content-center p-2"
+                             style="height: 280px; overflow: hidden;">
+                            <img src="@imgPath"
+                                 class="card-img-top img-fluid rounded-3"
+                                 style="max-height: 100%; width: auto; object-fit: contain;"
+                                 alt="@card.Name" />
+                        </div>
+
+                        <!-- Nội Dung Thiệp -->
+                        <div class="card-body d-flex flex-column p-3">
+                            <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
+
+                            <!-- Nút Chọn Tạo Thiệp -->
+                            <a href="/Card/Personalize/@card.Id" class="btn btn-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
+                                🎨 Tạo Thiệp Này
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            }
         }
     </div>
 
-    <!-- Thông báo khi không tìm thấy kết quả -->
-    <div id="noResults" class="text-center py-5 d-none">
+    <!-- Thông báo khi không có thiệp hoặc không tìm thấy kết quả -->
+    <div id="noResults" class="text-center py-5 @(Model != null && Model.Any() ? "d-none" : "")">
         <i class="bi bi-search-heart text-muted display-1"></i>
         <h5 class="mt-3 text-secondary">Không tìm thấy mẫu thiệp phù hợp</h5>
-        <p class="text-muted small">Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi bộ lọc.</p>
+        <p class="text-muted small">Hãy thử tìm kiếm với từ khóa khác hoặc chọn chủ đề khác.</p>
     </div>
 </section>
 
@@ -119,7 +122,6 @@
             <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
             <li class="page-item active"><a class="page-link" href="#">1</a></li>
             <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
             <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
         </ul>
     </nav>
@@ -135,29 +137,25 @@
         document.addEventListener("DOMContentLoaded", function () {
             const searchInput = document.getElementById("searchInput");
             const categoryFilter = document.getElementById("categoryFilter");
-            const typeFilter = document.getElementById("typeFilter");
             const btnReset = document.getElementById("btnReset");
             const cardItems = document.querySelectorAll(".card-item");
             const noResults = document.getElementById("noResults");
             const btnScrollTop = document.getElementById("btnScrollTop");
 
-            // --- LÔ-GÍC FILTER & SEARCH TRÊN CLIENT ---
+            // --- LÔ-GÍC FILTER & SEARCH ĐỒNG BỘ CSDL ---
             function filterCards() {
                 const keyword = searchInput.value.toLowerCase().trim();
                 const selectedCategory = categoryFilter.value;
-                const selectedType = typeFilter.value;
                 let visibleCount = 0;
 
                 cardItems.forEach(item => {
-                    const name = item.getAttribute("data-name");
-                    const category = item.getAttribute("data-category");
-                    const type = item.getAttribute("data-type");
+                    const name = item.getAttribute("data-name") || "";
+                    const category = item.getAttribute("data-category") || "";
 
                     const matchSearch = name.includes(keyword);
                     const matchCategory = (selectedCategory === "all" || category === selectedCategory);
-                    const matchType = (selectedType === "all" || type === selectedType);
 
-                    if (matchSearch && matchCategory && matchType) {
+                    if (matchSearch && matchCategory) {
                         item.classList.remove("d-none");
                         visibleCount++;
                     } else {
@@ -172,17 +170,17 @@
                 }
             }
 
-            // Gán sự kiện cho các ô filter
-            searchInput.addEventListener("keyup", filterCards);
-            categoryFilter.addEventListener("change", filterCards);
-            typeFilter.addEventListener("change", filterCards);
+            // Gán sự kiện bộ lọc
+            if (searchInput) searchInput.addEventListener("keyup", filterCards);
+            if (categoryFilter) categoryFilter.addEventListener("change", filterCards);
 
-            btnReset.addEventListener("click", function () {
-                searchInput.value = "";
-                categoryFilter.value = "all";
-                typeFilter.value = "all";
-                filterCards();
-            });
+            if (btnReset) {
+                btnReset.addEventListener("click", function () {
+                    searchInput.value = "";
+                    categoryFilter.value = "all";
+                    filterCards();
+                });
+            }
 
             // --- LÔ-GÍC SCROLL TO TOP ---
             window.addEventListener("scroll", function () {
@@ -193,9 +191,11 @@
                 }
             });
 
-            btnScrollTop.addEventListener("click", function () {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            });
+            if (btnScrollTop) {
+                btnScrollTop.addEventListener("click", function () {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                });
+            }
         });
     </script>
 }
