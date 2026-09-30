@@ -12,15 +12,21 @@ public class SentCard
     // --- Khóa ngoại & Navigation Properties ---
     [Column("account_id")]
     public int? AccountId { get; set; }
+
+    [ForeignKey("AccountId")]
     public virtual Account? Account { get; set; }
 
     [Column("template_id")]
     public int? TemplateId { get; set; }
-    public virtual Template? Template { get; set; } // ✅ Đã thêm Navigation Property
+
+    [ForeignKey("TemplateId")]
+    public virtual Template? Template { get; set; }
 
     [Column("subscription_id")]
     public int? SubscriptionId { get; set; }
-    public virtual Subscription? Subscription { get; set; } // ✅ Đã thêm Navigation Property
+
+    [ForeignKey("SubscriptionId")]
+    public virtual Subscription? Subscription { get; set; }
 
     // --- Các cột ánh xạ CSDL ---
     [Column("image_path", TypeName = "nvarchar(max)")]
@@ -39,7 +45,7 @@ public class SentCard
     public DateTime? SentAt { get; set; }
 
     [Column("open_at")]
-    public DateTime? OpenAt { get; set; } // ✅ Đã sửa từ Boolean sang DateTime?
+    public DateTime? OpenAt { get; set; }
 
     [Column("recipient_reply")]
     public string? RecipientReply { get; set; }
@@ -50,8 +56,25 @@ public class SentCard
     [Column("subject")]
     public string Subject { get; set; } = string.Empty;
 
-    // --- Các thuộc tính bổ sung ---
-    public string SenderEmail { get; set; } = string.Empty;
-    public string CardHtmlContent { get; set; } = string.Empty;
-    public DateTime? CreatedDate { get; set; } = DateTime.Now;
+    // --- Các thuộc tính bổ sung (Dùng [NotMapped] để EF Core KHÔNG tìm trong CSDL) ---
+
+    // 1. Lưu/Đọc nội dung HTML thiệp trực tiếp qua cột `message`
+    [NotMapped]
+    public string CardHtmlContent
+    {
+        get => Message ?? string.Empty;
+        set => Message = value;
+    }
+
+    // 2. Đọc/Ghi ngày tạo thiệp trực tiếp qua cột `sent_at`
+    [NotMapped]
+    public DateTime? CreatedDate
+    {
+        get => SentAt;
+        set => SentAt = value;
+    }
+
+    // 3. Tự động lấy Email người gửi từ bảng Account liên kết
+    [NotMapped]
+    public string SenderEmail => Account?.Email ?? string.Empty; // Giả định thuộc tính Email bên class Account tên là Email
 }
