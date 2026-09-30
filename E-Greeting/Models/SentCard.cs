@@ -33,7 +33,7 @@ public class SentCard
     public DateTime? SentAt { get; set; }
 
     [Column("open_at")]
-    public Boolean OpenAt { get; set; }
+    public DateTime? OpenAt { get; set; }
 
     [Column("recipient_reply")]
     public string? RecipientReply { get; set; }
