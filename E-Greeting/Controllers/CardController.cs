@@ -42,16 +42,11 @@ public class CardController : Controller
 
     // GET: /Card/Personalize/1
     [HttpGet]
-    public IActionResult Personalize(int id)
+    public async Task<IActionResult> Personalize(int id)
     {
-        var template = _context.Templates.FirstOrDefault(t => t.Id == id) ?? new Template
-        {
-            Id = id > 0 ? id : 1,
-            Name = "Thiệp Chúc Mừng Mẫu",
-            ImagePath = "https://picsum.photos/800/600?random=" + id
-        };
+        var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
 
-        return View(template);
+        return template == null ? NotFound("Không tìm thấy mẫu thiệp này!") : View(template);
     }
 
     // POST: /Card/SaveCardConfig
@@ -160,10 +155,10 @@ public class CardController : Controller
 
             // ƯU TIÊN 1: Lấy ảnh nền gốc của Template mẫu (để giữ nguyên khung thiệp trang trí)
             // ƯU TIÊN 2: Nếu không có Template thì dùng card.ImagePath
-            string bgImage = card.Template?.ImagePath;
+            string bgImage = card.Template?.ConfigData;
             if (string.IsNullOrEmpty(bgImage))
             {
-                bgImage = card.ImagePath ?? "";
+                bgImage = card.ConfigData ?? "";
             }
 
             ViewBag.CardId = card.Id;

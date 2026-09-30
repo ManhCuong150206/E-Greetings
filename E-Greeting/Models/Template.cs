@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace E_Greeting.Models;
@@ -20,7 +18,7 @@ public partial class Template
     public int CategoryId { get; set; }
 
     [Column("config_data")]
-    public string? ConfigData { get; set; } 
+    public string? ConfigData { get; set; }
 
     [Column("is_free")]
     public bool IsFree { get; set; } = true;
