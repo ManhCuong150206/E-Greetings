@@ -265,12 +265,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsFree)
                 .HasDefaultValue(true)
                 .HasColumnName("is_free");
-            entity.Property(e => e.IsActive)
-                .HasDefaultValue(true)
-                .HasColumnName("is_active");
             entity.Property(e => e.Name)
                 .HasMaxLength(150)
                 .HasColumnName("name");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.IsActive).HasDefaultValue(true).HasColumnName("is_active");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Templates)
                 .HasForeignKey(d => d.CategoryId)

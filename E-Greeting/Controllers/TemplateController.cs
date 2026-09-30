@@ -13,7 +13,7 @@ namespace E_Greeting.Controllers
         {
             var templates = await templateService.GetTemplates();
             var cate = await cateService.GetCategories();
-            ViewBag.Category = cate.ToString();
+            ViewBag.Category = cate.ToList();
             return View(templates); 
         }
     }

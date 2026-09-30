@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace E_Greeting.Controllers
 {
-    [Authorize(Roles = "Admin,ADMIN")] // Phân quyền chỉ cho tài khoản Admin truy cập
+    [Authorize(Roles = "Admin,ADMIN")]
     public class AdminController : Controller
     {
         private readonly AppDbContext _context;
@@ -19,14 +19,27 @@ namespace E_Greeting.Controllers
             _environment = environment;
         }
 
-        // 1. Dashboard Mặc Định
+        // --- DASHBOARD TỔNG QUAN HỆ THỐNG ---
         public IActionResult Dashboard()
         {
+            // Thống kê dữ liệu thực tế để đưa lên giao diện Dashboard.cshtml
+            ViewBag.TotalTemplates = _context.Templates.Count();
+            ViewBag.TotalCategories = _context.Categories.Count();
+            ViewBag.TotalUsers = _context.Accounts.Count(a => a.Role != "ADMIN" && a.Role != "Admin");
+
+            // Lấy 5 mẫu thiệp mới nhất để hiển thị nhanh (nếu cần)
+            ViewBag.RecentTemplates = _context.Templates
+                .Include(t => t.Category)
+                .OrderByDescending(t => t.Id)
+                .Take(5)
+                .ToList();
+
             return View();
         }
 
-        // 2. Danh sách Category
-        public IActionResult Index()
+        // --- QUẢN LÝ DANH MỤC (CATEGORIES) ---
+
+        public IActionResult Categories()
         {
             var categories = _context.Categories
                 .Include(c => c.Templates)
@@ -83,7 +96,6 @@ namespace E_Greeting.Controllers
 
         // --- QUẢN LÝ TEMPLATE THEO CATEGORY ---
 
-        // Danh sách Template trực thuộc 1 Category
         public IActionResult Templates(int categoryId)
         {
             var category = _context.Categories
@@ -97,7 +109,6 @@ namespace E_Greeting.Controllers
             return View(category.Templates.ToList());
         }
 
-        // GET: Form Thêm mới Template (Dùng Canvas Editor)
         [HttpGet]
         public IActionResult CreateTemplate(int categoryId)
         {
@@ -106,7 +117,7 @@ namespace E_Greeting.Controllers
             return View();
         }
 
-        // POST: Lưu Template Mới (Xử lý 2 Ảnh + Ghép JSON config_data)
+        // POST: Lưu Template Mới (ImagePath = Thumbnail | ConfigData = BG + Elements)
         [HttpPost]
         public async Task<IActionResult> CreateTemplate(
             int categoryId,
@@ -125,7 +136,7 @@ namespace E_Greeting.Controllers
             string uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "templates");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            // 1. Upload Ảnh Bìa Thô
+            // 1. Upload Ảnh Bìa Thô (Background Canvas)
             string bgFileName = Guid.NewGuid().ToString() + "_bg_" + Path.GetFileName(imageFile.FileName);
             string bgFilePath = Path.Combine(uploadsFolder, bgFileName);
             using (var fileStream = new FileStream(bgFilePath, FileMode.Create))
@@ -134,8 +145,8 @@ namespace E_Greeting.Controllers
             }
             string bgUrl = "/uploads/templates/" + bgFileName;
 
-            // 2. Upload Ảnh Bìa Card Preview
-            string thumbUrl = bgUrl;
+            // 2. Upload Ảnh Thumbnail Card Preview
+            string thumbUrl = bgUrl; // Nếu không có thumbnail riêng thì dùng luôn ảnh thô
             if (thumbnailFile != null && thumbnailFile.Length > 0)
             {
                 string thumbFileName = Guid.NewGuid().ToString() + "_thumb_" + Path.GetFileName(thumbnailFile.FileName);
@@ -147,8 +158,8 @@ namespace E_Greeting.Controllers
                 thumbUrl = "/uploads/templates/" + thumbFileName;
             }
 
-            // 3. Đóng gói JSON
-            string finalConfigJson = configData;
+            // 3. Đóng gói JSON ConfigData (Lưu background_image + elements)
+            string finalConfigJson;
             try
             {
                 using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(configData) ? "{\"elements\":[]}" : configData);
@@ -156,7 +167,7 @@ namespace E_Greeting.Controllers
 
                 var configDict = new System.Collections.Generic.Dictionary<string, object>
                 {
-                    ["preview_thumbnail"] = thumbUrl
+                    ["background_image"] = bgUrl
                 };
 
                 if (root.TryGetProperty("elements", out var elementsProp))
@@ -172,16 +183,16 @@ namespace E_Greeting.Controllers
             }
             catch
             {
-                finalConfigJson = $"{{\"preview_thumbnail\":\"{thumbUrl}\",\"elements\":[]}}";
+                finalConfigJson = $"{{\"background_image\":\"{bgUrl}\",\"elements\":[]}}";
             }
 
-            // 4. Lưu vào SQL Server
+            // 4. Lưu vào CSDL
             var template = new Template
             {
                 Name = name,
                 CategoryId = categoryId,
-                ImagePath = bgUrl,
-                ConfigData = finalConfigJson,
+                ImagePath = thumbUrl,         // Cột image_path lưu Ảnh Thumbnail
+                ConfigData = finalConfigJson, // Cột config_data lưu Ảnh thô + Canvas JSON
                 IsFree = isFree,
                 IsActive = true
             };
@@ -193,7 +204,6 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Templates), new { categoryId });
         }
 
-        // GET: Form Edit Template
         [HttpGet]
         public IActionResult EditTemplate(int id)
         {
@@ -204,7 +214,6 @@ namespace E_Greeting.Controllers
             return View(template);
         }
 
-        // POST: Cập nhật Template (Tự động xóa ảnh cũ nếu upload ảnh mới)
         [HttpPost]
         public async Task<IActionResult> EditTemplate(
             int id,
@@ -227,13 +236,28 @@ namespace E_Greeting.Controllers
             string uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "templates");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            // 1. Xử lý Ảnh Bìa Thô Canvas mới
-            string bgUrl = template.ImagePath;
+            // 1. Trích xuất background_image cũ từ JSON config_data
+            string oldBgUrl = "";
+            if (!string.IsNullOrWhiteSpace(template.ConfigData))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(template.ConfigData);
+                    if (doc.RootElement.TryGetProperty("background_image", out var bgProp))
+                    {
+                        oldBgUrl = bgProp.GetString() ?? "";
+                    }
+                }
+                catch { }
+            }
+
+            // 2. Xử lý Ảnh Bìa Thô mới (Upload ảnh mới -> xóa ảnh cũ)
+            string bgUrl = string.IsNullOrEmpty(oldBgUrl) ? template.ImagePath : oldBgUrl;
             if (imageFile != null && imageFile.Length > 0)
             {
-                if (!string.IsNullOrEmpty(template.ImagePath))
+                if (!string.IsNullOrEmpty(oldBgUrl))
                 {
-                    string oldPath = Path.Combine(_environment.WebRootPath, template.ImagePath.TrimStart('/'));
+                    string oldPath = Path.Combine(_environment.WebRootPath, oldBgUrl.TrimStart('/'));
                     if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
                 }
 
@@ -244,29 +268,15 @@ namespace E_Greeting.Controllers
                     await imageFile.CopyToAsync(stream);
                 }
                 bgUrl = "/uploads/templates/" + bgFileName;
-                template.ImagePath = bgUrl;
             }
 
-            // 2. Xử lý Ảnh Preview Thumbnail mới
-            string thumbUrl = bgUrl;
-            if (!string.IsNullOrWhiteSpace(template.ConfigData))
-            {
-                try
-                {
-                    using var doc = JsonDocument.Parse(template.ConfigData);
-                    if (doc.RootElement.TryGetProperty("preview_thumbnail", out var existingThumb))
-                    {
-                        thumbUrl = existingThumb.GetString() ?? bgUrl;
-                    }
-                }
-                catch { }
-            }
-
+            // 3. Xử lý Ảnh Thumbnail mới (Lưu trực tiếp vào template.ImagePath)
+            string thumbUrl = template.ImagePath;
             if (thumbnailFile != null && thumbnailFile.Length > 0)
             {
-                if (!string.IsNullOrEmpty(thumbUrl) && thumbUrl != template.ImagePath)
+                if (!string.IsNullOrEmpty(template.ImagePath) && template.ImagePath != oldBgUrl)
                 {
-                    string oldThumbPath = Path.Combine(_environment.WebRootPath, thumbUrl.TrimStart('/'));
+                    string oldThumbPath = Path.Combine(_environment.WebRootPath, template.ImagePath.TrimStart('/'));
                     if (System.IO.File.Exists(oldThumbPath)) System.IO.File.Delete(oldThumbPath);
                 }
 
@@ -278,8 +288,9 @@ namespace E_Greeting.Controllers
                 }
                 thumbUrl = "/uploads/templates/" + thumbFileName;
             }
+            template.ImagePath = thumbUrl; // Cập nhật lại ImagePath
 
-            // 3. Đóng gói lại JSON ConfigData
+            // 4. Đóng gói lại JSON ConfigData
             try
             {
                 using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(configData) ? "{\"elements\":[]}" : configData);
@@ -287,7 +298,7 @@ namespace E_Greeting.Controllers
 
                 var configDict = new System.Collections.Generic.Dictionary<string, object>
                 {
-                    ["preview_thumbnail"] = thumbUrl
+                    ["background_image"] = bgUrl
                 };
 
                 if (root.TryGetProperty("elements", out var elementsProp))
@@ -310,7 +321,6 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Templates), new { categoryId = template.CategoryId });
         }
 
-        // POST: Nút Đổi trạng thái Ẩn / Hiện Template
         [HttpPost]
         public async Task<IActionResult> ToggleTemplateStatus(int id)
         {
@@ -325,7 +335,6 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Templates), new { categoryId = template?.CategoryId });
         }
 
-        // Các Tab mở rộng khác
         public IActionResult Users() => View();
         public IActionResult Feedbacks() => View();
         public IActionResult SentLogs() => View();
