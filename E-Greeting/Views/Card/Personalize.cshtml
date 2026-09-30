@@ -1,155 +1,156 @@
-﻿@using System.Text.Json
-@model E_Greeting.Models.Template
+﻿@model E_Greeting.Models.Template
+@using System.Text.Json;
 
 @{
     ViewData["Title"] = "Tùy Chỉnh Thiệp Chúc Mừng";
 
-    // 1. Cấu hình giá trị mặc định ban đầu
-    string defaultImagePath = !string.IsNullOrEmpty(Model?.ImagePath) ? Model.ImagePath : "/uploads/templates/default-card.jpg";
-    string canvasBg = defaultImagePath;
-    string salutation = "Kính gửi:";
-    string recipient = "Bạn thân mến,";
-    string message = "Chúc bạn một ngày làm việc tràn đầy năng lượng và nhiều niềm vui!";
-    string sender = "Thân gửi,";
+    // Trích xuất Ảnh bìa thô Canvas & Elements từ ConfigData
+    string bgImage = "/uploads/templates/default-card.jpg";
+    JsonElement elementsArray = default;
+    bool hasElements = false;
 
-    // 2. Bóc tách JSON không phân biệt chữ hoa/thường
-    if (!string.IsNullOrEmpty(Model?.ConfigData))
+    if (!string.IsNullOrWhiteSpace(Model?.ConfigData))
     {
         try
         {
-            using (var doc = JsonDocument.Parse(Model.ConfigData))
+            using var doc = JsonDocument.Parse(Model.ConfigData);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("background_image", out var bgProp) && !string.IsNullOrWhiteSpace(bgProp.GetString()))
             {
-                var root = doc.RootElement;
-                if (root.ValueKind == JsonValueKind.Object)
-                {
-                    // Hàm hỗ trợ tìm giá trị Key không phân biệt chữ hoa/thường
-                    string? GetPropValue(params string[] possibleKeys)
-                    {
-                        foreach (var prop in root.EnumerateObject())
-                        {
-                            foreach (var key in possibleKeys)
-                            {
-                                if (string.Equals(prop.Name, key, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (prop.Value.ValueKind == JsonValueKind.String)
-                                        return prop.Value.GetString();
-                                }
-                            }
-                        }
-                        return null;
-                    }
+                bgImage = bgProp.GetString()!;
+            }
+            else if (!string.IsNullOrEmpty(Model.ImagePath))
+            {
+                bgImage = Model.ImagePath;
+            }
 
-                    // Ưu tiên lấy ảnh Canvas/Background
-                    var bgVal = GetPropValue("canvasBgImage", "bgImage", "canvasBg", "imagePath", "rawImage");
-                    if (!string.IsNullOrEmpty(bgVal))
-                    {
-                        canvasBg = bgVal;
-                    }
-
-                    // Lấy các văn bản mẫu
-                    salutation = GetPropValue("salutation", "salute", "xungHo") ?? salutation;
-                    recipient = GetPropValue("recipientName", "recipient", "to", "nguoiNhan") ?? recipient;
-                    message = GetPropValue("mainContent", "message", "content", "loiChuc", "text") ?? message;
-                    sender = GetPropValue("closing", "sender", "from", "nguoiGui") ?? sender;
-                }
+            if (root.TryGetProperty("elements", out var elProp) && elProp.ValueKind == JsonValueKind.Array)
+            {
+                elementsArray = elProp.Clone();
+                hasElements = elementsArray.GetArrayLength() > 0;
             }
         }
-        catch
-        {
-            // Bỏ qua nếu cấu trúc JSON bị hỏng
-        }
+        catch { }
     }
-
-    // Chuỗi văn bản gộp hiển thị ban đầu
-    string fullDefaultText = $"{salutation} {recipient}\n\n{message}\n\n{sender}";
+    else if (!string.IsNullOrEmpty(Model?.ImagePath))
+    {
+        bgImage = Model.ImagePath;
+    }
 }
 
 <div class="container my-4">
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <h3 class="fw-bold text-primary mb-0">Tùy Chỉnh Thiệp: @(Model?.Name ?? "Mẫu Thiệp")</h3>
-        <a href="/" class="btn btn-outline-secondary btn-sm">
+        <h3 class="fw-bold text-primary mb-0"><i class="bi bi-palette me-2"></i>Tùy Chỉnh Thiệp: @(Model?.Name ?? "Mẫu Thiệp")</h3>
+        <a href="/" class="btn btn-outline-secondary btn-sm rounded-pill">
             <i class="bi bi-arrow-left me-1"></i> Quay lại trang chủ
         </a>
     </div>
 
-    <!-- Hidden fields chứa dữ liệu an toàn cho Javascript -->
     <input type="hidden" id="template-id" value="@Model?.Id" />
-    <input type="hidden" id="template-image-path" value="@Model?.ImagePath" />
-    <input type="hidden" id="template-canvas-bg" value="@canvasBg" />
-    <input type="hidden" id="template-config-data" value="@Model?.ConfigData" />
 
     <div class="row g-4">
-        <!-- CỘT TRÁI (7/12): XEM TRƯỚC THIỆP & SOẠN THẢO -->
+        <!-- CỘT TRÁI (7/12): CANVAS XEM TRƯỚC VÀ FORM THÔNG TIN CỐ ĐỊNH -->
         <div class="col-lg-7">
-            <!-- KHUNG XEM TRƯỚC THIỆP -->
-            <div class="card shadow-sm mb-3">
+            <!-- 1. CANVAS XEM TRƯỚC THIỆP -->
+            <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-card-image me-1"></i> Xem Trước Thiệp</span>
+                    <span><i class="bi bi-card-image me-1"></i> Xem Trước Ảnh Bìa Thiệp</span>
                     <span class="badge bg-light text-primary">Mẫu #@(Model?.Id ?? 0)</span>
                 </div>
                 <div class="card-body p-3 d-flex justify-content-center bg-dark bg-opacity-10 overflow-auto">
-                    <!-- CANVAS THIỆP -->
-                    <div id="card-preview-area" class="position-relative shadow border rounded bg-white"
-                         style="width: 100%; max-width: 600px; height: 420px; background-image: url('@canvasBg'); background-size: contain; background-repeat: no-repeat; background-position: center;">
+                    <div id="card-preview-area" class="position-relative shadow border rounded bg-white overflow-hidden"
+                         style="width: 100%; max-width: 600px; height: 420px; background-image: url('@bgImage'); background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none;">
 
-                        <!-- Khung chữ mặc định -->
-                        <div class="draggable-text-box active" style="top: 80px; left: 50px; width: 500px; color: #000000; font-family: Arial; font-size: 18px;">
-                            <span class="text-content" style="white-space: pre-line;">@fullDefaultText</span>
-                        </div>
+                        @if (hasElements)
+                        {
+                            bool isFirst = true;
+                            foreach (var item in elementsArray.EnumerateArray())
+                            {
+                                string content = item.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
+                                string top = item.TryGetProperty("top", out var t) ? t.GetString() ?? "35%" : "35%";
+                                string left = item.TryGetProperty("left", out var l) ? l.GetString() ?? "15%" : "15%";
+                                string font = item.TryGetProperty("fontFamily", out var f) ? f.GetString() ?? "Arial" : "Arial";
+                                string size = item.TryGetProperty("fontSize", out var s) ? s.GetString() ?? "18px" : "18px";
+                                string color = item.TryGetProperty("color", out var cl) ? cl.GetString() ?? "#000000" : "#000000";
+                                string weight = item.TryGetProperty("fontWeight", out var w) ? w.GetString() ?? "normal" : "normal";
+                                string style = item.TryGetProperty("fontStyle", out var st) ? st.GetString() ?? "normal" : "normal";
+
+                                <div class="draggable-text-box @(isFirst ? "active" : "") position-absolute p-2 rounded text-center"
+                                     style="top: @top; left: @left; color: @color; font-family: @font; font-size: @size; font-weight: @weight; font-style: @style; cursor: move; border: @(isFirst ? "2px dashed #0d6efd" : "1px dashed rgba(13,110,253,0.5)"); background: rgba(255,255,255,0.4);"
+                                     data-top="@top" data-left="@left">
+                                    <span class="text-content" style="white-space: pre-wrap; display: block;">@content</span>
+                                </div>
+                                isFirst = false;
+                            }
+                        }
+                        else
+                        {
+                            <div class="draggable-text-box active position-absolute p-2 rounded text-center"
+                                 style="top: 35%; left: 15%; width: 70%; color: #000000; font-family: Arial; font-size: 20px; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4);">
+                                <span class="text-content" style="white-space: pre-wrap; display: block;">Chúc Mừng Bằng Cả Trái Tim</span>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
 
-            <!-- SOẠN THẢO NỘI DUNG THIỆP -->
-            <div class="card shadow-sm p-3">
+            <!-- 2. FORM CỐ ĐỊNH NHẬP THÔNG TIN SỰ KIỆN / NGƯỜI NHẬN -->
+            <div class="card shadow-sm p-4 border-top border-primary border-3">
                 <h6 class="fw-bold text-primary mb-3">
-                    <i class="bi bi-pencil-square me-1"></i> Soạn thảo nội dung thiệp:
+                    <i class="bi bi-file-earmark-text me-1"></i> Thông Tin Chi Tiết Đi Kèm Thiệp (Form Thô):
                 </h6>
 
-                <div class="row mb-2 align-items-center">
-                    <label for="tpl-salutation" class="col-sm-4 col-form-label col-form-label-sm fw-semibold">Kính gửi / Xưng hô:</label>
-                    <div class="col-sm-8">
-                        <input type="text" id="tpl-salutation" class="form-control form-control-sm tpl-field" value="@salutation">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="input-recipient-name" class="form-label form-label-sm fw-semibold">Tên Người Nhận (*):</label>
+                        <input type="text" id="input-recipient-name" class="form-control form-control-sm" placeholder="Ví dụ: Anh Nguyễn Văn A" required>
                     </div>
-                </div>
 
-                <div class="row mb-2 align-items-center">
-                    <label for="tpl-recipient" class="col-sm-4 col-form-label col-form-label-sm fw-semibold">Tên người nhận:</label>
-                    <div class="col-sm-8">
-                        <input type="text" id="tpl-recipient" class="form-control form-control-sm tpl-field" value="@recipient">
+                    <div class="col-md-6">
+                        <label for="input-event-time" class="form-label form-label-sm fw-semibold">Thời Gian Diễn Ra (*):</label>
+                        <input type="datetime-local" id="input-event-time" class="form-control form-control-sm" required>
                     </div>
-                </div>
 
-                <div class="row mb-2 align-items-center">
-                    <label for="tpl-message" class="col-sm-4 col-form-label col-form-label-sm fw-semibold">Lời chúc chính:</label>
-                    <div class="col-sm-8">
-                        <textarea id="tpl-message" class="form-control form-control-sm tpl-field" rows="3">@message</textarea>
+                    <div class="col-12">
+                        <label for="input-event-address" class="form-label form-label-sm fw-semibold">Địa Chỉ / Địa Điểm Tổ Chức (*):</label>
+                        <input type="text" id="input-event-address" class="form-control form-control-sm" placeholder="Ví dụ: Trung tâm Tiệc cưới White Palace, TPHCM" required>
                     </div>
-                </div>
 
-                <div class="row mb-2 align-items-center">
-                    <label for="tpl-sender" class="col-sm-4 col-form-label col-form-label-sm fw-semibold">Lời kết / Người gửi:</label>
-                    <div class="col-sm-8">
-                        <input type="text" id="tpl-sender" class="form-control form-control-sm tpl-field" value="@sender">
+                    <div class="col-md-6">
+                        <label for="input-recipient-email" class="form-label form-label-sm fw-semibold">Email Người Nhận (*):</label>
+                        <input type="email" id="input-recipient-email" class="form-control form-control-sm" placeholder="nguoinhan@example.com" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="input-email-subject" class="form-label form-label-sm fw-semibold">Tiêu Đề Email:</label>
+                        <input type="text" id="input-email-subject" class="form-control form-control-sm" value="Lời mời trân trọng dành riêng cho bạn!">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- CỘT PHẢI (5/12): BẢNG CÔNG CỤ CHỈNH SỬA & GỬI THIỆP -->
+        <!-- CỘT PHẢI (5/12): BẢNG CÔNG CỤ EDIT ẢNH BÌA & EDIT TEXT DẠNG ADMIN -->
         <div class="col-lg-5">
             <div class="card shadow-sm p-3">
                 <h6 class="fw-bold text-primary mb-3">
-                    <i class="bi bi-tools me-1"></i> Công Cụ Chỉnh Sửa
+                    <i class="bi bi-tools me-1"></i> Công Cụ Thiết Kế Ảnh Bìa
                 </h6>
 
-                <!-- Thao tác canvas -->
                 <div class="d-flex gap-2 mb-3">
-                    <button id="btn-add-text" class="btn btn-sm btn-outline-primary w-50">+ Thêm khung chữ</button>
-                    <button id="btn-clear-canvas" class="btn btn-sm btn-outline-danger w-50">Xóa vật thể chọn</button>
+                    <button id="btn-add-text" class="btn btn-sm btn-outline-primary w-50"><i class="bi bi-plus-circle me-1"></i>Thêm văn bản</button>
+                    <button id="btn-clear-canvas" class="btn btn-sm btn-outline-danger w-50"><i class="bi bi-trash me-1"></i>Xóa đối tượng chọn</button>
                 </div>
 
-                <!-- ĐỊNH DẠNG VĂN BẢN -->
+                <!-- Ô NHẬP TRỰC TIẾP CHO TEXT ĐANG CHỌN TRÊN CANVAS (KIỂU ADMIN) -->
+                <div class="mb-3 p-2 border rounded bg-light">
+                    <label for="input-active-text-val" class="form-label form-label-sm fw-bold text-dark mb-1">
+                        <i class="bi bi-pencil me-1"></i> Sửa nội dung văn bản đang chọn:
+                    </label>
+                    <textarea id="input-active-text-val" class="form-control form-control-sm" rows="2" placeholder="Nhấp chọn một khung chữ trên thiệp để sửa..."></textarea>
+                </div>
+
+                <!-- BỘ ĐỊNH DẠNG VĂN BẢN -->
                 <div class="mb-3">
                     <label class="form-label form-label-sm fw-bold">Định dạng văn bản:</label>
                     <div class="row g-2 mb-2">
@@ -166,10 +167,11 @@
                             <select id="select-fontsize" class="form-select form-select-sm">
                                 <option value="14px">14px</option>
                                 <option value="16px">16px</option>
-                                <option value="18px" selected>18px</option>
-                                <option value="20px">20px</option>
+                                <option value="18px">18px</option>
+                                <option value="20px" selected>20px</option>
                                 <option value="24px">24px</option>
                                 <option value="28px">28px</option>
+                                <option value="32px">32px</option>
                                 <option value="36px">36px</option>
                             </select>
                         </div>
@@ -185,9 +187,9 @@
                     <div class="mt-2">
                         <div class="d-flex justify-content-between">
                             <label for="slider-text-width" class="form-label form-label-sm mb-0">Độ rộng khung chữ:</label>
-                            <span id="val-text-width" class="small text-muted">500px</span>
+                            <span id="val-text-width" class="small text-muted">300px</span>
                         </div>
-                        <input type="range" id="slider-text-width" class="form-range form-range-sm" min="100" max="580" value="500">
+                        <input type="range" id="slider-text-width" class="form-range form-range-sm" min="100" max="580" value="300">
                     </div>
                 </div>
 
@@ -248,19 +250,8 @@
 
                 <hr class="my-2">
 
-                <!-- THÔNG TIN GỬI THIỆP -->
-                <div class="mb-2">
-                    <label for="input-recipient" class="form-label form-label-sm fw-bold">Email Người Nhận (*):</label>
-                    <input type="email" id="input-recipient" class="form-control form-control-sm" placeholder="nguoinhan@example.com" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="input-subject" class="form-label form-label-sm fw-bold">Tiêu đề email:</label>
-                    <input type="text" id="input-subject" class="form-control form-control-sm" value="Thiệp chúc mừng dành riêng cho bạn!">
-                </div>
-
-                <button id="btn-save-card" class="btn btn-success w-100 fw-bold py-2">
-                    <i class="bi bi-send me-1"></i> Lưu & Gửi Thiệp
+                <button id="btn-save-card" class="btn btn-success w-100 fw-bold py-2 shadow-sm">
+                    <i class="bi bi-send-check me-1"></i> Hoàn Tất & Gửi Thiệp
                 </button>
             </div>
         </div>
@@ -268,19 +259,6 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Khởi tạo đối tượng JS an toàn chống lỗi cú pháp
-        window.templateConfigRaw = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.ConfigData ?? "{}"));
-        window.templateImagePath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model?.ImagePath ?? ""));
-        window.templateCanvasBg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(canvasBg));
-
-        try {
-            window.templateConfigData = typeof window.templateConfigRaw === 'string'
-                ? JSON.parse(window.templateConfigRaw)
-                : window.templateConfigRaw;
-        } catch (e) {
-            window.templateConfigData = {};
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="~/js/personalize.js" asp-append-version="true"></script>
 }

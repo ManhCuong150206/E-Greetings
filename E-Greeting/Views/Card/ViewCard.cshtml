@@ -1,116 +1,160 @@
-﻿@{
+﻿@model E_Greeting.Models.SentCard
+@using System.Text.Json;
+
+@{
     ViewData["Title"] = "Thiệp Chúc Mừng Dành Cho Bạn";
-    var senderInfo = ViewBag.SenderName ?? ViewBag.SenderEmail ?? "Người bạn thân";
-    string bgImage = ViewBag.ImagePath as string ?? "";
+
+    // 1. TRÍCH XUẤT DỮ LIỆU FORM THÔ TỪ MODEL.MESSAGE AN TOÀN
+    string recipientName = "";
+    string eventTime = "";
+    string eventAddress = "";
+
+    if (!string.IsNullOrWhiteSpace(Model?.Message))
+    {
+        try
+        {
+            string jsonString = Model.Message;
+            if (jsonString.StartsWith("\"") && jsonString.EndsWith("\""))
+            {
+                jsonString = JsonSerializer.Deserialize<string>(jsonString) ?? jsonString;
+            }
+
+            using var doc = JsonDocument.Parse(jsonString);
+            var root = doc.RootElement;
+
+            recipientName = root.TryGetProperty("recipientName", out var r) ? r.GetString() ?? "" : "";
+
+            string rawTime = root.TryGetProperty("eventTime", out var t) ? t.GetString() ?? "" : "";
+            if (DateTime.TryParse(rawTime, out DateTime parsedDate))
+            {
+                eventTime = parsedDate.ToString("HH:mm - dd/MM/yyyy");
+            }
+            else
+            {
+                eventTime = rawTime;
+            }
+
+            eventAddress = root.TryGetProperty("eventAddress", out var a) ? a.GetString() ?? "" : "";
+        }
+        catch
+        {
+            recipientName = Model.Message;
+        }
+    }
+
+    // 2. LẤY ĐƯỜNG DẪN ẢNH MẶT THIỆP ĐÃ GỘP SẠCH SẼ TỪ CSDL
+    string mergedCardImgPath = Model?.ImagePath ?? "";
+    if (string.IsNullOrEmpty(mergedCardImgPath) && Model?.Template != null)
+    {
+        mergedCardImgPath = Model.Template.ImagePath ?? "";
+    }
+
+    mergedCardImgPath = mergedCardImgPath.Replace("url('", "").Replace("')", "").Replace("url(\"", "").Replace("\")", "").Replace("url(", "").Trim();
+    if (!string.IsNullOrEmpty(mergedCardImgPath) && !mergedCardImgPath.StartsWith("http") && !mergedCardImgPath.StartsWith("/"))
+    {
+        mergedCardImgPath = "/" + mergedCardImgPath;
+    }
 }
 
-<!-- CSS Chuẩn hóa hiển thị khớp 100% với lúc thiết kế ở trang Personalize -->
-<style>
-    /* 1. Khung chứa thiệp chuẩn tỷ lệ 4:3 (600px x 450px) */
-    #card-preview-area {
-        position: relative !important;
-        width: 100% !important;
-        max-width: 600px !important;
-        height: 450px !important; /* Đổi từ 400px thành 450px để khớp tỷ lệ lúc chỉnh sửa */
-        background-size: 100% 100% !important; /* Giúp ảnh template trọn vẹn 100%, không bị cắt viền */
-        background-repeat: no-repeat !important;
-        background-position: center !important;
-        background-color: #ffffff;
-        margin: 0 auto;
-        overflow: hidden;
-    }
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-        /* 2. Đảm bảo các phần tử chữ & ảnh đặt đúng vị trí tuyệt đối */
-        #card-preview-area .draggable-element,
-        #card-preview-area .draggable-text-box {
-            position: absolute !important;
-            box-sizing: border-box !important;
-            border: none !important;
-            outline: none !important;
-            box-shadow: none !important;
-            cursor: default !important;
-        }
+            <!-- 1. BỨC ẢNH MẶT THIỆP HOÀN CHỈNH ĐÃ MERGE -->
+            <div class="card shadow-lg mb-4 rounded-3 border-0">
+                <div class="card-header bg-gradient bg-primary text-white text-center py-3">
+                    <h4 class="fw-bold mb-0"><i class="bi bi-envelope-open-heart me-2"></i>Thiệp Chúc Mừng Dành Cho Bạn</h4>
+                </div>
+                <div class="card-body p-4 bg-light d-flex justify-content-center">
+                    <div class="shadow border rounded bg-white overflow-hidden text-center" style="max-width: 600px; width: 100%;">
+                        <img src="@mergedCardImgPath" alt="Thiệp chúc mừng" class="img-fluid rounded" style="width: 100%; height: auto; display: block;" />
+                    </div>
+                </div>
+            </div>
 
-        /* 3. Giữ nguyên định dạng ngắt dòng, khoảng cách chữ chuẩn như lúc nhập */
-        #card-preview-area .text-content,
-        #card-preview-area p,
-        #card-preview-area div {
-            white-space: pre-wrap !important;
-            word-wrap: break-word !important;
-            word-break: break-word !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
+            <!-- 2. THANH ĐIỀU KHIỂN PHÁT NHẠC -->
+            <div class="card shadow-sm p-3 mb-4 bg-light border-0">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-music-note-beamed fs-3 text-primary"></i>
+                    <div class="flex-grow-1">
+                        <label class="fw-bold text-dark small mb-1">Nhạc nền kèm theo thiệp:</label>
+                        <audio id="bg-audio" controls loop class="w-100" style="height: 40px; display: block !important;">
+                            <source src="@(string.IsNullOrEmpty(Model?.AudioPath) ? "/audio/Nhạc nền 1.mp3" : Model.AudioPath)" type="audio/mpeg">
+                            Trình duyệt của bạn không hỗ trợ phát âm thanh.
+                        </audio>
+                    </div>
+                </div>
+            </div>
 
-        /* 4. Định dạng ảnh cá nhân được chèn vào bên trong */
-        #card-preview-area img:not(.bg-template) {
-            max-width: 100%;
-            height: auto;
-            object-fit: contain;
-            display: block;
-        }
+            <!-- 3. FORM THÔNG TIN CỐ ĐỊNH & PHẢN HỒI -->
+            <div class="card shadow-sm p-4 border-0">
+                <h5 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-info-circle me-1"></i> Thông Tin Sự Kiện & Phản Hồi Tham Dự
+                </h5>
 
-        /* 5. Triệt tiêu hoàn toàn thanh cuộn scrollbar */
-        #card-preview-area::-webkit-scrollbar,
-        .draggable-text-box::-webkit-scrollbar,
-        .text-content::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
+                <div class="row g-3 mb-4 bg-light p-3 rounded border">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-secondary small">Kính gửi người nhận:</label>
+                        <input type="text" class="form-control bg-white fw-bold" value="@recipientName" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-secondary small">Thời gian diễn ra:</label>
+                        <input type="text" class="form-control bg-white fw-bold text-danger" value="@eventTime" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-secondary small">Địa điểm tổ chức:</label>
+                        <input type="text" class="form-control bg-white fw-bold" value="@eventAddress" readonly />
+                    </div>
+                </div>
 
-    #card-preview-area,
-    .draggable-text-box,
-    .text-content {
-        -ms-overflow-style: none !important;
-        scrollbar-width: none !important;
-    }
-</style>
+                <hr />
 
-<div class="container my-5 text-center" style="max-width: 650px;">
-    <!-- THÔNG BÁO TỪ NGƯỜI GỬI -->
-    <div class="mb-3">
-        <span class="badge bg-danger fs-6 px-3 py-2">🎁 Bạn nhận được một tấm thiệp từ @senderInfo</span>
-        <p class="text-muted small mt-2">Đã mở lúc: @ViewBag.OpenAt</p>
-    </div>
+                <!-- FORM PHẢN HỒI LẠI USER -->
+                <form asp-controller="Card" asp-action="ReplyCard" method="post" id="form-reply">
+                    <input type="hidden" name="CardId" value="@Model?.Id" />
 
-    <!-- KHUNG HIỂN THỊ THIỆP -->
-    <div id="card-preview-area"
-         class="card shadow-lg border-0 rounded-3"
-         style="background-image: url('@bgImage');">
+                    <label class="form-label fw-bold text-dark mb-2">Bạn sẽ tham dự sự kiện chứ? (*)</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="radio" class="btn-check" name="replyStatus" id="btn-yes" value="Yes" required>
+                        <label class="btn btn-outline-success flex-fill fw-bold py-2" for="btn-yes">
+                            <i class="bi bi-check-circle me-1"></i> Sẽ tham dự
+                        </label>
 
-        @if (!string.IsNullOrEmpty(ViewBag.CardHtmlContent as string))
-        {
-            @Html.Raw(ViewBag.CardHtmlContent)
-        }
-    </div>
+                        <input type="radio" class="btn-check" name="replyStatus" id="btn-maybe" value="Maybe">
+                        <label class="btn btn-outline-warning flex-fill fw-bold py-2" for="btn-maybe">
+                            <i class="bi bi-question-circle me-1"></i> Phân vân
+                        </label>
 
-    <!-- TRÌNH PHÁT NHẠC NỀN -->
-    @if (!string.IsNullOrEmpty(ViewBag.AudioPath as string))
-    {
-        <div class="my-4 p-3 bg-light rounded shadow-sm d-flex align-items-center justify-content-center gap-3">
-            <span>🎵 Nhạc nền thiệp:</span>
-            <audio id="card-audio" controls autoplay loop style="height: 35px;">
-                <source src="@ViewBag.AudioPath" type="audio/mpeg">
-            </audio>
+                        <input type="radio" class="btn-check" name="replyStatus" id="btn-no" value="No">
+                        <label class="btn btn-outline-danger flex-fill fw-bold py-2" for="btn-no">
+                            <i class="bi bi-x-circle me-1"></i> Không thể tham dự
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="input-reply-desc" class="form-label form-label-sm fw-semibold">Lời nhắn gửi lại (Description / Lời chúc đáp lại):</label>
+                        <textarea name="ReplyMessage" id="input-reply-desc" class="form-control form-control-sm" rows="3" placeholder="Nhập lời nhắn của bạn gửi lại cho người tạo thiệp..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                        <i class="bi bi-send me-1"></i> Gửi Phản Hồi Cho Người Tạo Thiệp
+                    </button>
+                </form>
+            </div>
         </div>
-    }
-
-    <hr class="my-4" />
-
-    <!-- FORM GỬI LỜI CẢM ƠN -->
-    <div class="card p-4 shadow-sm text-start bg-white rounded-3">
-        <h5 class="card-title text-primary mb-3">💌 Gửi lời cảm ơn / Phản hồi</h5>
-        <div class="mb-3">
-            <textarea id="reply-message" class="form-control" rows="3"
-                      placeholder="Cảm ơn bạn vì tấm thiệp rất đáng yêu này..."></textarea>
-        </div>
-        <button id="btn-send-reply" class="btn btn-primary w-100 fw-bold py-2">
-            Gửi Phản Hồi
-        </button>
     </div>
 </div>
 
-@section Scripts {
-    <script src="~/js/view-card.js" asp-append-version="true"></script>
-}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const audio = document.getElementById("bg-audio");
+        if (audio) {
+            const promise = audio.play();
+            if (promise !== undefined) {
+                promise.catch(() => {
+                    console.log("Trình duyệt yêu cầu người dùng nhấp Play để phát nhạc.");
+                });
+            }
+        }
+    });
+</script>
