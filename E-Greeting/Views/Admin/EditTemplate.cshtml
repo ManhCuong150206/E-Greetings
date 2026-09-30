@@ -28,16 +28,23 @@
             <!-- BÊN TRÁI: LIVE CANVAS KÉO THẢ EDITOR -->
             <div class="col-md-7">
                 <div class="card shadow-sm p-3 bg-light text-center">
-                    <h6 class="fw-bold text-muted mb-2">Vùng Thiết Kế Ảnh Bìa Thô & Text Mẫu (Canvas)</h6>
+                    <h6 class="fw-bold text-muted mb-2"><i class="bi bi-aspect-ratio me-1"></i> Vùng Thiết Kế Ảnh Bìa Thô & Text Mẫu (Canvas)</h6>
                     
-                    <div id="admin-canvas-area" class="position-relative overflow-hidden rounded mx-auto border bg-white shadow-sm"
-                         style="width: 500px; height: 380px; user-select: none;">
+                    <!-- Khung Canvas Cố Định Tỉ Lệ / Kích Thước An Toàn -->
+                    <div id="admin-canvas-area" 
+                         class="position-relative overflow-hidden rounded mx-auto border bg-dark shadow-sm d-flex align-items-center justify-content-center"
+                         style="width: 100%; max-width: 520px; height: 390px; user-select: none;">
                         
-                        <!-- Ảnh Bìa Thô Canvas Hiện Tại -->
-                        <img id="preview-background" src="@Model.ImagePath" class="w-100 h-100" style="object-fit: cover;" alt="Background Canvas" />
+                        <!-- Ảnh Bìa Thô Canvas Hiện Tại (object-fit: contain hiển thị trọn 100% ảnh) -->
+                        <img id="preview-background" 
+                             src="@Model.ImagePath" 
+                             class="mw-100 mh-100" 
+                             style="object-fit: contain; max-width: 100%; max-height: 100%; pointer-events: none;" 
+                             alt="Background Canvas" />
 
                         <!-- Vùng nạp dynamic elements từ configData bằng JS -->
                     </div>
+                    <small class="text-muted d-block mt-2"><i class="bi bi-info-circle me-1"></i>Ảnh bìa dù lớn hay nhỏ sẽ luôn được tự động co giãn vừa vặn trong khung.</small>
                 </div>
             </div>
 
