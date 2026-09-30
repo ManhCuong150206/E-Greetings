@@ -22,12 +22,10 @@ namespace E_Greeting.Controllers
         // --- DASHBOARD TỔNG QUAN HỆ THỐNG ---
         public IActionResult Dashboard()
         {
-            // Thống kê dữ liệu thực tế để đưa lên giao diện Dashboard.cshtml
             ViewBag.TotalTemplates = _context.Templates.Count();
             ViewBag.TotalCategories = _context.Categories.Count();
             ViewBag.TotalUsers = _context.Accounts.Count(a => a.Role != "ADMIN" && a.Role != "Admin");
 
-            // Lấy 5 mẫu thiệp mới nhất để hiển thị nhanh (nếu cần)
             ViewBag.RecentTemplates = _context.Templates
                 .Include(t => t.Category)
                 .OrderByDescending(t => t.Id)
@@ -37,13 +35,34 @@ namespace E_Greeting.Controllers
             return View();
         }
 
-        // --- QUẢN LÝ DANH MỤC (CATEGORIES) ---
+        public IActionResult Index() => RedirectToAction(nameof(Categories));
 
-        public IActionResult Categories()
+        // --- QUẢN LÝ DANH MỤC (CATEGORIES) + SEARCH & PAGING ---
+
+        public IActionResult Categories(string? searchName, int page = 1)
         {
-            var categories = _context.Categories
-                .Include(c => c.Templates)
+            int pageSize = 10;
+            var query = _context.Categories.Include(c => c.Templates).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchName))
+            {
+                query = query.Where(c => c.Name.Contains(searchName));
+            }
+
+            int totalItems = query.Count();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var categories = query
+                .OrderByDescending(c => c.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
+
+            ViewBag.SearchName = searchName;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
             return View(categories);
         }
 
@@ -55,9 +74,9 @@ namespace E_Greeting.Controllers
                 _context.Categories.Add(category);
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = "Thêm danh mục thành công!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Categories));
             }
-            return View(nameof(Index), _context.Categories.Include(c => c.Templates).ToList());
+            return RedirectToAction(nameof(Categories));
         }
 
         [HttpGet]
@@ -76,7 +95,7 @@ namespace E_Greeting.Controllers
                 _context.Categories.Update(category);
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = "Cập nhật danh mục thành công!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Categories));
             }
             return View(category);
         }
@@ -91,22 +110,74 @@ namespace E_Greeting.Controllers
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = "Xóa danh mục thành công!";
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Categories));
         }
 
-        // --- QUẢN LÝ TEMPLATE THEO CATEGORY ---
+        // --- QUẢN LÝ TEMPLATE THEO CATEGORY + SEARCH, FILTER & PAGING ---
 
-        public IActionResult Templates(int categoryId)
+        public IActionResult Templates(int categoryId, string? searchName, string? isFree, string? isActive, int page = 1)
         {
-            var category = _context.Categories
-                .Include(c => c.Templates)
-                .FirstOrDefault(c => c.Id == categoryId);
-
+            var category = _context.Categories.Find(categoryId);
             if (category == null) return NotFound();
+
+            int pageSize = 8; // Hiển thị 8 thiệp/trang
+            var query = _context.Templates.Where(t => t.CategoryId == categoryId).AsQueryable();
+
+            // 1. Lọc theo tên
+            if (!string.IsNullOrWhiteSpace(searchName))
+            {
+                query = query.Where(t => t.Name.Contains(searchName));
+            }
+
+            // 2. Lọc theo gói Quyền lợi (Free/VIP)
+            if (!string.IsNullOrWhiteSpace(isFree))
+            {
+                if (isFree == "true") query = query.Where(t => t.IsFree == true);
+                else if (isFree == "false") query = query.Where(t => t.IsFree == false);
+            }
+
+            // 3. Lọc theo trạng thái (Active/Inactive)
+            if (!string.IsNullOrWhiteSpace(isActive))
+            {
+                if (isActive == "true") query = query.Where(t => t.IsActive == true);
+                else if (isActive == "false") query = query.Where(t => t.IsActive == false);
+            }
+
+            int totalItems = query.Count();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var templates = query
+                .OrderByDescending(t => t.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             ViewBag.CategoryName = category.Name;
             ViewBag.CategoryId = category.Id;
-            return View(category.Templates.ToList());
+
+            // Lưu bộ lọc ra ViewBag để binding vào Form
+            ViewBag.SearchName = searchName;
+            ViewBag.IsFree = isFree;
+            ViewBag.IsActive = isActive;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
+            return View(templates);
+        }
+
+        // --- AJAX TOGGLE STATUS (CÔNG TẮC SWITCH KHÔNG RELOAD TRANG) ---
+        [HttpPost]
+        public async Task<IActionResult> ToggleTemplateStatusAjax(int id)
+        {
+            var template = await _context.Templates.FindAsync(id);
+            if (template == null) return Json(new { success = false, message = "Không tìm thấy Template!" });
+
+            template.IsActive = !template.IsActive;
+            _context.Templates.Update(template);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, isActive = template.IsActive });
         }
 
         [HttpGet]
@@ -117,14 +188,13 @@ namespace E_Greeting.Controllers
             return View();
         }
 
-        // POST: Lưu Template Mới (ImagePath = Thumbnail | ConfigData = BG + Elements)
         [HttpPost]
         public async Task<IActionResult> CreateTemplate(
             int categoryId,
             string name,
             bool isFree,
-            IFormFile imageFile,       // 1. Ảnh Bìa Thô (Background Canvas)
-            IFormFile? thumbnailFile,  // 2. Ảnh Bìa Card (Preview Thumbnail)
+            IFormFile imageFile,
+            IFormFile? thumbnailFile,
             string configData)
         {
             if (string.IsNullOrWhiteSpace(name) || imageFile == null)
@@ -136,7 +206,6 @@ namespace E_Greeting.Controllers
             string uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "templates");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            // 1. Upload Ảnh Bìa Thô (Background Canvas)
             string bgFileName = Guid.NewGuid().ToString() + "_bg_" + Path.GetFileName(imageFile.FileName);
             string bgFilePath = Path.Combine(uploadsFolder, bgFileName);
             using (var fileStream = new FileStream(bgFilePath, FileMode.Create))
@@ -145,8 +214,7 @@ namespace E_Greeting.Controllers
             }
             string bgUrl = "/uploads/templates/" + bgFileName;
 
-            // 2. Upload Ảnh Thumbnail Card Preview
-            string thumbUrl = bgUrl; // Nếu không có thumbnail riêng thì dùng luôn ảnh thô
+            string thumbUrl = bgUrl;
             if (thumbnailFile != null && thumbnailFile.Length > 0)
             {
                 string thumbFileName = Guid.NewGuid().ToString() + "_thumb_" + Path.GetFileName(thumbnailFile.FileName);
@@ -158,7 +226,6 @@ namespace E_Greeting.Controllers
                 thumbUrl = "/uploads/templates/" + thumbFileName;
             }
 
-            // 3. Đóng gói JSON ConfigData (Lưu background_image + elements)
             string finalConfigJson;
             try
             {
@@ -186,13 +253,12 @@ namespace E_Greeting.Controllers
                 finalConfigJson = $"{{\"background_image\":\"{bgUrl}\",\"elements\":[]}}";
             }
 
-            // 4. Lưu vào CSDL
             var template = new Template
             {
                 Name = name,
                 CategoryId = categoryId,
-                ImagePath = thumbUrl,         // Cột image_path lưu Ảnh Thumbnail
-                ConfigData = finalConfigJson, // Cột config_data lưu Ảnh thô + Canvas JSON
+                ImagePath = thumbUrl,
+                ConfigData = finalConfigJson,
                 IsFree = isFree,
                 IsActive = true
             };
@@ -236,7 +302,6 @@ namespace E_Greeting.Controllers
             string uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "templates");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            // 1. Trích xuất background_image cũ từ JSON config_data
             string oldBgUrl = "";
             if (!string.IsNullOrWhiteSpace(template.ConfigData))
             {
@@ -251,7 +316,6 @@ namespace E_Greeting.Controllers
                 catch { }
             }
 
-            // 2. Xử lý Ảnh Bìa Thô mới (Upload ảnh mới -> xóa ảnh cũ)
             string bgUrl = string.IsNullOrEmpty(oldBgUrl) ? template.ImagePath : oldBgUrl;
             if (imageFile != null && imageFile.Length > 0)
             {
@@ -270,7 +334,6 @@ namespace E_Greeting.Controllers
                 bgUrl = "/uploads/templates/" + bgFileName;
             }
 
-            // 3. Xử lý Ảnh Thumbnail mới (Lưu trực tiếp vào template.ImagePath)
             string thumbUrl = template.ImagePath;
             if (thumbnailFile != null && thumbnailFile.Length > 0)
             {
@@ -288,9 +351,8 @@ namespace E_Greeting.Controllers
                 }
                 thumbUrl = "/uploads/templates/" + thumbFileName;
             }
-            template.ImagePath = thumbUrl; // Cập nhật lại ImagePath
+            template.ImagePath = thumbUrl;
 
-            // 4. Đóng gói lại JSON ConfigData
             try
             {
                 using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(configData) ? "{\"elements\":[]}" : configData);
@@ -319,20 +381,6 @@ namespace E_Greeting.Controllers
 
             TempData["SuccessMessage"] = "Cập nhật mẫu Template thành công!";
             return RedirectToAction(nameof(Templates), new { categoryId = template.CategoryId });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ToggleTemplateStatus(int id)
-        {
-            var template = await _context.Templates.FindAsync(id);
-            if (template != null)
-            {
-                template.IsActive = !template.IsActive;
-                _context.Templates.Update(template);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = template.IsActive ? "Đã HIỆN mẫu thiệp lên danh sách User!" : "Đã ẨN mẫu thiệp khỏi danh sách User!";
-            }
-            return RedirectToAction(nameof(Templates), new { categoryId = template?.CategoryId });
         }
 
         public IActionResult Users() => View();
