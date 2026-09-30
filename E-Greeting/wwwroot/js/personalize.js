@@ -3,8 +3,6 @@
     // 1. KHAI BÁO CÁC PHẦN TỬ DOM
     // ==========================================
     const cardArea = document.getElementById("card-preview-area");
-    const inputMessage = document.getElementById("input-message");
-    const inputCardTemplateContent = document.getElementById("input-card-template-content");
     const selectFont = document.getElementById("select-font");
     const selectFontSize = document.getElementById("select-fontsize");
     const inputColor = document.getElementById("input-color");
@@ -104,13 +102,6 @@
             // NẾU LÀ CHỮ / STICKER: Ẩn công cụ ảnh
             if (imageTools) imageTools.classList.add("d-none");
 
-            const textSpan = element.querySelector(".text-content");
-            if (textSpan) {
-                const currentText = textSpan.innerText || textSpan.textContent;
-                if (inputMessage) inputMessage.value = currentText;
-                if (inputCardTemplateContent) inputCardTemplateContent.value = currentText;
-            }
-
             // Đồng bộ độ rộng khung chữ với thanh slider
             const currentTextWidth = parseInt(element.style.width) || element.offsetWidth || 300;
             if (sliderTextWidth) sliderTextWidth.value = currentTextWidth;
@@ -143,7 +134,7 @@
     }
 
     // ==========================================
-    // 4. KHỞI TẠO TÍNH NĂNG KÉO THẢ (DRAG & DROP)
+    // 4. KHỞI TẠO TÍNH NĂNG KÉO THẢ (DRAG & DROP - DESKTOP & MOBILE)
     // ==========================================
     function makeDraggable(element) {
         let isDragging = false;
@@ -154,7 +145,7 @@
             textSpan.style.whiteSpace = "pre-wrap";
         }
 
-        element.addEventListener("mousedown", function (e) {
+        function onStart(e) {
             isDragging = true;
             activeElement = element;
 
@@ -166,31 +157,46 @@
 
             // Kích hoạt phần tử hiện tại
             element.classList.add("active");
-
             syncControlsWithElement(element);
 
-            const rect = element.getBoundingClientRect();
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
-        });
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        document.addEventListener("mousemove", function (e) {
+            const rect = element.getBoundingClientRect();
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+        }
+
+        function onMove(e) {
             if (!isDragging || activeElement !== element) return;
 
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
             const containerRect = cardArea.getBoundingClientRect();
-            let x = e.clientX - containerRect.left - offsetX;
-            let y = e.clientY - containerRect.top - offsetY;
+            let x = clientX - containerRect.left - offsetX;
+            let y = clientY - containerRect.top - offsetY;
 
             x = Math.max(0, Math.min(x, containerRect.width - element.offsetWidth));
             y = Math.max(0, Math.min(y, containerRect.height - element.offsetHeight));
 
             element.style.left = x + "px";
             element.style.top = y + "px";
-        });
+        }
 
-        document.addEventListener("mouseup", function () {
+        function onEnd() {
             isDragging = false;
-        });
+        }
+
+        // Chuột (Desktop)
+        element.addEventListener("mousedown", onStart);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onEnd);
+
+        // Cảm ứng (Mobile / Tablet)
+        element.addEventListener("touchstart", onStart, { passive: true });
+        document.addEventListener("touchmove", onMove, { passive: true });
+        document.addEventListener("touchend", onEnd);
     }
 
     // Khởi tạo kéo thả cho vật thể mặc định ban đầu
@@ -198,12 +204,41 @@
         makeDraggable(el);
     });
 
-    if (activeElement) {
-        syncControlsWithElement(activeElement);
+    // ==========================================
+    // 5. ĐỌC DỮ LIỆU CẤU HÌNH BAN ĐẦU (CONFIG DATA)
+    // ==========================================
+    function applyInitialConfig() {
+        if (!window.templateConfigData) return;
+        const cfg = window.templateConfigData;
+
+        // Cập nhật Nhạc nền nếu có trong Config
+        const defaultAudio = cfg.audioPath || cfg.audio || cfg.music;
+        if (defaultAudio && selectAudio) {
+            selectAudio.value = defaultAudio;
+            if (audioPlayer) {
+                audioPlayer.src = defaultAudio;
+                audioPlayer.classList.remove("d-none");
+            }
+        }
+
+        // Đọc cấu hình style chữ mặc định nếu có
+        if (activeElement && !activeElement.querySelector("img")) {
+            if (cfg.fontFamily) activeElement.style.fontFamily = cfg.fontFamily;
+            if (cfg.fontSize) activeElement.style.fontSize = cfg.fontSize;
+            if (cfg.color) activeElement.style.color = cfg.color;
+            if (cfg.fontWeight) activeElement.style.fontWeight = cfg.fontWeight;
+            if (cfg.fontStyle) activeElement.style.fontStyle = cfg.fontStyle;
+        }
+
+        if (activeElement) {
+            syncControlsWithElement(activeElement);
+        }
     }
 
+    applyInitialConfig();
+
     // ==========================================
-    // 5. CẬP NHẬT CHỮ TỪ Ô NHẬP LIỆU
+    // 6. CẬP NHẬT CHỮ TỪ Ô NHẬP LIỆU
     // ==========================================
     function updateCardTextFromInputs() {
         if (!activeElement || activeElement.querySelector("img")) {
@@ -235,7 +270,7 @@
     }
 
     // ==========================================
-    // 6. THÊM VÀ TÙY CHỈNH ẢNH CÁ NHÂN
+    // 7. THÊM VÀ TÙY CHỈNH ẢNH CÁ NHÂN
     // ==========================================
     if (inputUploadImage) {
         inputUploadImage.addEventListener("change", function (e) {
@@ -333,7 +368,7 @@
     }
 
     // ==========================================
-    // 7. ĐỊNH DẠNG VĂN BẢN (FONT, COLOR, BOLD, ITALIC)
+    // 8. ĐỊNH DẠNG VĂN BẢN (FONT, COLOR, BOLD, ITALIC)
     // ==========================================
     if (selectFont) {
         selectFont.addEventListener("change", function () {
@@ -376,7 +411,7 @@
     }
 
     // ==========================================
-    // 8. THÊM CHỮ MỚI & STICKER
+    // 9. THÊM CHỮ MỚI & STICKER
     // ==========================================
     if (btnAddText) {
         btnAddText.addEventListener("click", function () {
@@ -406,7 +441,7 @@
     });
 
     // ==========================================
-    // 9. XÓA VẬT THỂ DANG CHỌN
+    // 10. XÓA VẬT THỂ ĐANG CHỌN
     // ==========================================
     if (btnClearCanvas) {
         btnClearCanvas.addEventListener("click", function () {
@@ -422,7 +457,7 @@
     }
 
     // ==========================================
-    // 10. PHÁT NHẠC NỀN
+    // 11. PHÁT NHẠC NỀN
     // ==========================================
     if (selectAudio && audioPlayer) {
         selectAudio.addEventListener("change", function () {
@@ -438,7 +473,7 @@
     }
 
     // ==========================================
-    // 11. GỬI VÀ LƯU CẤU HÌNH THIỆP
+    // 12. GỬI VÀ LƯU CẤU HÌNH THIỆP
     // ==========================================
     if (btnSaveCard) {
         btnSaveCard.addEventListener("click", async function () {

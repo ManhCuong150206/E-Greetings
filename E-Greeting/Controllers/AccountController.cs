@@ -20,10 +20,14 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login() => View();
+    public IActionResult Login(string? returnUrl = null)
+    {
+        ViewBag.ReturnUrl = returnUrl;
+        return View();
+    }
 
     [HttpPost]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
         if (!ModelState.IsValid)
             return View(model);
@@ -46,20 +50,32 @@ public class AccountController : Controller
         }
 
         // Tới đây chắc chắn result == LoginResult.Success, account không null
+        var userRole = account.Role.Trim().ToLower() == "admin" ? "Admin" : account.Role.Trim();
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new(ClaimTypes.Name, account.Name ?? account.Email),
             new(ClaimTypes.Email, account.Email), // Bổ sung Claim Email để tự động dùng khi gửi thiệp
-            new(ClaimTypes.Role, account.Role.Trim().ToLower() == "admin" ? "Admin" : account.Role.Trim())
+            new(ClaimTypes.Role, userRole)
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
-        return account.Role.ToLower() == "admin"
-            ? RedirectToAction("Index", "Admin")
-            : RedirectToAction("Index", "Home");
+        // Nếu là Admin -> Luôn luôn chuyển hướng về trang Quản trị Admin
+        if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return RedirectToAction("Dashboard", "Admin"); // Đổi thành "Index" nếu action mặc định của bạn là Index
+        }
+
+        // Nếu là User và có returnUrl hợp lệ
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]

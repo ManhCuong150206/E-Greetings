@@ -42,16 +42,11 @@ public class CardController : Controller
 
     // GET: /Card/Personalize/1
     [HttpGet]
-    public IActionResult Personalize(int id)
+    public async Task<IActionResult> Personalize(int id)
     {
-        var template = _context.Templates.FirstOrDefault(t => t.Id == id) ?? new Template
-        {
-            Id = id > 0 ? id : 1,
-            Name = "Thiệp Chúc Mừng Mẫu",
-            ImagePath = "https://picsum.photos/800/600?random=" + id
-        };
+        var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
 
-        return View(template);
+        return template == null ? NotFound("Không tìm thấy mẫu thiệp này!") : View(template);
     }
 
     // POST: /Card/SaveCardConfig
@@ -86,23 +81,19 @@ public class CardController : Controller
         // NẾU KHÔNG UPLOAD ẢNH RIÊNG -> TỰ LẤY ẢNH CỦA TEMPLATE LƯU VÀO CSDL
         if (string.IsNullOrEmpty(savedImagePath) && template != null)
         {
-            savedImagePath = template.ImagePath; // Đã sửa: Chỉ dùng ImagePath
+            savedImagePath = template.ImagePath;
         }
 
         var sentCard = new SentCard
         {
-            AccountId = accountId,
+            AccountId = accountId, // Lưu account_id để tự động liên kết với Account (SenderEmail)
             TemplateId = validTemplateId,
-            SenderEmail = senderEmail,
             RecipientEmail = request.RecipientEmail.Trim(),
             Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject,
-            CardHtmlContent = request.CardHtmlContent,
-
+            CardHtmlContent = request.CardHtmlContent, // Sẽ tự gán vào cột `message`
             ImagePath = savedImagePath,
             AudioPath = request.AudioPath,
-
-            CreatedDate = DateTime.Now,
-            SentAt = DateTime.Now
+            SentAt = DateTime.Now // Cột `sent_at` đại diện cho cả CreatedDate
         };
 
         try
@@ -147,9 +138,10 @@ public class CardController : Controller
     [HttpGet]
     public async Task<IActionResult> ViewCard(int id)
     {
-        // Nạp thông tin SentCard kèm theo Template
+        // Nạp thông tin SentCard KÈM THEO Account (để lấy SenderEmail) và Template
         var card = await _context.SentCards
-            .Include(c => c.TemplateId)
+            .Include(c => c.Account)
+            .Include(c => c.Template)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (card != null)
@@ -161,25 +153,24 @@ public class CardController : Controller
                 await _context.SaveChangesAsync();
             }
 
-            // --- ĐÃ SỬA LẠI ĐÂY ---
-            // ƯU TIÊN 1: Lấy ảnh nền gốc của Template mẫu (để giữ nguyên khung thiệp trang trí)
-            string bgImage = card.TemplateId.HasValue ? _context.Templates.FirstOrDefault(t => t.Id == card.TemplateId.Value)?.ImagePath : null;
+            // 1. Lấy đường dẫn ảnh thiệp (Ưu tiên card.ImagePath, nếu rỗng thì lấy ImagePath của Template)
+            string bgImage = !string.IsNullOrEmpty(card.ImagePath)
+                ? card.ImagePath
+                : (card.Template?.ImagePath ?? "");
 
-            // ƯU TIÊN 2: Nếu thiệp không thuộc Template nào thì mới dùng card.ImagePath
-            if (string.IsNullOrEmpty(bgImage))
-            {
-                bgImage = card.ImagePath ?? "";
-            }
+            // 2. Lấy cấu hình JSON ConfigData từ Template gốc
+            string configData = card.Template?.ConfigData ?? "{}";
 
             ViewBag.CardId = card.Id;
-            ViewBag.SenderEmail = card.SenderEmail;
+            ViewBag.SenderEmail = card.SenderEmail; // Tự động lấy từ card.Account.Email
             ViewBag.RecipientEmail = card.RecipientEmail;
             ViewBag.Subject = card.Subject;
-            ViewBag.ImagePath = bgImage; // Gán đúng đường dẫn ảnh mẫu
+            ViewBag.ImagePath = bgImage;
             ViewBag.AudioPath = card.AudioPath ?? "";
-            ViewBag.CardHtmlContent = card.CardHtmlContent;
+            ViewBag.CardHtmlContent = card.CardHtmlContent; // Tự động lấy từ cột `message`
             ViewBag.OpenAt = card.OpenAt?.ToString("dd/MM/yyyy HH:mm");
             ViewBag.RecipientReply = card.RecipientReply;
+            ViewBag.ConfigData = configData; // Truyền JSON ConfigData ra ViewBag
         }
         else
         {
@@ -189,6 +180,7 @@ public class CardController : Controller
             ViewBag.AudioPath = "";
             ViewBag.CardHtmlContent = "<div class='p-4 text-center text-muted'>Thiệp không tồn tại hoặc đã bị xóa.</div>";
             ViewBag.OpenAt = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            ViewBag.ConfigData = "{}";
         }
 
         return View();
