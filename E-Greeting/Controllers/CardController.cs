@@ -16,7 +16,8 @@ public class SaveCardRequest
     public string? ImagePath { get; set; }
     public string? AudioPath { get; set; }
     public string? SubscriptionId { get; set; }
-    public string CardHtmlContent { get; set; } = string.Empty;
+    public string CardHtmlContent { get; set; } = string.Empty; // Chứa HTML canvas
+    public string? Message { get; set; } // Chứa JSON form thô
 }
 
 public class ReplyRequest
@@ -45,7 +46,6 @@ public class CardController : Controller
     public async Task<IActionResult> Personalize(int id)
     {
         var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
-
         return template == null ? NotFound("Không tìm thấy mẫu thiệp này!") : View(template);
     }
 
@@ -75,25 +75,25 @@ public class CardController : Controller
             if (template != null) validTemplateId = request.TemplateId;
         }
 
-        // Xử lý lưu ảnh Base64 vào wwwroot/uploads/img_sentcards
+        // Xử lý lưu ảnh Base64 nếu user có upload ảnh mới
         string? savedImagePath = SaveBase64Image(request.ImagePath);
 
-        // NẾU KHÔNG UPLOAD ẢNH RIÊNG -> TỰ LẤY ẢNH CỦA TEMPLATE LƯU VÀO CSDL
-        if (string.IsNullOrEmpty(savedImagePath) && template != null)
+        if (string.IsNullOrEmpty(savedImagePath))
         {
-            savedImagePath = template.ImagePath;
+            savedImagePath = !string.IsNullOrEmpty(request.ImagePath) ? request.ImagePath : template?.ImagePath;
         }
 
         var sentCard = new SentCard
         {
-            AccountId = accountId, // Lưu account_id để tự động liên kết với Account (SenderEmail)
+            AccountId = accountId,
             TemplateId = validTemplateId,
             RecipientEmail = request.RecipientEmail.Trim(),
             Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject,
-            CardHtmlContent = request.CardHtmlContent, // Sẽ tự gán vào cột `message`
+            CardHtmlContent = request.CardHtmlContent, // Gán đúng HTML Canvas
+            Message = request.Message,                 // Gán đúng JSON Form thô
             ImagePath = savedImagePath,
             AudioPath = request.AudioPath,
-            SentAt = DateTime.Now // Cột `sent_at` đại diện cho cả CreatedDate
+            SentAt = DateTime.Now
         };
 
         try
@@ -109,7 +109,6 @@ public class CardController : Controller
 
         string fullCardUrl = $"{Request.Scheme}://{Request.Host}/Card/ViewCard/{sentCard.Id}";
 
-        // Tự động gửi Email
         try
         {
             await _emailService.SendCardEmailAsync(
@@ -138,14 +137,15 @@ public class CardController : Controller
     [HttpGet]
     public async Task<IActionResult> ViewCard(int id)
     {
-        // Nạp thông tin SentCard KÈM THEO Account (để lấy SenderEmail) và Template
         var card = await _context.SentCards
             .Include(c => c.Account)
             .Include(c => c.Template)
             .FirstOrDefaultAsync(c => c.Id == id);
 
-        if (card != null)
+        if (card == null)
         {
+
+
             if (card.OpenAt == null)
             {
                 card.OpenAt = DateTime.Now;
@@ -181,9 +181,24 @@ public class CardController : Controller
             ViewBag.CardHtmlContent = "<div class='p-4 text-center text-muted'>Thiệp không tồn tại hoặc đã bị xóa.</div>";
             ViewBag.OpenAt = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
             ViewBag.ConfigData = "{}";
+
+            return NotFound("Thiệp không tồn tại hoặc đã bị xóa.");
+
         }
 
-        return View();
+        if (card.OpenAt == null)
+        {
+            card.OpenAt = DateTime.Now;
+            _context.SentCards.Update(card);
+            await _context.SaveChangesAsync();
+        }
+
+        if (string.IsNullOrEmpty(card.ImagePath) && card.Template != null)
+        {
+            card.ImagePath = card.Template.ImagePath;
+        }
+
+        return View(card);
     }
 
     // POST: /Card/ReplyCard
@@ -193,7 +208,7 @@ public class CardController : Controller
     {
         if (request == null || string.IsNullOrWhiteSpace(request.ReplyMessage))
         {
-            return Json(new { success = false, message = "Vui lòng nhập nội dung cảm ơn!" });
+            return Json(new { success = false, message = "Vui lòng nhập nội dung phản hồi!" });
         }
 
         var card = await _context.SentCards.FirstOrDefaultAsync(c => c.Id == request.CardId);
@@ -209,45 +224,30 @@ public class CardController : Controller
         return Json(new
         {
             success = true,
-            message = "Đã gửi lời cảm ơn đến người tặng thiệp!"
+            message = "Đã gửi phản hồi thành công!"
         });
     }
 
-    // Helper Method: Giải mã Base64 và Lưu File vào Folder
     private string? SaveBase64Image(string? base64String)
     {
         if (string.IsNullOrWhiteSpace(base64String)) return null;
-
-        if (!base64String.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
-        {
-            return base64String;
-        }
+        if (!base64String.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) return base64String;
 
         try
         {
             var parts = base64String.Split(',');
             if (parts.Length < 2) return null;
 
-            string base64Data = parts[1];
-            byte[] imageBytes = Convert.FromBase64String(base64Data);
-
+            byte[] imageBytes = Convert.FromBase64String(parts[1]);
             string extension = ".png";
             if (parts[0].Contains("jpeg", StringComparison.OrdinalIgnoreCase) || parts[0].Contains("jpg", StringComparison.OrdinalIgnoreCase))
                 extension = ".jpg";
-            else if (parts[0].Contains("gif", StringComparison.OrdinalIgnoreCase))
-                extension = ".gif";
-            else if (parts[0].Contains("webp", StringComparison.OrdinalIgnoreCase))
-                extension = ".webp";
 
             string folderPath = Path.Combine(_env.WebRootPath, "uploads", "img_sentcards");
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
+            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
 
             string fileName = $"card_{Guid.NewGuid()}{extension}";
             string filePath = Path.Combine(folderPath, fileName);
-
             System.IO.File.WriteAllBytes(filePath, imageBytes);
 
             return $"/uploads/img_sentcards/{fileName}";
