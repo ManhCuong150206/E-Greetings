@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -19,25 +23,83 @@ namespace E_Greeting.Controllers
             _environment = environment;
         }
 
-        // --- DASHBOARD TỔNG QUAN HỆ THỐNG ---
-        public IActionResult Dashboard()
+        // --- TAB 1: DASHBOARD TỔNG QUAN HỆ THỐNG & BÁO CÁO DOANH THU ---
+        public async Task<IActionResult> Dashboard()
         {
-            ViewBag.TotalTemplates = _context.Templates.Count();
-            ViewBag.TotalCategories = _context.Categories.Count();
-            ViewBag.TotalUsers = _context.Accounts.Count(a => a.Role != "ADMIN" && a.Role != "Admin");
+            var model = new DashboardViewModel();
 
-            ViewBag.RecentTemplates = _context.Templates
-                .Include(t => t.Category)
-                .OrderByDescending(t => t.Id)
+            // 1. Thống kê số liệu tổng quan
+            model.TotalTemplates = await _context.Templates.CountAsync();
+            model.TotalCategories = await _context.Categories.CountAsync();
+            model.TotalUsers = await _context.Accounts.CountAsync(a => a.Role != "ADMIN" && a.Role != "Admin");
+            model.TotalSentCards = await _context.SentCards.CountAsync();
+
+            // 2. Tính TỔNG DOANH THU tất cả các gói (chỉ tính trạng thái thanh toán thành công "PAID")
+            model.TotalRevenue = await _context.Payments
+                .Where(p => p.Status == "PAID" || p.Status == "Success" || p.Status == "Completed")
+                .SumAsync(p => (decimal?)p.Amount) ?? 0;
+
+            // 3. Thống kê chi tiết từng Gói Dịch Vụ (Service)
+            var allServices = await _context.Services.ToListAsync();
+            var paidPaymentsList = await _context.Payments
+                .Include(p => p.Subscription)
+                .Where(p => p.Status == "PAID" || p.Status == "Success" || p.Status == "Completed")
+                .ToListAsync();
+
+            model.ServiceStats = allServices.Select(s => {
+                var paymentsOfService = paidPaymentsList.Where(p => p.Subscription != null && p.Subscription.ServiceId == s.Id);
+                return new ServiceStatDto
+                {
+                    ServiceId = s.Id,
+                    ServiceName = s.Name,
+                    Price = s.Price,
+                    TotalSubscribers = paymentsOfService.Count(),
+                    TotalRevenue = paymentsOfService.Sum(p => p.Amount)
+                };
+            }).ToList();
+
+            // 4. Lấy 5 giao dịch VIP mới nhất cho bảng Lịch sử giao dịch
+            var recentPaymentsList = await _context.Payments
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Account)
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Service)
+                .OrderByDescending(p => p.Id)
                 .Take(5)
-                .ToList();
+                .ToListAsync();
 
-            return View();
+            model.RecentPayments = recentPaymentsList.Select(p => new RecentPaymentDto
+            {
+                PaymentId = p.Id,
+                UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "Khách hàng VIP",
+                PackageName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Gói Trả Phí",
+                Amount = p.Amount,
+                PaymentDate = p.PaymentDate.ToDateTime(TimeOnly.MinValue), // Chuyển DateOnly sang DateTime an toàn
+                Status = p.Status
+            }).ToList();
+
+            // 5. Thống kê doanh thu 12 tháng năm hiện tại cho Biểu đồ (Chart.js)
+            int currentYear = DateTime.Now.Year;
+
+            var monthlyData = paidPaymentsList
+                .Where(p => p.PaymentDate.Year == currentYear)
+                .GroupBy(p => p.PaymentDate.Month)
+                .Select(g => new { Month = g.Key, Total = g.Sum(p => p.Amount) });
+
+            foreach (var item in monthlyData)
+            {
+                if (item.Month >= 1 && item.Month <= 12)
+                {
+                    model.MonthlyRevenue[item.Month - 1] = item.Total;
+                }
+            }
+
+            return View(model);
         }
 
-        public IActionResult Index() => RedirectToAction(nameof(Categories));
+        public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
-        // --- QUẢN LÝ DANH MỤC (CATEGORIES) + SEARCH & PAGING ---
+        // --- TAB 2: QUẢN LÝ DANH MỤC (CATEGORIES) + SEARCH & PAGING ---
 
         public IActionResult Categories(string? searchName, int page = 1)
         {
@@ -120,23 +182,20 @@ namespace E_Greeting.Controllers
             var category = _context.Categories.Find(categoryId);
             if (category == null) return NotFound();
 
-            int pageSize = 8; // Hiển thị 8 thiệp/trang
+            int pageSize = 8;
             var query = _context.Templates.Where(t => t.CategoryId == categoryId).AsQueryable();
 
-            // 1. Lọc theo tên
             if (!string.IsNullOrWhiteSpace(searchName))
             {
                 query = query.Where(t => t.Name.Contains(searchName));
             }
 
-            // 2. Lọc theo gói Quyền lợi (Free/VIP)
             if (!string.IsNullOrWhiteSpace(isFree))
             {
                 if (isFree == "true") query = query.Where(t => t.IsFree == true);
                 else if (isFree == "false") query = query.Where(t => t.IsFree == false);
             }
 
-            // 3. Lọc theo trạng thái (Active/Inactive)
             if (!string.IsNullOrWhiteSpace(isActive))
             {
                 if (isActive == "true") query = query.Where(t => t.IsActive == true);
@@ -156,7 +215,6 @@ namespace E_Greeting.Controllers
             ViewBag.CategoryName = category.Name;
             ViewBag.CategoryId = category.Id;
 
-            // Lưu bộ lọc ra ViewBag để binding vào Form
             ViewBag.SearchName = searchName;
             ViewBag.IsFree = isFree;
             ViewBag.IsActive = isActive;
@@ -166,7 +224,6 @@ namespace E_Greeting.Controllers
             return View(templates);
         }
 
-        // --- AJAX TOGGLE STATUS (CÔNG TẮC SWITCH KHÔNG RELOAD TRANG) ---
         [HttpPost]
         public async Task<IActionResult> ToggleTemplateStatusAjax(int id)
         {
@@ -232,7 +289,7 @@ namespace E_Greeting.Controllers
                 using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(configData) ? "{\"elements\":[]}" : configData);
                 var root = doc.RootElement;
 
-                var configDict = new System.Collections.Generic.Dictionary<string, object>
+                var configDict = new Dictionary<string, object>
                 {
                     ["background_image"] = bgUrl
                 };
@@ -358,7 +415,7 @@ namespace E_Greeting.Controllers
                 using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(configData) ? "{\"elements\":[]}" : configData);
                 var root = doc.RootElement;
 
-                var configDict = new System.Collections.Generic.Dictionary<string, object>
+                var configDict = new Dictionary<string, object>
                 {
                     ["background_image"] = bgUrl
                 };
