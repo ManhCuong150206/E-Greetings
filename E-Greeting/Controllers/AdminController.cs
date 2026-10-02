@@ -34,12 +34,12 @@ namespace E_Greeting.Controllers
             model.TotalUsers = await _context.Accounts.CountAsync(a => a.Role != "ADMIN" && a.Role != "Admin");
             model.TotalSentCards = await _context.SentCards.CountAsync();
 
-            // 2. Tính TỔNG DOANH THU tất cả các gói (chỉ tính trạng thái thanh toán thành công "PAID")
+            // 2. Tính TỔNG DOANH THU tất cả các gói
             model.TotalRevenue = await _context.Payments
                 .Where(p => p.Status == "PAID" || p.Status == "Success" || p.Status == "Completed")
                 .SumAsync(p => (decimal?)p.Amount) ?? 0;
 
-            // 3. Thống kê chi tiết từng Gói Dịch Vụ (Service)
+            // 3. Thống kê chi tiết từng Gói Dịch Vụ
             var allServices = await _context.Services.ToListAsync();
             var paidPaymentsList = await _context.Payments
                 .Include(p => p.Subscription)
@@ -58,7 +58,7 @@ namespace E_Greeting.Controllers
                 };
             }).ToList();
 
-            // 4. Lấy 5 giao dịch VIP mới nhất cho bảng Lịch sử giao dịch
+            // 4. Lấy 5 giao dịch VIP mới nhất
             var recentPaymentsList = await _context.Payments
                 .Include(p => p.Subscription)
                     .ThenInclude(s => s.Account)
@@ -74,16 +74,16 @@ namespace E_Greeting.Controllers
                 UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "Khách hàng VIP",
                 PackageName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Gói Trả Phí",
                 Amount = p.Amount,
-                PaymentDate = p.PaymentDate.ToDateTime(TimeOnly.MinValue), // Chuyển DateOnly sang DateTime an toàn
+                PaymentDate = ConvertToDateTime(p.PaymentDate),
                 Status = p.Status
             }).ToList();
 
-            // 5. Thống kê doanh thu 12 tháng năm hiện tại cho Biểu đồ (Chart.js)
+            // 5. Thống kê doanh thu 12 tháng năm hiện tại
             int currentYear = DateTime.Now.Year;
 
             var monthlyData = paidPaymentsList
-                .Where(p => p.PaymentDate.Year == currentYear)
-                .GroupBy(p => p.PaymentDate.Month)
+                .Where(p => ConvertToDateTime(p.PaymentDate).Year == currentYear)
+                .GroupBy(p => ConvertToDateTime(p.PaymentDate).Month)
                 .Select(g => new { Month = g.Key, Total = g.Sum(p => p.Amount) });
 
             foreach (var item in monthlyData)
@@ -99,7 +99,7 @@ namespace E_Greeting.Controllers
 
         public IActionResult Index() => RedirectToAction(nameof(Dashboard));
 
-        // --- TAB 2: QUẢN LÝ DANH MỤC (CATEGORIES) + SEARCH & PAGING ---
+        // --- TAB 2: QUẢN LÝ DANH MỤC (CATEGORIES) ---
 
         public IActionResult Categories(string? searchName, int page = 1)
         {
@@ -175,7 +175,7 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Categories));
         }
 
-        // --- QUẢN LÝ TEMPLATE THEO CATEGORY + SEARCH, FILTER & PAGING ---
+        // --- QUẢN LÝ TEMPLATE THEO CATEGORY ---
 
         public IActionResult Templates(int categoryId, string? searchName, string? isFree, string? isActive, int page = 1)
         {
@@ -440,8 +440,198 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Templates), new { categoryId = template.CategoryId });
         }
 
-        public IActionResult Users() => View();
+        // --- TAB 3: QUẢN LÝ USERS & GÓI VIP / LỊCH SỬ GIAO DỊCH ---
+
+        [HttpGet]
+        public async Task<IActionResult> Users(string? searchUser = null, string? searchTx = null, int? serviceId = null, string? status = null, string tab = "users")
+        {
+            var model = new UserManagementViewModel
+            {
+                ActiveTab = tab,
+                SearchUser = searchUser,
+                SearchTransaction = searchTx,
+                SelectedServiceId = serviceId,
+                SelectedStatus = status
+            };
+
+            // 1. Lấy danh sách Gói Dịch Vụ
+            model.Services = await _context.Services.ToListAsync();
+
+            // 2. Lấy danh sách Accounts (chỉ lấy Role != ADMIN)
+            var usersQuery = _context.Accounts
+                .Where(a => a.Role != "ADMIN" && a.Role != "Admin")
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchUser))
+            {
+                usersQuery = usersQuery.Where(u => u.Name.Contains(searchUser) || u.Email.Contains(searchUser));
+            }
+
+            var rawUsers = await usersQuery.OrderByDescending(u => u.Id).ToListAsync();
+            var subscriptions = await _context.Subscriptions.Include(s => s.Service).Where(s => s.IsActive == true).ToListAsync();
+
+            var sentCardCounts = await _context.SentCards
+                .Where(s => s.AccountId.HasValue)
+                .GroupBy(s => s.AccountId!.Value)
+                .Select(g => new { AccountId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.AccountId, g => g.Count);
+
+            model.Users = rawUsers.Select(u => {
+                var activeSub = subscriptions.FirstOrDefault(s => s.AccountId == u.Id);
+
+                DateTime? endDate = activeSub != null ? ConvertToNullableDateTime((object)activeSub.EndDate) : null;
+
+                return new AccountUserDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    Role = u.Role,
+                    Status = u.Status,
+                    CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Miễn phí",
+                    VipEndDate = endDate,
+                    SentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
+                };
+            }).ToList();
+
+            // 3. Lấy danh sách Lịch Sử Giao Dịch (Payment)
+            var txQuery = _context.Payments
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Account)
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Service)
+                .AsQueryable();
+
+            if (serviceId.HasValue && serviceId.Value > 0)
+            {
+                txQuery = txQuery.Where(p => p.Subscription != null && p.Subscription.ServiceId == serviceId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                txQuery = txQuery.Where(p => p.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTx))
+            {
+                txQuery = txQuery.Where(p => (p.Subscription != null && p.Subscription.Account != null &&
+                    (p.Subscription.Account.Name.Contains(searchTx) || p.Subscription.Account.Email.Contains(searchTx))) || p.Id.ToString().Contains(searchTx));
+            }
+
+            var rawTxList = await txQuery.OrderByDescending(p => p.Id).ToListAsync();
+
+            model.Transactions = rawTxList.Select(p => {
+                DateTime? subStart = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.StartDate) : null;
+                DateTime? subEnd = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.EndDate) : null;
+
+                return new PaymentTransactionDto
+                {
+                    PaymentId = p.Id,
+                    SubscriptionId = p.SubscriptionId,
+                    AccountId = p.Subscription?.AccountId ?? 0,
+                    UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "N/A",
+                    UserEmail = p.Subscription?.Account != null ? p.Subscription.Account.Email : "N/A",
+                    ServiceId = p.Subscription?.ServiceId ?? 0,
+                    ServiceName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Gói Trả Phí",
+                    Amount = p.Amount,
+                    PaymentDate = ConvertToDateTime(p.PaymentDate),
+                    VipStartDate = subStart,
+                    VipEndDate = subEnd,
+                    PaymentMethod = p.PaymentMethod ?? "VNPAY/Thẻ",
+                    Status = p.Status ?? ""
+                };
+            }).ToList();
+
+            return View(model);
+        }
+
+        // Action khóa/mở khóa tài khoản
+        [HttpPost]
+        public async Task<IActionResult> ToggleUserStatus(int id)
+        {
+            var account = await _context.Accounts.FindAsync(id);
+            if (account != null)
+            {
+                account.Status = !account.Status;
+                _context.Accounts.Update(account);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Đã {(account.Status ? "kích hoạt" : "khóa")} tài khoản {account.Name}!";
+            }
+            return RedirectToAction(nameof(Users), new { tab = "users" });
+        }
+
+        // Action chỉnh sửa thông tin User
+        [HttpPost]
+        public async Task<IActionResult> EditUser(int id, string name, string email)
+        {
+            var account = await _context.Accounts.FindAsync(id);
+            if (account != null)
+            {
+                account.Name = name;
+                account.Email = email;
+                _context.Accounts.Update(account);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Cập nhật thông tin tài khoản thành công!";
+            }
+            return RedirectToAction(nameof(Users), new { tab = "users" });
+        }
+
+        // Action cập nhật Gói dịch vụ
+        [HttpPost]
+        public async Task<IActionResult> EditService(int id, string name, decimal price, string features)
+        {
+            var service = await _context.Services.FindAsync(id);
+            if (service != null)
+            {
+                service.Name = name;
+                service.Price = price;
+                service.Features = features;
+                _context.Services.Update(service);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Cập nhật thông tin gói VIP thành công!";
+            }
+            return RedirectToAction(nameof(Users), new { tab = "payments" });
+        }
+
+        // Action duyệt thủ công trạng thái thanh toán
+        [HttpPost]
+        public async Task<IActionResult> ApprovePayment(int paymentId)
+        {
+            var payment = await _context.Payments.Include(p => p.Subscription).FirstOrDefaultAsync(p => p.Id == paymentId);
+            if (payment != null)
+            {
+                payment.Status = "PAID";
+                _context.Payments.Update(payment);
+
+                if (payment.Subscription != null)
+                {
+                    payment.Subscription.IsActive = true;
+                    _context.Subscriptions.Update(payment.Subscription);
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Đã duyệt thanh toán thành công cho đơn #{paymentId}!";
+            }
+            return RedirectToAction(nameof(Users), new { tab = "payments" });
+        }
+
         public IActionResult Feedbacks() => View();
         public IActionResult SentLogs() => View();
+
+        // --- CÁC HÀM HELPER ÉP KIỂU NGÀY THÁNG CHUẨN XÁC NGUYÊN BẢN ---
+        private static DateTime ConvertToDateTime(object dateObj)
+        {
+            if (dateObj is DateTime dt) return dt;
+            if (dateObj is DateOnly dOnly) return dOnly.ToDateTime(TimeOnly.MinValue);
+            return Convert.ToDateTime(dateObj);
+        }
+
+        private static DateTime? ConvertToNullableDateTime(object? dateObj)
+        {
+            if (dateObj == null) return null;
+            if (dateObj is DateTime dt) return dt;
+            if (dateObj is DateOnly dOnly) return dOnly.ToDateTime(TimeOnly.MinValue);
+            return Convert.ToDateTime(dateObj);
+        }
     }
 }

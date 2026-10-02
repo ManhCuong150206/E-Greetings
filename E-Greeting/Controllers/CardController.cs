@@ -175,7 +175,46 @@ public class CardController : Controller
 
         if (card == null)
         {
+
+
+            if (card.OpenAt == null)
+            {
+                card.OpenAt = DateTime.Now;
+                _context.SentCards.Update(card);
+                await _context.SaveChangesAsync();
+            }
+
+            // 1. Lấy đường dẫn ảnh thiệp (Ưu tiên card.ImagePath, nếu rỗng thì lấy ImagePath của Template)
+            string bgImage = !string.IsNullOrEmpty(card.ImagePath)
+                ? card.ImagePath
+                : (card.Template?.ImagePath ?? "");
+
+            // 2. Lấy cấu hình JSON ConfigData từ Template gốc
+            string configData = card.Template?.ConfigData ?? "{}";
+
+            ViewBag.CardId = card.Id;
+            ViewBag.SenderEmail = card.SenderEmail; // Tự động lấy từ card.Account.Email
+            ViewBag.RecipientEmail = card.RecipientEmail;
+            ViewBag.Subject = card.Subject;
+            ViewBag.ImagePath = bgImage;
+            ViewBag.AudioPath = card.AudioPath ?? "";
+            ViewBag.CardHtmlContent = card.CardHtmlContent; // Tự động lấy từ cột `message`
+            ViewBag.OpenAt = card.OpenAt?.ToString("dd/MM/yyyy HH:mm");
+            ViewBag.RecipientReply = card.RecipientReply;
+            ViewBag.ConfigData = configData; // Truyền JSON ConfigData ra ViewBag
+        }
+        else
+        {
+            ViewBag.CardId = id;
+            ViewBag.SenderEmail = "nguoidung@example.com";
+            ViewBag.ImagePath = "";
+            ViewBag.AudioPath = "";
+            ViewBag.CardHtmlContent = "<div class='p-4 text-center text-muted'>Thiệp không tồn tại hoặc đã bị xóa.</div>";
+            ViewBag.OpenAt = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            ViewBag.ConfigData = "{}";
+
             return NotFound("Thiệp không tồn tại hoặc đã bị xóa.");
+
         }
 
         if (card.OpenAt == null)

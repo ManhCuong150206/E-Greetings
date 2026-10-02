@@ -3,7 +3,7 @@
     ViewData["Title"] = "Dashboard Quản Trị Hệ Thống";
 }
 
-<!-- Nhập thư viện Chart.js vẽ biểu đồ -->
+<!-- Thư viện Chart.js vẽ biểu đồ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid py-4">
@@ -71,20 +71,25 @@
             <div class="row g-3">
                 @if (Model.ServiceStats != null && Model.ServiceStats.Any())
                 {
+                    int stt = 1;
                     @foreach (var s in Model.ServiceStats)
                     {
                         <div class="col-md-6">
                             <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge bg-primary mb-1">ID #@s.ServiceId</span>
-                                    <h5 class="fw-bold text-dark mb-1">@s.ServiceName</h5>
+                                    <h5 class="fw-bold text-dark mb-1">@(stt++). @s.ServiceName</h5>
                                     <div class="text-muted small">Giá niêm yết: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
                                 </div>
                                 <div class="text-end">
+                                    <div class="text-muted small fw-semibold">Tổng doanh thu gói:</div>
                                     <div class="fw-bold fs-5 text-success">@s.TotalRevenue.ToString("N0") VNĐ</div>
-                                    <div class="small text-secondary">
+                                    <div class="small text-secondary mb-2">
                                         <i class="bi bi-people me-1"></i><strong>@s.TotalSubscribers</strong> lượt mua thành công
                                     </div>
+                                    <!-- Dẫn thẳng sang Tab 3 tự lọc theo ServiceId & Status=PAID -->
+                                    <a href="/Admin/Users?tab=payments&serviceId=@s.ServiceId&status=PAID" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 12px;">
+                                        Xem danh sách mua <i class="bi bi-arrow-right-short"></i>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -106,6 +111,8 @@
                     <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Doanh Thu Tổng Các Gói Theo Tháng (@DateTime.Now.Year)</h6>
                 </div>
                 <div class="card-body">
+                    <!-- Element chứa data JSON cho Chart.js -->
+                    <div id="revenueChartDataContainer" data-revenue="@System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue)"></div>
                     <canvas id="revenueChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
@@ -115,7 +122,7 @@
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Giao Dịch Gần Đây</h6>
-                    <a href="/Admin/Users" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                    <a href="/Admin/Users?tab=payments" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -156,11 +163,16 @@
     </div>
 </div>
 
-<!-- SCRIPT VẼ BIỂU ĐỒ BẰNG CHART.JS -->
+<!-- SCRIPT VẼ BIỂU ĐỒ BẰNG CHART.JS (An toàn tuyệt đối cho Visual Studio Intellisense) -->
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const ctx = document.getElementById('revenueChart').getContext('2d');
-        const monthlyRevenueData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue));
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('revenueChartDataContainer');
+        const rawData = container ? container.getAttribute('data-revenue') : '[]';
+        const monthlyRevenueData = JSON.parse(rawData);
+
+        const canvasEl = document.getElementById('revenueChart');
+        if (!canvasEl) return;
+        const ctx = canvasEl.getContext('2d');
 
         new Chart(ctx, {
             type: 'bar',
