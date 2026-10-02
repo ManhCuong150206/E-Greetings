@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace E_Greeting.Controllers;
 
@@ -13,11 +14,24 @@ public class SaveCardRequest
     public int TemplateId { get; set; }
     public string RecipientEmail { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
+
+    // Các trường thông tin sự kiện chi tiết
+    public string? RecipientName { get; set; }
+    public string? Location { get; set; }
+    public string? EventTime { get; set; }
+
+    // Đường dẫn ảnh & nhạc (hỗ trợ cả alias từ JS)
     public string? ImagePath { get; set; }
+    public string? CardImageBase64 { get; set; }
     public string? AudioPath { get; set; }
+    public string? AudioUrl { get; set; }
+
     public string? SubscriptionId { get; set; }
-    public string CardHtmlContent { get; set; } = string.Empty; // Chứa HTML canvas
-    public string? Message { get; set; } // Chứa JSON form thô
+    public string CardHtmlContent { get; set; } = string.Empty; // Canvas HTML
+    public string? Message { get; set; } // Chuỗi JSON hoặc lời nhắn bổ sung
+
+    // Thuộc tính hẹn giờ gửi (Gói VIP)
+    public DateTime? ScheduledAt { get; set; }
 }
 
 public class ReplyRequest
@@ -47,7 +61,18 @@ public class CardController : Controller
     public async Task<IActionResult> Personalize(int id)
     {
         var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
-        return template == null ? NotFound("Không tìm thấy mẫu thiệp này!") : View(template);
+        if (template == null) return NotFound("Không tìm thấy mẫu thiệp này!");
+
+        // Kiểm tra tài khoản hiện tại có trong bảng Subscriptions không
+        bool isVip = false;
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(userIdStr, out int userId))
+        {
+            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == userId);
+        }
+
+        ViewBag.IsVip = isVip;
+        return View(template);
     }
 
     // POST: /Card/SaveCardConfig
@@ -69,6 +94,39 @@ public class CardController : Controller
             accountId = parsedUserId;
         }
 
+        // 1. Kiểm tra tài khoản VIP / Subscription
+        bool isVip = false;
+        if (accountId.HasValue)
+        {
+            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == accountId.Value);
+        }
+
+        // 2. Xử lý Logic Hẹn giờ gửi (ScheduledAt)
+        bool isScheduled = false;
+        if (request.ScheduledAt.HasValue)
+        {
+            if (!isVip)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Bạn cần đăng ký gói VIP/Subscription để sử dụng tính năng Hẹn giờ gửi thiệp!"
+                });
+            }
+
+            // Cho phép độ trễ 1 phút so với thời gian hiện tại
+            if (request.ScheduledAt.Value <= DateTime.Now.AddMinutes(-1))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Thời gian hẹn giờ ({request.ScheduledAt.Value:HH:mm dd/MM/yyyy}) đã trôi qua so với hiện tại ({DateTime.Now:HH:mm dd/MM/yyyy}). Vui lòng chọn thời gian ở tương lai!"
+                });
+            }
+
+            isScheduled = true;
+        }
+
         int? validTemplateId = null;
         Template? template = null;
         if (request.TemplateId > 0)
@@ -77,28 +135,25 @@ public class CardController : Controller
             if (template != null) validTemplateId = request.TemplateId;
         }
 
-        // 1. Làm sạch chuỗi đường dẫn ảnh truyền vào
-        string rawImagePath = CleanImagePath(request.ImagePath);
+        // 3. Chuẩn hóa nguồn ảnh & nhạc truyền vào (hỗ trợ các tên biến khác nhau từ JS)
+        string inputImage = !string.IsNullOrWhiteSpace(request.ImagePath) ? request.ImagePath : (request.CardImageBase64 ?? "");
+        string? inputAudio = !string.IsNullOrWhiteSpace(request.AudioPath) ? request.AudioPath : request.AudioUrl;
 
-        // 2. Lưu ảnh Base64 ra file vật lý trong wwwroot/uploads/img_sentcards
+        string rawImagePath = CleanImagePath(inputImage);
         string? savedImagePath = SaveBase64Image(rawImagePath);
 
-        // 3. Xử lý đường dẫn ảnh nếu không lưu được từ Base64
         if (string.IsNullOrEmpty(savedImagePath))
         {
-            if (string.IsNullOrWhiteSpace(request.ImagePath))
+            if (string.IsNullOrWhiteSpace(inputImage))
             {
-                // Nếu người dùng không gửi ảnh tùy chỉnh, lấy ảnh từ Template làm mặc định
                 savedImagePath = CleanImagePath(template?.ImagePath);
             }
             else
             {
-                // Báo lỗi rõ ràng nếu có gửi ảnh tùy chỉnh nhưng bị lỗi trong quá trình lưu file Base64
-                return Json(new { success = false, message = "Lỗi trong quá trình xử lý và lưu file ảnh thiệp cá nhân hóa!" });
+                return Json(new { success = false, message = "Lỗi trong quá trình xử lý và lưu file ảnh thiệp!" });
             }
         }
 
-        // 4. Chuẩn hóa đường dẫn tương đối (thêm '/' ở đầu nếu thiếu)
         if (!string.IsNullOrEmpty(savedImagePath) &&
             !savedImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
             !savedImagePath.StartsWith("/", StringComparison.OrdinalIgnoreCase) &&
@@ -107,24 +162,41 @@ public class CardController : Controller
             savedImagePath = "/" + savedImagePath;
         }
 
-        // 5. Lọc bỏ chuỗi JSON nếu lỡ bị gửi nhầm vào CardHtmlContent
+        // 4. Lọc bỏ chuỗi HTML không hợp lệ
         string safeCardHtml = request.CardHtmlContent ?? "";
         if (safeCardHtml.TrimStart().StartsWith("{") || safeCardHtml.Contains("recipientName"))
         {
-            safeCardHtml = ""; // Xóa chuỗi JSON rác trong cột HTML
+            safeCardHtml = "";
         }
 
+        // 5. Đóng gói dữ liệu chi tiết sự kiện vào chuỗi JSON của Message
+        string finalMessage = request.Message ?? "";
+        if (!string.IsNullOrWhiteSpace(request.RecipientName) || !string.IsNullOrWhiteSpace(request.Location) || !string.IsNullOrWhiteSpace(request.EventTime))
+        {
+            var eventDetails = new
+            {
+                recipientName = request.RecipientName ?? "",
+                location = request.Location ?? "",
+                eventTime = request.EventTime ?? "",
+                note = request.Message ?? ""
+            };
+            finalMessage = JsonSerializer.Serialize(eventDetails);
+        }
+
+        // 6. Khởi tạo đối tượng SentCard
         var sentCard = new SentCard
         {
             AccountId = accountId,
             TemplateId = validTemplateId,
             RecipientEmail = request.RecipientEmail.Trim(),
-            Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject,
+            Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject.Trim(),
             CardHtmlContent = safeCardHtml,
-            Message = request.Message, // Chuỗi JSON chứa thông tin sự kiện
+            Message = finalMessage,
             ImagePath = savedImagePath,
-            AudioPath = request.AudioPath,
-            SentAt = DateTime.Now
+            AudioPath = inputAudio,
+
+            ScheduledAt = isScheduled ? request.ScheduledAt : null,
+            SentAt = isScheduled ? null : DateTime.Now
         };
 
         try
@@ -140,24 +212,30 @@ public class CardController : Controller
 
         string fullCardUrl = $"{Request.Scheme}://{Request.Host}/Card/ViewCard/{sentCard.Id}";
 
-        try
+        // 7. Gửi Email ngay nếu KHÔNG phải bài hẹn giờ
+        if (!isScheduled)
         {
-            await _emailService.SendCardEmailAsync(
-                sentCard.RecipientEmail,
-                sentCard.Subject,
-                fullCardUrl,
-                senderEmail
-            );
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Lỗi gửi email: " + ex.Message);
+            try
+            {
+                await _emailService.SendCardEmailAsync(
+                    sentCard.RecipientEmail,
+                    sentCard.Subject,
+                    fullCardUrl,
+                    senderEmail
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi gửi email: " + ex.Message);
+            }
         }
 
         return Json(new
         {
             success = true,
-            message = "Lưu thiệp & Gửi Email thành công!",
+            message = isScheduled
+                ? $"Thiệp đã được lưu thành công và hẹn giờ gửi tự động vào lúc {request.ScheduledAt!.Value:HH:mm dd/MM/yyyy}!"
+                : "Lưu thiệp & Gửi Email thành công!",
             cardId = sentCard.Id,
             cardUrl = fullCardUrl
         });
@@ -175,36 +253,6 @@ public class CardController : Controller
 
         if (card == null)
         {
-
-
-            if (card.OpenAt == null)
-            {
-                card.OpenAt = DateTime.Now;
-                _context.SentCards.Update(card);
-                await _context.SaveChangesAsync();
-            }
-
-            // 1. Lấy đường dẫn ảnh thiệp (Ưu tiên card.ImagePath, nếu rỗng thì lấy ImagePath của Template)
-            string bgImage = !string.IsNullOrEmpty(card.ImagePath)
-                ? card.ImagePath
-                : (card.Template?.ImagePath ?? "");
-
-            // 2. Lấy cấu hình JSON ConfigData từ Template gốc
-            string configData = card.Template?.ConfigData ?? "{}";
-
-            ViewBag.CardId = card.Id;
-            ViewBag.SenderEmail = card.SenderEmail; // Tự động lấy từ card.Account.Email
-            ViewBag.RecipientEmail = card.RecipientEmail;
-            ViewBag.Subject = card.Subject;
-            ViewBag.ImagePath = bgImage;
-            ViewBag.AudioPath = card.AudioPath ?? "";
-            ViewBag.CardHtmlContent = card.CardHtmlContent; // Tự động lấy từ cột `message`
-            ViewBag.OpenAt = card.OpenAt?.ToString("dd/MM/yyyy HH:mm");
-            ViewBag.RecipientReply = card.RecipientReply;
-            ViewBag.ConfigData = configData; // Truyền JSON ConfigData ra ViewBag
-        }
-        else
-        {
             ViewBag.CardId = id;
             ViewBag.SenderEmail = "nguoidung@example.com";
             ViewBag.ImagePath = "";
@@ -214,7 +262,6 @@ public class CardController : Controller
             ViewBag.ConfigData = "{}";
 
             return NotFound("Thiệp không tồn tại hoặc đã bị xóa.");
-
         }
 
         if (card.OpenAt == null)
@@ -224,7 +271,6 @@ public class CardController : Controller
             await _context.SaveChangesAsync();
         }
 
-        // Kiểm tra và xử lý nếu ImagePath lưu nhầm chuỗi JSON rác
         if (!string.IsNullOrEmpty(card.ImagePath) &&
            (card.ImagePath.TrimStart().StartsWith("{") || card.ImagePath.Contains("recipientName")))
         {
@@ -236,13 +282,30 @@ public class CardController : Controller
             card.ImagePath = card.Template.ImagePath;
         }
 
+        string bgImage = !string.IsNullOrEmpty(card.ImagePath)
+            ? card.ImagePath
+            : (card.Template?.ImagePath ?? "");
+
+        string configData = card.Template?.ConfigData ?? "{}";
+
+        ViewBag.CardId = card.Id;
+        ViewBag.SenderEmail = card.SenderEmail ?? card.Account?.Email;
+        ViewBag.RecipientEmail = card.RecipientEmail;
+        ViewBag.Subject = card.Subject;
+        ViewBag.ImagePath = bgImage;
+        ViewBag.AudioPath = card.AudioPath ?? "";
+        ViewBag.CardHtmlContent = card.CardHtmlContent;
+        ViewBag.OpenAt = card.OpenAt?.ToString("dd/MM/yyyy HH:mm");
+        ViewBag.RecipientReply = card.RecipientReply;
+        ViewBag.ConfigData = configData;
+
         return View(card);
     }
 
     // GET: /History HOẶC /Card/History
     [HttpGet]
-    [Route("Card/History")]
-    public async Task<IActionResult> History()
+    [Route("History")]
+    public async Task<IActionResult> History(string tab = "cards")
     {
         int? accountId = null;
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -251,14 +314,26 @@ public class CardController : Controller
             accountId = parsedUserId;
         }
 
-        // Lấy danh sách thiệp đã gửi của người dùng đang đăng nhập
         var sentCards = await _context.SentCards
             .Include(c => c.Template)
             .Where(c => c.AccountId == accountId)
-            .OrderByDescending(c => c.SentAt)
+            .OrderByDescending(c => c.SentAt ?? c.ScheduledAt)
             .ToListAsync();
 
-        return View("History", sentCards);
+        var userSubscriptions = await _context.Subscriptions
+             .Where(s => s.AccountId == accountId)
+             .OrderByDescending(s => s.Id)
+             .ToListAsync();
+
+        ViewBag.ActiveTab = tab;
+
+        var viewModel = new UserHistoryViewModel
+        {
+            SentCards = sentCards,
+            Subscriptions = userSubscriptions
+        };
+
+        return View("History", viewModel);
     }
 
     // POST: /Card/ReplyCard
@@ -266,18 +341,35 @@ public class CardController : Controller
     [HttpPost]
     public async Task<IActionResult> ReplyCard(ReplyRequest request)
     {
+        // Nếu gửi dạng JSON Body thô, tự động parse nếu request rỗng
         if (request == null || request.CardId <= 0)
         {
-            return BadRequest("Dữ liệu không hợp lệ!");
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync();
+                if (!string.IsNullOrEmpty(body))
+                {
+                    request = System.Text.Json.JsonSerializer.Deserialize<ReplyRequest>(body, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new ReplyRequest();
+                }
+            }
+            catch { }
+        }
+
+        if (request == null || request.CardId <= 0)
+        {
+            return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ!" });
         }
 
         var card = await _context.SentCards.FirstOrDefaultAsync(c => c.Id == request.CardId);
         if (card == null)
         {
-            return NotFound("Không tìm thấy thông tin thiệp!");
+            return Json(new { success = false, message = "Không tìm thấy thông tin thiệp!" });
         }
 
-        // Chuẩn hóa trạng thái (tránh trường hợp truyền Yes/Maybe/No từ Javascript cũ)
         string rawStatus = request.AttendanceStatus ?? "";
         string formattedStatus = rawStatus switch
         {
@@ -287,7 +379,6 @@ public class CardController : Controller
             _ => rawStatus
         };
 
-        // Đóng gói Trạng thái + Lời nhắn thành JSON lưu vào RecipientReply
         var replyData = new
         {
             Status = formattedStatus,
@@ -295,19 +386,10 @@ public class CardController : Controller
         };
 
         card.RecipientReply = System.Text.Json.JsonSerializer.Serialize(replyData);
-
         _context.SentCards.Update(card);
         await _context.SaveChangesAsync();
 
-        // Nếu gọi qua AJAX
-        if (Request.Headers["Accept"].ToString().Contains("application/json") ||
-            Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-        {
-            return Json(new { success = true, message = "Đã gửi phản hồi thành công!" });
-        }
-
-        // Submit Form thường -> Chuyển hướng lại trang xem thiệp
-        return RedirectToAction("ViewCard", new { id = request.CardId });
+        return Json(new { success = true, message = "Đã gửi phản hồi thành công!" });
     }
 
     // --- HÀM BỔ TRỢ XỬ LÝ ẢNH ---
@@ -331,13 +413,11 @@ public class CardController : Controller
 
         base64String = CleanImagePath(base64String);
 
-        // Bỏ qua nếu dữ liệu truyền vào là chuỗi JSON rác
         if (base64String.TrimStart().StartsWith("{") || base64String.Contains("recipientName"))
         {
             return null;
         }
 
-        // Nếu là chuỗi dữ liệu ảnh Base64
         if (base64String.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
         {
             try
@@ -345,7 +425,6 @@ public class CardController : Controller
                 var parts = base64String.Split(',');
                 if (parts.Length < 2) return null;
 
-                // XỬ LÝ SỬA LỖI BASE64: Khôi phục dấu '+' bị hóa thành ' ' trong HTTP Body
                 string pureBase64 = parts[1].Trim().Replace(" ", "+");
                 int mod4 = pureBase64.Length % 4;
                 if (mod4 > 0)
@@ -356,7 +435,6 @@ public class CardController : Controller
                 byte[] imageBytes = Convert.FromBase64String(pureBase64);
                 string extension = parts[0].Contains("png", StringComparison.OrdinalIgnoreCase) ? ".png" : ".jpg";
 
-                // Đường dẫn thư mục lưu ảnh vật lý
                 string webRoot = _env.WebRootPath;
                 if (string.IsNullOrEmpty(webRoot))
                 {
@@ -379,7 +457,6 @@ public class CardController : Controller
             }
         }
 
-        // Nếu là đường dẫn file ảnh thông thường (/uploads/... hoặc http...)
         return base64String.StartsWith("/", StringComparison.OrdinalIgnoreCase) ||
             base64String.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? base64String

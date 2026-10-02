@@ -1,4 +1,41 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject E_Greeting.Models.AppDbContext _context
+@{
+    // Mặc định không có badge nếu chưa đăng nhập hoặc dùng gói miễn phí
+    string userBadge = "";
+
+    if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        // Lấy tên đăng nhập hiện tại
+        string currentUserName = User.Identity.Name ?? "";
+
+        // Chuyển DateTime.Now thành DateOnly để so sánh chuẩn kiểu dữ liệu DB
+        DateOnly today = DateOnly.FromDateTime(DateTime.Now);
+
+        // Lấy danh sách tên tất cả các gói dịch vụ còn hạn của User
+        var activeServiceNames = _context.Subscriptions
+            .Include(s => s.Service)
+            .Include(s => s.Account)
+            .Where(s => (s.Account.Name == currentUserName || s.Account.Email == currentUserName)
+                     && (s.EndDate == null || s.EndDate >= today))
+            .Select(s => s.Service.Name)
+            .ToList();
+
+        // Ưu tiên hiển thị VIP / Premium nếu có bất kỳ gói VIP nào đang active
+        if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
+            (name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || name.Contains("Premium", StringComparison.OrdinalIgnoreCase))))
+        {
+            userBadge = "<span class='badge bg-warning text-dark fw-bold ms-1 shadow-sm'><i class='bi bi-crown-fill text-danger me-1'></i>VIP</span>";
+        }
+        else if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
+                 name.Contains("Pro", StringComparison.OrdinalIgnoreCase)))
+        {
+            userBadge = "<span class='badge bg-primary fw-bold ms-1 shadow-sm'><i class='bi bi-star-fill text-warning me-1'></i>PRO</span>";
+        }
+    }
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -11,6 +48,9 @@
     <!-- External CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Caveat:wght@600&family=Cinzel:wght@600;700&family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Montserrat:wght@500;700&family=Oswald:wght@500;700&family=Pacifico&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -115,8 +155,8 @@
                             else
                             {
                                 <!-- NÚT DÀNH CHO USER THƯỜNG -->
-                                <a class="btn btn-outline-secondary btn-sm rounded-pill px-3" asp-controller="Account" asp-action="Profile">
-                                    <i class="bi bi-person-circle me-1"></i> @User.Identity.Name
+                                <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-inline-flex align-items-center" asp-controller="Account" asp-action="Profile">
+                                    <i class="bi bi-person-circle me-1"></i> @User.Identity.Name @Html.Raw(userBadge)
                                 </a>
                             }
 

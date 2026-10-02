@@ -397,88 +397,81 @@
 });
 
 // =========================================================================
-// 8. HÀM TOÀN CỤC: CHỤP VÀ GỬI THIỆP (SAVE & SEND CARD)
+// 8. HÀM TOÀN CỤC: LƯU VÀ GỬI THIỆP (SAVE & SEND CARD)
 // =========================================================================
-// 8. HÀM TOÀN CỤC: CHỤP VÀ GỬI THIỆP (SAVE & SEND CARD)
-// =========================================================================
-window.saveAndSendCard = async function () {
-    const btnFinalSend = document.getElementById("btnFinalSend");
-    const previewImg = document.getElementById("preview-card-img");
-
-    const recipientName = (document.getElementById("input-recipient-name")?.value || "").trim();
-    const eventTime = (document.getElementById("input-event-time")?.value || "").trim();
-    const eventAddress = (document.getElementById("input-event-address")?.value || "").trim();
-    const recipientEmail = (document.getElementById("input-recipient-email")?.value || "").trim();
-    const emailSubject = (document.getElementById("input-email-subject")?.value || "Thiệp chúc mừng").trim();
-
-    if (!recipientName || !eventTime || !eventAddress || !recipientEmail) {
-        alert("Vui lòng điền đầy đủ Thông Tin Chi Tiết (Tên người nhận, Thời gian, Địa chỉ, Email)!");
-        return;
-    }
-
-    // Lấy chuỗi ảnh Base64 đã được chụp từ bước "Tiếp tục xem trước"
-    let mergedCardBase64 = previewImg ? previewImg.src : "";
-
-    if (!mergedCardBase64 || !mergedCardBase64.startsWith("data:image")) {
-        alert("Chưa tạo được ảnh xem trước thiệp. Vui lòng quay lại bước chỉnh sửa và thử lại!");
-        return;
+async function saveAndSendCard() {
+    const btnSend = document.getElementById("btnFinalSend");
+    if (btnSend) {
+        btnSend.disabled = true;
+        btnSend.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
     }
 
     try {
-        if (btnFinalSend) {
-            btnFinalSend.disabled = true;
-            btnFinalSend.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi thiệp...`;
-        }
+        // 1. Lấy dữ liệu từ các input trên Form (Quét nhiều ID để tránh lấy rỗng)
+        const templateId = parseInt(document.getElementById("template-id")?.value || "0");
+        const recipientEmail = document.getElementById("input-recipient-email")?.value?.trim() || "";
+        const subject = document.getElementById("input-email-subject")?.value?.trim() || "";
+        const recipientName = document.getElementById("input-recipient-name")?.value?.trim() || "";
 
-        const formInfoJson = JSON.stringify({
-            recipientName: recipientName,
-            eventTime: eventTime,
-            eventAddress: eventAddress
-        });
+        const location = (
+            document.getElementById("input-event-address")?.value ||
+            document.getElementById("input-event-location")?.value ||
+            document.getElementById("input-location")?.value || ""
+        ).trim();
 
-        const selectAudio = document.getElementById("select-audio");
-        const audioPath = selectAudio ? selectAudio.value : "";
-        const templateId = document.getElementById("template-id")?.value || 1;
-        const cardArea = document.getElementById("card-preview-area");
+        const eventTime = document.getElementById("input-event-time")?.value || "";
 
+        // Hẹn giờ (VIP)
+        const scheduledAtVal = document.getElementById("input-scheduled-at")?.value;
+        const scheduledAt = scheduledAtVal ? scheduledAtVal : null;
+
+        // Nhạc & Ảnh thiệp cá nhân hóa (Base64)
+        const audioPath = document.getElementById("select-audio")?.value || "";
+        const imagePath = document.getElementById("preview-card-img")?.src || "";
+
+        // 2. Đóng gói Payload dạng Object JSON
         const payload = {
-            templateId: parseInt(templateId),
+            templateId: templateId,
             recipientEmail: recipientEmail,
-            subject: emailSubject,
-            imagePath: mergedCardBase64, // Dùng ảnh Base64 hợp lệ
+            subject: subject,
+            recipientName: recipientName,
+            location: location,
+            eventTime: eventTime,
+            scheduledAt: scheduledAt,
             audioPath: audioPath,
-            cardHtmlContent: cardArea ? cardArea.innerHTML : "",
-            message: formInfoJson
+            imagePath: imagePath,
+            cardHtmlContent: ""
         };
 
-        // Gửi dữ liệu về Controller backend
-        const response = await fetch("/Card/SaveCardConfig", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        // 3. Gửi Request đúng Endpoint /Card/SaveCardConfig
+        const response = await fetch('/Card/SaveCardConfig', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Mã lỗi Server (${response.status}): ${errorText || response.statusText}`);
-        }
-
         const result = await response.json();
+
         if (result.success) {
-            alert("🎉 Thiệp đã được tạo và gửi thành công!");
-            window.location.href = result.cardUrl || "/";
+            alert(result.message);
+            window.location.href = `/Card/ViewCard/${result.cardId}`;
         } else {
-            alert("Lỗi: " + (result.message || "Không thể lưu thiệp."));
+            alert(result.message || "Có lỗi xảy ra khi lưu thiệp!");
+            if (btnSend) {
+                btnSend.disabled = false;
+                btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+            }
         }
-    } catch (err) {
-        console.error("Lỗi SaveCardConfig:", err);
-        alert("Lỗi trong quá trình gửi thiệp: " + err.message);
-    } finally {
-        if (btnFinalSend) {
-            btnFinalSend.disabled = false;
-            btnFinalSend.innerHTML = `<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi`;
+    } catch (error) {
+        console.error("Lỗi khi gửi thiệp:", error);
+        alert("Đã xảy ra lỗi kết nối máy chủ!");
+        if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
         }
     }
-};
+}
 
-window.handleSaveAndSend = window.saveAndSendCard;
+window.handleSaveAndSend = saveAndSendCard;

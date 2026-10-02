@@ -1,10 +1,10 @@
 ﻿@model E_Greeting.Models.SentCard
-@using System.Text.Json;
+@using System.Text.Json
 
 @{
-    ViewData["Title"] = "Thiệp Chúc Mừng Dành Cho Bạn";
+    ViewData["Title"] = !string.IsNullOrEmpty(Model?.Subject) ? Model.Subject : "Thiệp Chúc Mừng Dành Cho Bạn";
 
-    // 1. TRÍCH XUẤT DỮ LIỆU FORM THÔ TỪ MODEL.MESSAGE AN TOÀN
+    // Bóc tách JSON từ field Message
     string recipientName = "";
     string eventTime = "";
     string eventAddress = "";
@@ -13,198 +13,209 @@
     {
         try
         {
-            string jsonString = Model.Message;
-            if (jsonString.StartsWith("\"") && jsonString.EndsWith("\""))
-            {
-                jsonString = JsonSerializer.Deserialize<string>(jsonString) ?? jsonString;
-            }
-
-            using var doc = JsonDocument.Parse(jsonString);
+            using var doc = JsonDocument.Parse(Model.Message);
             var root = doc.RootElement;
-
-            recipientName = root.TryGetProperty("recipientName", out var r) ? r.GetString() ?? "" : "";
-
-            string rawTime = root.TryGetProperty("eventTime", out var t) ? t.GetString() ?? "" : "";
-            if (DateTime.TryParse(rawTime, out DateTime parsedDate))
+            if (root.ValueKind == JsonValueKind.Object)
             {
-                eventTime = parsedDate.ToString("HH:mm - dd/MM/yyyy");
+                if (root.TryGetProperty("recipientName", out var r)) recipientName = r.GetString() ?? "";
+                if (root.TryGetProperty("eventTime", out var t)) eventTime = t.GetString() ?? "";
+
+                // Đọc linh hoạt cả 'eventAddress', 'location' hoặc 'Location'
+                if (root.TryGetProperty("eventAddress", out var a) && !string.IsNullOrWhiteSpace(a.GetString()))
+                    eventAddress = a.GetString()!;
+                else if (root.TryGetProperty("location", out var l) && !string.IsNullOrWhiteSpace(l.GetString()))
+                    eventAddress = l.GetString()!;
+                else if (root.TryGetProperty("Location", out var l2) && !string.IsNullOrWhiteSpace(l2.GetString()))
+                    eventAddress = l2.GetString()!;
             }
-            else
-            {
-                eventTime = rawTime;
-            }
-
-            eventAddress = root.TryGetProperty("eventAddress", out var a) ? a.GetString() ?? "" : "";
+            else { recipientName = Model.Message; }
         }
-        catch
-        {
-            recipientName = Model.Message;
-        }
+        catch { recipientName = Model.Message; }
     }
 
-    // 2. LẤY VÀ LÀM SẠCH ĐƯỜNG DẪN ẢNH MẶT THIỆP
-    string mergedCardImgPath = Model?.ImagePath ?? "";
-
-    // Kiểm tra nếu ImagePath bị dính chuỗi JSON rác -> Bỏ qua
-    if (mergedCardImgPath.TrimStart().StartsWith("{") || mergedCardImgPath.Contains("recipientName"))
-    {
-        mergedCardImgPath = "";
-    }
-
-    // Nếu không có ảnh cá nhân hóa, dùng ảnh Template mặc định
-    if (string.IsNullOrEmpty(mergedCardImgPath) && Model?.Template != null)
-    {
-        mergedCardImgPath = Model.Template.ImagePath ?? "";
-    }
-
-    // Bỏ các ký tự dư thừa
-    mergedCardImgPath = mergedCardImgPath.Replace("url('", "").Replace("')", "").Replace("url(\"", "").Replace("\")", "").Replace("url(", "").Replace("\"", "").Trim();
-
-    if (!string.IsNullOrEmpty(mergedCardImgPath) &&
-        !mergedCardImgPath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
-        !mergedCardImgPath.StartsWith("/", StringComparison.OrdinalIgnoreCase) &&
-        !mergedCardImgPath.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
-    {
-        mergedCardImgPath = "/" + mergedCardImgPath;
-    }
-
-    // 3. KIỂM TRA CARD HTML CONTENT
-    string displayHtmlContent = Model?.CardHtmlContent ?? "";
-    if (displayHtmlContent.TrimStart().StartsWith("{") || displayHtmlContent.Contains("recipientName"))
-    {
-        displayHtmlContent = ""; // Không hiển thị chuỗi JSON thô làm HTML
-    }
+    // Đường dẫn ảnh thiệp đã thiết kế (Ưu tiên ImagePath -> Template Image)
+    string cardImgPath = !string.IsNullOrEmpty(Model?.ImagePath)
+        ? Model.ImagePath
+        : (Model?.Template?.ImagePath ?? "/uploads/templates/default-card.jpg");
 }
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+<style>
+    .preview-card-wrapper {
+        max-width: 580px;
+        margin: 0 auto;
+    }
 
-            <!-- 1. BỨC ẢNH MẶT THIỆP / HTML CANVAS BACKUP -->
-            <div class="card shadow-lg mb-4 rounded-3 border-0">
-                <div class="card-header bg-gradient bg-primary text-white text-center py-3">
-                    <h4 class="fw-bold mb-0"><i class="bi bi-envelope-open-heart me-2"></i>Thiệp Chúc Mừng Dành Cho Bạn</h4>
-                </div>
-                <div class="card-body p-4 bg-light d-flex justify-content-center">
-                    <div class="shadow border rounded bg-white overflow-hidden text-center position-relative" style="max-width: 600px; width: 100%; min-height: 250px;">
+    .preview-box {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
 
-                        @if (!string.IsNullOrWhiteSpace(mergedCardImgPath))
-                        {
-                            <!-- Thử hiển thị ảnh. Nếu ảnh lỗi (onerror) sẽ tự ẩn ảnh và hiện HTML thiệp -->
-                            <img id="main-card-img"
-                                 src="@mergedCardImgPath"
-                                 alt="Thiệp chúc mừng"
-                                 class="img-fluid rounded"
-                                 style="width: 100%; height: auto; display: block;"
-                                 onerror="this.style.display='none'; document.getElementById('card-canvas-fallback').style.display='block';" />
-                        }
+    .preview-header {
+        background-color: #0d6efd;
+        color: #ffffff;
+        font-weight: 700;
+        padding: 10px 15px;
+        text-align: center;
+        font-size: 0.95rem;
+    }
 
-                        <!-- Khung dự phòng: Hiển thị trực tiếp HTML thiệp hoặc ảnh Template nếu ảnh chính bị lỗi -->
-                        <div id="card-canvas-fallback" style="display: @(string.IsNullOrWhiteSpace(mergedCardImgPath) ? "block" : "none"); padding: 15px;">
-                            @if (!string.IsNullOrWhiteSpace(displayHtmlContent))
-                            {
-                                @Html.Raw(displayHtmlContent)
-                            }
-                            else if (Model?.Template != null && !string.IsNullOrWhiteSpace(Model.Template.ConfigData))
-                            {
-                                <img src="@Model.Template.ConfigData" alt="Thiệp mẫu" class="img-fluid rounded" style="width:100%; height:auto;" />
-                            }
-                            else
-                            {
-                                <div class="text-muted p-4">Không thể tải nội dung thiệp.</div>
-                            }
-                        </div>
+    .info-input-like {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.875rem;
+        color: #212529;
+        font-weight: 600;
+        min-height: 38px;
+    }
+</style>
 
-                    </div>
-                </div>
+<div class="container my-4">
+    <div class="preview-card-wrapper">
+        <div class="preview-box mb-4">
+            <!-- 1. Tiêu đề thiệp -->
+            <div class="preview-header">
+                <i class="bi bi-envelope-open-fill me-2"></i>@ViewData["Title"]
             </div>
 
-            <!-- 2. THANH ĐIỀU KHIỂN PHÁT NHẠC -->
-            <div class="card shadow-sm p-3 mb-4 bg-light border-0">
-                <div class="d-flex align-items-center gap-3">
-                    <i class="bi bi-music-note-beamed fs-3 text-primary"></i>
-                    <div class="flex-grow-1">
-                        <label class="fw-bold text-dark small mb-1">Nhạc nền kèm theo thiệp:</label>
-                        <audio id="bg-audio" controls loop class="w-100" style="height: 40px; display: block !important;">
-                            <source src="@(string.IsNullOrEmpty(Model?.AudioPath) ? "/audio/music1.mp3" : Model.AudioPath)" type="audio/mpeg">
-                            Trình duyệt của bạn không hỗ trợ phát âm thanh.
+            <div class="p-3 bg-light">
+                <!-- 2. Bức ảnh Thiệp thiết kế -->
+                <div class="text-center p-2 bg-white rounded border shadow-sm mb-3">
+                    <img src="@cardImgPath" alt="Thiệp chúc mừng" class="img-fluid rounded" style="max-height: 550px; width: auto; object-fit: contain;" />
+                </div>
+
+                <!-- 3. Audio Nhạc nền (Hiển thị nếu có) -->
+                @if (!string.IsNullOrEmpty(Model?.AudioPath))
+                {
+                    <div class="p-3 bg-white border rounded shadow-sm mb-3">
+                        <div class="fw-bold text-secondary small mb-2">
+                            <i class="bi bi-music-note-beamed text-primary me-1"></i>Nhạc nền kèm theo thiệp
+                        </div>
+                        <audio controls autoplay loop class="w-100" style="height: 36px;">
+                            <source src="@Model.AudioPath" type="audio/mpeg">
                         </audio>
                     </div>
+                }
+
+                <!-- 4. Thông tin Sự kiện & Thiệp -->
+                <div class="p-3 bg-white border rounded shadow-sm mb-3">
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-info-circle-fill me-1"></i>Thông Tin Sự Kiện & Thiệp
+                    </h6>
+
+                    <div class="row g-2 text-start">
+                        <div class="col-6 mb-2">
+                            <label class="form-label small text-muted mb-1">Kính gửi người nhận:</label>
+                            <div class="info-input-like">@(string.IsNullOrWhiteSpace(recipientName) ? "---" : recipientName)</div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small text-muted mb-1">Thời gian diễn ra:</label>
+                            <div class="info-input-like">@(string.IsNullOrWhiteSpace(eventTime) ? "---" : eventTime)</div>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label small text-muted mb-1">Địa điểm tổ chức:</label>
+                            <div class="info-input-like">@(string.IsNullOrWhiteSpace(eventAddress) ? "---" : eventAddress)</div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small text-muted mb-1">Email người nhận:</label>
+                            <div class="info-input-like">@(string.IsNullOrWhiteSpace(Model?.RecipientEmail) ? "---" : Model.RecipientEmail)</div>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small text-muted mb-1">Tiêu đề email:</label>
+                            <div class="info-input-like">@(string.IsNullOrWhiteSpace(Model?.Subject) ? "---" : Model.Subject)</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 3. FORM THÔNG TIN CỐ ĐỊNH & PHẢN HỒI -->
-            <div class="card shadow-sm p-4 border-0">
-                <h5 class="fw-bold text-primary mb-3">
-                    <i class="bi bi-info-circle me-1"></i> Thông Tin Sự Kiện & Phản Hồi Tham Dự
-                </h5>
+                <!-- 5. Form Phản hồi từ người nhận -->
+                <div class="p-3 bg-white border rounded shadow-sm">
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-reply-fill me-1"></i>Phản Hồi Trực Tuyến
+                    </h6>
 
-                <div class="row g-3 mb-4 bg-light p-3 rounded border">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-secondary small">Kính gửi người nhận:</label>
-                        <input type="text" class="form-control bg-white fw-bold" value="@recipientName" readonly />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-secondary small">Thời gian diễn ra:</label>
-                        <input type="text" class="form-control bg-white fw-bold text-danger" value="@eventTime" readonly />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold text-secondary small">Địa điểm tổ chức:</label>
-                        <input type="text" class="form-control bg-white fw-bold" value="@eventAddress" readonly />
-                    </div>
+                    <form id="form-reply">
+                        <input type="hidden" name="CardId" value="@Model?.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark mb-2">Xác nhận sự tham dự của bạn (*):</label>
+                            <div class="d-flex gap-2">
+                                <input type="radio" class="btn-check" name="AttendanceStatus" id="status-yes" value="Sẽ tham dự" required>
+                                <label class="btn btn-outline-success flex-fill btn-sm fw-bold py-2" for="status-yes">Sẽ tham dự</label>
+
+                                <input type="radio" class="btn-check" name="AttendanceStatus" id="status-maybe" value="Phân vân">
+                                <label class="btn btn-outline-warning flex-fill btn-sm fw-bold py-2 text-dark" for="status-maybe">Phân vân</label>
+
+                                <input type="radio" class="btn-check" name="AttendanceStatus" id="status-no" value="Không thể tham dự">
+                                <label class="btn btn-outline-danger flex-fill btn-sm fw-bold py-2" for="status-no">Không tham dự</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="input-reply" class="form-label small text-muted mb-1">Lời nhắn gửi tới người mời:</label>
+                            <textarea name="ReplyMessage" id="input-reply" class="form-control form-control-sm" rows="3" placeholder="Viết phản hồi hoặc lời chúc..."></textarea>
+                        </div>
+
+                        <button type="button" id="btnSubmitReply" class="btn btn-primary w-100 fw-bold rounded-pill py-2">
+                            <i class="bi bi-send-fill me-1"></i>Gửi Phản Hồi
+                        </button>
+                    </form>
                 </div>
 
-                <hr />
-
-                <!-- FORM PHẢN HỒI LẠI USER -->
-                <form asp-controller="Card" asp-action="ReplyCard" method="post" id="form-reply">
-                    <input type="hidden" name="CardId" value="@Model?.Id" />
-
-                    <label class="form-label fw-bold text-dark mb-2">Bạn sẽ tham dự sự kiện chứ? (*)</label>
-                    <div class="d-flex gap-2 mb-3">
-                        <!-- Đã đổi name="AttendanceStatus" và value="Sẽ tham dự" -->
-                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-yes" value="Sẽ tham dự" required>
-                        <label class="btn btn-outline-success flex-fill fw-bold py-2" for="btn-yes">
-                            <i class="bi bi-check-circle me-1"></i> Sẽ tham dự
-                        </label>
-
-                        <!-- Đã đổi name="AttendanceStatus" và value="Phân vân" -->
-                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-maybe" value="Phân vân">
-                        <label class="btn btn-outline-warning flex-fill fw-bold py-2" for="btn-maybe">
-                            <i class="bi bi-question-circle me-1"></i> Phân vân
-                        </label>
-
-                        <!-- Đã đổi name="AttendanceStatus" và value="Không thể tham dự" -->
-                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-no" value="Không thể tham dự">
-                        <label class="btn btn-outline-danger flex-fill fw-bold py-2" for="btn-no">
-                            <i class="bi bi-x-circle me-1"></i> Không thể tham dự
-                        </label>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="input-reply-desc" class="form-label form-label-sm fw-semibold">Lời nhắn gửi lại (Description / Lời chúc đáp lại):</label>
-                        <textarea name="ReplyMessage" id="input-reply-desc" class="form-control form-control-sm" rows="3" placeholder="Nhập lời nhắn của bạn gửi lại cho người tạo thiệp..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
-                        <i class="bi bi-send me-1"></i> Gửi Phản Hồi Cho Người Tạo Thiệp
-                    </button>
-                </form>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const audio = document.getElementById("bg-audio");
-        if (audio) {
-            const promise = audio.play();
-            if (promise !== undefined) {
-                promise.catch(() => {
-                    console.log("Trình duyệt yêu cầu người dùng nhấp Play để phát nhạc.");
-                });
+@section Scripts {
+    <script>
+        document.getElementById("btnSubmitReply")?.addEventListener("click", function () {
+            const form = document.getElementById("form-reply");
+            const statusChecked = form.querySelector('input[name="AttendanceStatus"]:checked');
+
+            if (!statusChecked) {
+                alert("Vui lòng chọn trạng thái tham dự!");
+                return;
             }
-        }
-    });
-</script>
+
+            const cardId = parseInt(form.querySelector('input[name="CardId"]')?.value || "0");
+            const attendanceStatus = statusChecked.value;
+            const replyMessage = document.getElementById("input-reply")?.value?.trim() || "";
+
+            const btnSubmit = this;
+            btnSubmit.disabled = true;
+
+            // Gửi dữ liệu dạng JSON khớp với Controller [FromBody]
+            fetch('/Card/ReplyCard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    cardId: cardId,
+                    attendanceStatus: attendanceStatus,
+                    replyMessage: replyMessage
+                })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Cảm ơn bạn! Phản hồi của bạn đã được gửi thành công.");
+                        window.location.reload();
+                    } else {
+                        alert("Có lỗi: " + (data.message || "Không thể gửi phản hồi."));
+                        btnSubmit.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error("Lỗi gửi phản hồi:", err);
+                    alert("Đã xảy ra lỗi kết nối máy chủ!");
+                    btnSubmit.disabled = false;
+                });
+        });
+    </script>
+}

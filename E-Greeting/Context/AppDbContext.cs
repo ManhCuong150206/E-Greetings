@@ -12,6 +12,7 @@ namespace E_Greeting.Context
         
         public DbSet<Template> Template { get; set; }
         public DbSet<Category> Category { get; set; }
-
+        public IEnumerable<object> SentCard { get; internal set; }
+        public IEnumerable<object> SentCards { get; internal set; }
     }
 }
