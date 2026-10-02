@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Gói Đăng Ký - E-Greeting";
+    int currentRank = ViewBag.CurrentPlanId is int r ? r : -1;   // -1 = chưa đăng ký gì
+    DateOnly? endDate = ViewBag.CurrentEndDate as DateOnly?;
 }
 
 <div class="container my-4">
@@ -19,9 +21,22 @@
         </div>
     }
 
+    @* THÊM MỚI: hiện lỗi từ server *@
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="row g-4 align-items-center">
         @foreach (var plan in Model)
         {
+            bool isCurrent = currentRank == plan.Id;
+            bool isLower = currentRank > plan.Id;                      // gói thấp hơn gói đang dùng
+            bool isUpgrade = currentRank >= 0 && plan.Id > currentRank;  // đã có gói, gói này cao hơn
+
             <div class="col-lg-4 col-md-6">
                 <div class="card border-0 shadow-sm rounded-4 p-4 position-relative h-100">
 
@@ -44,12 +59,33 @@
                         }
                     </ul>
 
-                    <form asp-controller="Subscription" asp-action="Subscribe" method="post" class="mt-auto">
-                        <input type="hidden" name="planId" value="@plan.Id" />
-                        <button type="submit" class="btn btn-outline-primary rounded-pill w-100 fw-semibold py-2">
-                            @(plan.Price == 0 ? "Bạn đang sử dụng" : "Đăng Ký Ngay")
-                        </button>
-                    </form>
+                    <div class="mt-auto">
+                        @if (isCurrent)
+                        {
+                            <button type="button" class="btn btn-success rounded-pill w-100 fw-semibold py-2" disabled>
+                                <i class="bi bi-check-circle me-1"></i> Bạn đang sử dụng
+                            </button>
+                            @if (endDate.HasValue)
+                            {
+                                <small class="text-muted d-block text-center mt-2">
+                                    Hết hạn: @endDate.Value.ToString("dd/MM/yyyy")
+                                </small>
+                            }
+                        }
+                        else if (isLower)
+                        {
+                            <small class="text-muted d-block text-center">Đã bao gồm trong gói của bạn</small>
+                        }
+                        else
+                        {
+                            <form asp-controller="Subscription" asp-action="Subscribe" method="post">
+                                <input type="hidden" name="planId" value="@plan.Id" />
+                                <button type="submit" class="btn btn-outline-primary rounded-pill w-100 fw-semibold py-2">
+                                    @(isUpgrade ? "Nâng cấp ngay" : "Đăng Ký Ngay")
+                                </button>
+                            </form>
+                        }
+                    </div>
                 </div>
             </div>
         }
