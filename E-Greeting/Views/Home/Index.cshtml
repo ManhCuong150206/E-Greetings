@@ -66,7 +66,7 @@
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="cardGrid">
         @if (Model != null && Model.Any())
         {
-            @foreach (var card in Model)
+            @foreach (var card in Model.OrderByDescending(c => c.Id))
             {
                 // Chuẩn hóa danh mục & đường dẫn ảnh để filter
                 var categoryId = card.CategoryId.ToString();
@@ -118,11 +118,8 @@
 <!-- 4. PHÂN TRANG (PAGINATION) -->
 <section class="d-flex justify-content-center my-4">
     <nav aria-label="Page navigation">
-        <ul class="pagination pagination-md shadow-sm rounded-pill overflow-hidden">
-            <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+        <ul class="pagination pagination-md shadow-sm rounded-pill overflow-hidden" id="paginationList">
+            <!-- JavaScript sẽ tự động sinh các nút bấm chuyển trang ở đây -->
         </ul>
     </nav>
 </section>
@@ -134,20 +131,26 @@
 
 @section Scripts {
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("DOMContentLoaded", function() {
             const searchInput = document.getElementById("searchInput");
             const categoryFilter = document.getElementById("categoryFilter");
             const btnReset = document.getElementById("btnReset");
             const cardItems = document.querySelectorAll(".card-item");
             const noResults = document.getElementById("noResults");
             const btnScrollTop = document.getElementById("btnScrollTop");
+            const paginationList = document.getElementById("paginationList");
 
-            // --- LÔ-GÍC FILTER & SEARCH ĐỒNG BỘ CSDL ---
-            function filterCards() {
+            // --- CẤU HÌNH PHÂN TRANG ---
+            const itemsPerPage = 8; // Số thiệp hiển thị trên mỗi trang
+            let currentPage = 1;
+
+            // --- LÔ-GÍC FILTER, SEARCH VÀ PHÂN TRANG ĐỒNG BỘ ---
+            function updateGridAndPagination() {
                 const keyword = searchInput.value.toLowerCase().trim();
                 const selectedCategory = categoryFilter.value;
-                let visibleCount = 0;
 
+                // 1. Lọc ra danh sách thiệp thỏa mãn điều kiện tìm kiếm/danh mục
+                const matchedCards = [];
                 cardItems.forEach(item => {
                     const name = item.getAttribute("data-name") || "";
                     const category = item.getAttribute("data-category") || "";
@@ -156,34 +159,116 @@
                     const matchCategory = (selectedCategory === "all" || category === selectedCategory);
 
                     if (matchSearch && matchCategory) {
-                        item.classList.remove("d-none");
-                        visibleCount++;
-                    } else {
-                        item.classList.add("d-none");
+                        matchedCards.push(item);
                     }
                 });
 
-                if (visibleCount === 0) {
+                // 2. Kiểm tra nếu không tìm thấy kết quả
+                if (matchedCards.length === 0) {
                     noResults.classList.remove("d-none");
+                    paginationList.innerHTML = "";
+                    cardItems.forEach(item => item.classList.add("d-none"));
+                    return;
                 } else {
                     noResults.classList.add("d-none");
                 }
+
+                // 3. Tính toán số trang
+                const totalPages = Math.ceil(matchedCards.length / itemsPerPage);
+                if (currentPage > totalPages) currentPage = 1;
+
+                // 4. Ẩn toàn bộ thiệp và chỉ hiển thị 8 thiệp của trang hiện tại
+                cardItems.forEach(item => item.classList.add("d-none"));
+
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const cardsForCurrentPage = matchedCards.slice(startIndex, endIndex);
+
+                cardsForCurrentPage.forEach(item => item.classList.remove("d-none"));
+
+                // 5. Vẽ lại nút phân trang (Pagination UI)
+                renderPagination(totalPages);
             }
 
-            // Gán sự kiện bộ lọc
-            if (searchInput) searchInput.addEventListener("keyup", filterCards);
-            if (categoryFilter) categoryFilter.addEventListener("change", filterCards);
+            // --- HÀM TẠO GIAO DIỆN NÚT BẤM PHÂN TRANG ---
+            function renderPagination(totalPages) {
+                if (totalPages <= 1) {
+                    paginationList.innerHTML = ""; // Ẩn phân trang nếu chỉ có 1 trang
+                    return;
+                }
+
+                let html = '';
+
+                // Nút Trang Trước (<)
+                html += `
+                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        `;
+
+                // Các nút số trang (1, 2, 3...)
+                for (let i = 1; i <= totalPages; i++) {
+                    html += `
+                                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                                    <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
+                                </li>
+                            `;
+                }
+
+                // Nút Trang Sau (>)
+                html += `
+                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        `;
+
+                paginationList.innerHTML = html;
+
+                // Gán sự kiện click cho các nút phân trang
+                paginationList.querySelectorAll(".page-link").forEach(button => {
+                    button.addEventListener("click", function() {
+                        const page = parseInt(this.getAttribute("data-page"));
+                        if (page && page !== currentPage && page >= 1 && page <= totalPages) {
+                            currentPage = page;
+                            updateGridAndPagination();
+
+                            // Cuộn mượt lên danh mục thiệp khi chuyển trang
+                            document.getElementById("cardCatalog").scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                });
+            }
+
+            // Gán sự kiện cho bộ lọc
+            if (searchInput) {
+                searchInput.addEventListener("keyup", function() {
+                    currentPage = 1; // Reset về trang 1 khi gõ tìm kiếm
+                    updateGridAndPagination();
+                });
+            }
+
+            if (categoryFilter) {
+                categoryFilter.addEventListener("change", function() {
+                    currentPage = 1; // Reset về trang 1 khi đổi danh mục
+                    updateGridAndPagination();
+                });
+            }
 
             if (btnReset) {
-                btnReset.addEventListener("click", function () {
+                btnReset.addEventListener("click", function() {
                     searchInput.value = "";
                     categoryFilter.value = "all";
-                    filterCards();
+                    currentPage = 1;
+                    updateGridAndPagination();
                 });
             }
 
             // --- LÔ-GÍC SCROLL TO TOP ---
-            window.addEventListener("scroll", function () {
+            window.addEventListener("scroll", function() {
                 if (window.scrollY > 300) {
                     btnScrollTop.classList.remove("d-none");
                 } else {
@@ -192,10 +277,13 @@
             });
 
             if (btnScrollTop) {
-                btnScrollTop.addEventListener("click", function () {
+                btnScrollTop.addEventListener("click", function() {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                 });
             }
+
+            // Chạy lần đầu khi tải trang
+            updateGridAndPagination();
         });
     </script>
 }

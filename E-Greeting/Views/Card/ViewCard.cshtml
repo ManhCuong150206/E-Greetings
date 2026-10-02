@@ -42,17 +42,37 @@
         }
     }
 
-    // 2. LẤY ĐƯỜNG DẪN ẢNH MẶT THIỆP ĐÃ GỘP SẠCH SẼ TỪ CSDL
+    // 2. LẤY VÀ LÀM SẠCH ĐƯỜNG DẪN ẢNH MẶT THIỆP
     string mergedCardImgPath = Model?.ImagePath ?? "";
+
+    // Kiểm tra nếu ImagePath bị dính chuỗi JSON rác -> Bỏ qua
+    if (mergedCardImgPath.TrimStart().StartsWith("{") || mergedCardImgPath.Contains("recipientName"))
+    {
+        mergedCardImgPath = "";
+    }
+
+    // Nếu không có ảnh cá nhân hóa, dùng ảnh Template mặc định
     if (string.IsNullOrEmpty(mergedCardImgPath) && Model?.Template != null)
     {
         mergedCardImgPath = Model.Template.ImagePath ?? "";
     }
 
-    mergedCardImgPath = mergedCardImgPath.Replace("url('", "").Replace("')", "").Replace("url(\"", "").Replace("\")", "").Replace("url(", "").Trim();
-    if (!string.IsNullOrEmpty(mergedCardImgPath) && !mergedCardImgPath.StartsWith("http") && !mergedCardImgPath.StartsWith("/"))
+    // Bỏ các ký tự dư thừa
+    mergedCardImgPath = mergedCardImgPath.Replace("url('", "").Replace("')", "").Replace("url(\"", "").Replace("\")", "").Replace("url(", "").Replace("\"", "").Trim();
+
+    if (!string.IsNullOrEmpty(mergedCardImgPath) &&
+        !mergedCardImgPath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
+        !mergedCardImgPath.StartsWith("/", StringComparison.OrdinalIgnoreCase) &&
+        !mergedCardImgPath.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
     {
         mergedCardImgPath = "/" + mergedCardImgPath;
+    }
+
+    // 3. KIỂM TRA CARD HTML CONTENT
+    string displayHtmlContent = Model?.CardHtmlContent ?? "";
+    if (displayHtmlContent.TrimStart().StartsWith("{") || displayHtmlContent.Contains("recipientName"))
+    {
+        displayHtmlContent = ""; // Không hiển thị chuỗi JSON thô làm HTML
     }
 }
 
@@ -60,14 +80,41 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
 
-            <!-- 1. BỨC ẢNH MẶT THIỆP HOÀN CHỈNH ĐÃ MERGE -->
+            <!-- 1. BỨC ẢNH MẶT THIỆP / HTML CANVAS BACKUP -->
             <div class="card shadow-lg mb-4 rounded-3 border-0">
                 <div class="card-header bg-gradient bg-primary text-white text-center py-3">
                     <h4 class="fw-bold mb-0"><i class="bi bi-envelope-open-heart me-2"></i>Thiệp Chúc Mừng Dành Cho Bạn</h4>
                 </div>
                 <div class="card-body p-4 bg-light d-flex justify-content-center">
-                    <div class="shadow border rounded bg-white overflow-hidden text-center" style="max-width: 600px; width: 100%;">
-                        <img src="@mergedCardImgPath" alt="Thiệp chúc mừng" class="img-fluid rounded" style="width: 100%; height: auto; display: block;" />
+                    <div class="shadow border rounded bg-white overflow-hidden text-center position-relative" style="max-width: 600px; width: 100%; min-height: 250px;">
+
+                        @if (!string.IsNullOrWhiteSpace(mergedCardImgPath))
+                        {
+                            <!-- Thử hiển thị ảnh. Nếu ảnh lỗi (onerror) sẽ tự ẩn ảnh và hiện HTML thiệp -->
+                            <img id="main-card-img"
+                                 src="@mergedCardImgPath"
+                                 alt="Thiệp chúc mừng"
+                                 class="img-fluid rounded"
+                                 style="width: 100%; height: auto; display: block;"
+                                 onerror="this.style.display='none'; document.getElementById('card-canvas-fallback').style.display='block';" />
+                        }
+
+                        <!-- Khung dự phòng: Hiển thị trực tiếp HTML thiệp hoặc ảnh Template nếu ảnh chính bị lỗi -->
+                        <div id="card-canvas-fallback" style="display: @(string.IsNullOrWhiteSpace(mergedCardImgPath) ? "block" : "none"); padding: 15px;">
+                            @if (!string.IsNullOrWhiteSpace(displayHtmlContent))
+                            {
+                                @Html.Raw(displayHtmlContent)
+                            }
+                            else if (Model?.Template != null && !string.IsNullOrWhiteSpace(Model.Template.ConfigData))
+                            {
+                                <img src="@Model.Template.ConfigData" alt="Thiệp mẫu" class="img-fluid rounded" style="width:100%; height:auto;" />
+                            }
+                            else
+                            {
+                                <div class="text-muted p-4">Không thể tải nội dung thiệp.</div>
+                            }
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -79,7 +126,7 @@
                     <div class="flex-grow-1">
                         <label class="fw-bold text-dark small mb-1">Nhạc nền kèm theo thiệp:</label>
                         <audio id="bg-audio" controls loop class="w-100" style="height: 40px; display: block !important;">
-                            <source src="@(string.IsNullOrEmpty(Model?.AudioPath) ? "/audio/Nhạc nền 1.mp3" : Model.AudioPath)" type="audio/mpeg">
+                            <source src="@(string.IsNullOrEmpty(Model?.AudioPath) ? "/audio/music1.mp3" : Model.AudioPath)" type="audio/mpeg">
                             Trình duyệt của bạn không hỗ trợ phát âm thanh.
                         </audio>
                     </div>
@@ -115,17 +162,20 @@
 
                     <label class="form-label fw-bold text-dark mb-2">Bạn sẽ tham dự sự kiện chứ? (*)</label>
                     <div class="d-flex gap-2 mb-3">
-                        <input type="radio" class="btn-check" name="replyStatus" id="btn-yes" value="Yes" required>
+                        <!-- Đã đổi name="AttendanceStatus" và value="Sẽ tham dự" -->
+                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-yes" value="Sẽ tham dự" required>
                         <label class="btn btn-outline-success flex-fill fw-bold py-2" for="btn-yes">
                             <i class="bi bi-check-circle me-1"></i> Sẽ tham dự
                         </label>
 
-                        <input type="radio" class="btn-check" name="replyStatus" id="btn-maybe" value="Maybe">
+                        <!-- Đã đổi name="AttendanceStatus" và value="Phân vân" -->
+                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-maybe" value="Phân vân">
                         <label class="btn btn-outline-warning flex-fill fw-bold py-2" for="btn-maybe">
                             <i class="bi bi-question-circle me-1"></i> Phân vân
                         </label>
 
-                        <input type="radio" class="btn-check" name="replyStatus" id="btn-no" value="No">
+                        <!-- Đã đổi name="AttendanceStatus" và value="Không thể tham dự" -->
+                        <input type="radio" class="btn-check" name="AttendanceStatus" id="btn-no" value="Không thể tham dự">
                         <label class="btn btn-outline-danger flex-fill fw-bold py-2" for="btn-no">
                             <i class="bi bi-x-circle me-1"></i> Không thể tham dự
                         </label>

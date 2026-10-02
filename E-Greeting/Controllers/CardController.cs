@@ -24,6 +24,7 @@ public class ReplyRequest
 {
     public int CardId { get; set; }
     public string ReplyMessage { get; set; } = string.Empty;
+    public string? AttendanceStatus { get; set; }
 }
 
 // --- Controller ---
@@ -51,6 +52,7 @@ public class CardController : Controller
 
     // POST: /Card/SaveCardConfig
     [HttpPost]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.RecipientEmail))
@@ -75,12 +77,41 @@ public class CardController : Controller
             if (template != null) validTemplateId = request.TemplateId;
         }
 
-        // Xử lý lưu ảnh Base64 nếu user có upload ảnh mới
-        string? savedImagePath = SaveBase64Image(request.ImagePath);
+        // 1. Làm sạch chuỗi đường dẫn ảnh truyền vào
+        string rawImagePath = CleanImagePath(request.ImagePath);
 
+        // 2. Lưu ảnh Base64 ra file vật lý trong wwwroot/uploads/img_sentcards
+        string? savedImagePath = SaveBase64Image(rawImagePath);
+
+        // 3. Xử lý đường dẫn ảnh nếu không lưu được từ Base64
         if (string.IsNullOrEmpty(savedImagePath))
         {
-            savedImagePath = !string.IsNullOrEmpty(request.ImagePath) ? request.ImagePath : template?.ImagePath;
+            if (string.IsNullOrWhiteSpace(request.ImagePath))
+            {
+                // Nếu người dùng không gửi ảnh tùy chỉnh, lấy ảnh từ Template làm mặc định
+                savedImagePath = CleanImagePath(template?.ImagePath);
+            }
+            else
+            {
+                // Báo lỗi rõ ràng nếu có gửi ảnh tùy chỉnh nhưng bị lỗi trong quá trình lưu file Base64
+                return Json(new { success = false, message = "Lỗi trong quá trình xử lý và lưu file ảnh thiệp cá nhân hóa!" });
+            }
+        }
+
+        // 4. Chuẩn hóa đường dẫn tương đối (thêm '/' ở đầu nếu thiếu)
+        if (!string.IsNullOrEmpty(savedImagePath) &&
+            !savedImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
+            !savedImagePath.StartsWith("/", StringComparison.OrdinalIgnoreCase) &&
+            !savedImagePath.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+        {
+            savedImagePath = "/" + savedImagePath;
+        }
+
+        // 5. Lọc bỏ chuỗi JSON nếu lỡ bị gửi nhầm vào CardHtmlContent
+        string safeCardHtml = request.CardHtmlContent ?? "";
+        if (safeCardHtml.TrimStart().StartsWith("{") || safeCardHtml.Contains("recipientName"))
+        {
+            safeCardHtml = ""; // Xóa chuỗi JSON rác trong cột HTML
         }
 
         var sentCard = new SentCard
@@ -89,8 +120,8 @@ public class CardController : Controller
             TemplateId = validTemplateId,
             RecipientEmail = request.RecipientEmail.Trim(),
             Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject,
-            CardHtmlContent = request.CardHtmlContent, // Gán đúng HTML Canvas
-            Message = request.Message,                 // Gán đúng JSON Form thô
+            CardHtmlContent = safeCardHtml,
+            Message = request.Message, // Chuỗi JSON chứa thông tin sự kiện
             ImagePath = savedImagePath,
             AudioPath = request.AudioPath,
             SentAt = DateTime.Now
@@ -154,6 +185,13 @@ public class CardController : Controller
             await _context.SaveChangesAsync();
         }
 
+        // Kiểm tra và xử lý nếu ImagePath lưu nhầm chuỗi JSON rác
+        if (!string.IsNullOrEmpty(card.ImagePath) &&
+           (card.ImagePath.TrimStart().StartsWith("{") || card.ImagePath.Contains("recipientName")))
+        {
+            card.ImagePath = card.Template?.ImagePath;
+        }
+
         if (string.IsNullOrEmpty(card.ImagePath) && card.Template != null)
         {
             card.ImagePath = card.Template.ImagePath;
@@ -162,60 +200,150 @@ public class CardController : Controller
         return View(card);
     }
 
+    // GET: /History HOẶC /Card/History
+    [HttpGet]
+    [Route("Card/History")]
+    public async Task<IActionResult> History()
+    {
+        int? accountId = null;
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(userIdStr, out int parsedUserId))
+        {
+            accountId = parsedUserId;
+        }
+
+        // Lấy danh sách thiệp đã gửi của người dùng đang đăng nhập
+        var sentCards = await _context.SentCards
+            .Include(c => c.Template)
+            .Where(c => c.AccountId == accountId)
+            .OrderByDescending(c => c.SentAt)
+            .ToListAsync();
+
+        return View("History", sentCards);
+    }
+
     // POST: /Card/ReplyCard
     [AllowAnonymous]
     [HttpPost]
-    public async Task<IActionResult> ReplyCard([FromBody] ReplyRequest request)
+    public async Task<IActionResult> ReplyCard(ReplyRequest request)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.ReplyMessage))
+        if (request == null || request.CardId <= 0)
         {
-            return Json(new { success = false, message = "Vui lòng nhập nội dung phản hồi!" });
+            return BadRequest("Dữ liệu không hợp lệ!");
         }
 
         var card = await _context.SentCards.FirstOrDefaultAsync(c => c.Id == request.CardId);
         if (card == null)
         {
-            return Json(new { success = false, message = "Không tìm thấy thông tin thiệp!" });
+            return NotFound("Không tìm thấy thông tin thiệp!");
         }
 
-        card.RecipientReply = request.ReplyMessage;
+        // Chuẩn hóa trạng thái (tránh trường hợp truyền Yes/Maybe/No từ Javascript cũ)
+        string rawStatus = request.AttendanceStatus ?? "";
+        string formattedStatus = rawStatus switch
+        {
+            "Yes" => "Sẽ tham dự",
+            "Maybe" => "Phân vân",
+            "No" => "Không thể tham dự",
+            _ => rawStatus
+        };
+
+        // Đóng gói Trạng thái + Lời nhắn thành JSON lưu vào RecipientReply
+        var replyData = new
+        {
+            Status = formattedStatus,
+            Text = request.ReplyMessage ?? ""
+        };
+
+        card.RecipientReply = System.Text.Json.JsonSerializer.Serialize(replyData);
+
         _context.SentCards.Update(card);
         await _context.SaveChangesAsync();
 
-        return Json(new
+        // Nếu gọi qua AJAX
+        if (Request.Headers["Accept"].ToString().Contains("application/json") ||
+            Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {
-            success = true,
-            message = "Đã gửi phản hồi thành công!"
-        });
+            return Json(new { success = true, message = "Đã gửi phản hồi thành công!" });
+        }
+
+        // Submit Form thường -> Chuyển hướng lại trang xem thiệp
+        return RedirectToAction("ViewCard", new { id = request.CardId });
+    }
+
+    // --- HÀM BỔ TRỢ XỬ LÝ ẢNH ---
+    private string CleanImagePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        path = path.Trim();
+        if (path.StartsWith("url(", StringComparison.OrdinalIgnoreCase))
+        {
+            path = path[4..];
+            if (path.EndsWith(")")) path = path[..^1];
+            path = path.Trim('\'', '"', ' ');
+        }
+        return path.Trim('\'', '"', ' ');
     }
 
     private string? SaveBase64Image(string? base64String)
     {
         if (string.IsNullOrWhiteSpace(base64String)) return null;
-        if (!base64String.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) return base64String;
 
-        try
-        {
-            var parts = base64String.Split(',');
-            if (parts.Length < 2) return null;
+        base64String = CleanImagePath(base64String);
 
-            byte[] imageBytes = Convert.FromBase64String(parts[1]);
-            string extension = ".png";
-            if (parts[0].Contains("jpeg", StringComparison.OrdinalIgnoreCase) || parts[0].Contains("jpg", StringComparison.OrdinalIgnoreCase))
-                extension = ".jpg";
-
-            string folderPath = Path.Combine(_env.WebRootPath, "uploads", "img_sentcards");
-            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
-
-            string fileName = $"card_{Guid.NewGuid()}{extension}";
-            string filePath = Path.Combine(folderPath, fileName);
-            System.IO.File.WriteAllBytes(filePath, imageBytes);
-
-            return $"/uploads/img_sentcards/{fileName}";
-        }
-        catch
+        // Bỏ qua nếu dữ liệu truyền vào là chuỗi JSON rác
+        if (base64String.TrimStart().StartsWith("{") || base64String.Contains("recipientName"))
         {
             return null;
         }
+
+        // Nếu là chuỗi dữ liệu ảnh Base64
+        if (base64String.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var parts = base64String.Split(',');
+                if (parts.Length < 2) return null;
+
+                // XỬ LÝ SỬA LỖI BASE64: Khôi phục dấu '+' bị hóa thành ' ' trong HTTP Body
+                string pureBase64 = parts[1].Trim().Replace(" ", "+");
+                int mod4 = pureBase64.Length % 4;
+                if (mod4 > 0)
+                {
+                    pureBase64 += new string('=', 4 - mod4);
+                }
+
+                byte[] imageBytes = Convert.FromBase64String(pureBase64);
+                string extension = parts[0].Contains("png", StringComparison.OrdinalIgnoreCase) ? ".png" : ".jpg";
+
+                // Đường dẫn thư mục lưu ảnh vật lý
+                string webRoot = _env.WebRootPath;
+                if (string.IsNullOrEmpty(webRoot))
+                {
+                    webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+
+                string folderPath = Path.Combine(webRoot, "uploads", "img_sentcards");
+                if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                string fileName = $"card_{Guid.NewGuid()}{extension}";
+                string filePath = Path.Combine(folderPath, fileName);
+                System.IO.File.WriteAllBytes(filePath, imageBytes);
+
+                return $"/uploads/img_sentcards/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi lưu file Base64: " + ex.Message);
+                return null;
+            }
+        }
+
+        // Nếu là đường dẫn file ảnh thông thường (/uploads/... hoặc http...)
+        return base64String.StartsWith("/", StringComparison.OrdinalIgnoreCase) ||
+            base64String.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? base64String
+            : null;
     }
 }
