@@ -44,21 +44,61 @@ public class SubscriptionController : Controller
     public IActionResult Index()
     {
         var plans = _serviceService.GetAllPlans();
+
+        int currentRank = -1;
+        DateOnly? endDate = null;
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            var actives = _context.Subscriptions
+                .Where(s => s.AccountId == accountId && s.IsActive && s.EndDate >= today)
+                .ToList();
+
+            if (actives.Any())
+            {
+                var top = actives
+                    .OrderByDescending(s => s.ServiceId ?? 0)
+                    .ThenByDescending(s => s.EndDate)
+                    .First();
+
+                currentRank = top.ServiceId ?? 0;
+                endDate = top.EndDate;
+            }
+        }
+
+        ViewBag.CurrentPlanId = currentRank;
+        ViewBag.CurrentEndDate = endDate;
         return View("~/Views/Subscription/Index.cshtml", plans);
     }
-
     [HttpPost]
+    [Authorize]
     [ValidateAntiForgeryToken]
     public IActionResult Subscribe(int planId)
     {
-        if (User.Identity == null || !User.Identity.IsAuthenticated)
+        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+
+        // Hạng gói cao nhất đang hoạt động (Basic = 0, -1 = chưa đăng ký gì)
+        int currentRank = _context.Subscriptions
+            .Where(s => s.AccountId == accountId && s.IsActive && s.EndDate >= today)
+            .Select(s => s.ServiceId ?? 0)
+            .ToList()
+            .DefaultIfEmpty(-1)
+            .Max();
+
+        // Chỉ cho đăng ký gói có hạng CAO HƠN gói hiện tại
+        if (planId <= currentRank)
         {
-            TempData["ErrorMessage"] = "Bạn vui lòng đăng nhập trước khi đăng ký gói dịch vụ!";
-            return RedirectToAction("Login", "Account");
+            TempData["ErrorMessage"] = planId == currentRank
+                ? "Bạn đang sử dụng gói này rồi!"
+                : "Bạn đã ở gói cao hơn, không thể đăng ký gói thấp hơn!";
+            return RedirectToAction("Index");
         }
 
-        int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
+        // Gói cơ bản (miễn phí)
         if (planId == 0)
         {
             var freeSub = new Subscription
@@ -76,6 +116,7 @@ public class SubscriptionController : Controller
             return RedirectToAction("Index");
         }
 
+        // Gói trả phí
         var service = _context.Services.Find(planId);
         if (service == null)
         {
