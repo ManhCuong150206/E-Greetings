@@ -36,19 +36,52 @@
                     {
                         foreach (var item in Model)
                         {
-                            // Đọc linh hoạt giá trị từ thuộc tính SentCard
                             var props = item.GetType().GetProperties();
                             string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
                             string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
                             string rawMessage = props.FirstOrDefault(p => p.Name.Equals("Message", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
                             string imagePath = props.FirstOrDefault(p => p.Name.Equals("ImagePath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? item.Template?.ImagePath ?? "";
-                            string recipientReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string audioPath = props.FirstOrDefault(p => p.Name.Equals("AudioPath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string rawReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
 
                             DateTime? sentAt = props.FirstOrDefault(p => p.Name.Equals("SentAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
                             DateTime? scheduledAt = props.FirstOrDefault(p => p.Name.Equals("ScheduledAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
                             DateTime? openAt = props.FirstOrDefault(p => p.Name.Equals("OpenAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
 
                             bool isVip = item.Template != null && !item.Template.IsFree;
+
+                            // PARSE JSON PHẢN HỒI NGUỜI NHẬN (REPLY)
+                            string replyStatus = "";
+                            string replyText = "";
+                            if (!string.IsNullOrWhiteSpace(rawReply))
+                            {
+                                try
+                                {
+                                    using var replyDoc = System.Text.Json.JsonDocument.Parse(rawReply);
+                                    var root = replyDoc.RootElement;
+                                    if (root.TryGetProperty("Status", out var statusProp))
+                                    {
+                                        replyStatus = statusProp.GetString() ?? "";
+                                    }
+                                    else if (root.TryGetProperty("status", out var statusProp2))
+                                    {
+                                        replyStatus = statusProp2.GetString() ?? "";
+                                    }
+
+                                    if (root.TryGetProperty("Text", out var textProp))
+                                    {
+                                        replyText = textProp.GetString() ?? "";
+                                    }
+                                    else if (root.TryGetProperty("text", out var textProp2))
+                                    {
+                                        replyText = textProp2.GetString() ?? "";
+                                    }
+                                }
+                                catch
+                                {
+                                    replyStatus = rawReply;
+                                }
+                            }
 
                             <tr>
                                 <td class="fw-bold">#@item.Id</td>
@@ -62,7 +95,7 @@
                                 <td>
                                     @if (scheduledAt.HasValue)
                                     {
-                                        <div><span class="badge bg-purple text-white mb-1" style="background-color: #6f42c1;"><i class="bi bi-clock me-1"></i>Hẹn giờ</span></div>
+                                        <div><span class="badge text-white mb-1" style="background-color: #6f42c1;"><i class="bi bi-clock me-1"></i>Hẹn giờ</span></div>
                                         <small class="fw-semibold text-dark">@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
                                     }
                                     else if (sentAt.HasValue)
@@ -77,7 +110,7 @@
                                 <td class="text-center">
                                     @if (openAt.HasValue)
                                     {
-                                        <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                                        <span class="badge bg-info text-dark border px-2 py-1">
                                             <i class="bi bi-envelope-open me-1"></i>@openAt.Value.ToString("dd/MM/yyyy HH:mm")
                                         </span>
                                     }
@@ -87,13 +120,40 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (!string.IsNullOrWhiteSpace(recipientReply))
+                                    @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
                                     {
-                                        <span class="text-success fw-semibold"><i class="bi bi-chat-left-text me-1"></i>@recipientReply</span>
+                                        <div class="d-flex flex-column align-items-start gap-1">
+                                            @if (!string.IsNullOrWhiteSpace(replyStatus))
+                                            {
+                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
+                                                }
+                                                else if (replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Phân vân</span>
+                                                }
+                                                else if (replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Không thể tham dự</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">@replyStatus</span>
+                                                }
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(replyText))
+                                            {
+                                                <div class="p-1 px-2 bg-light border rounded text-dark small w-100" style="max-width: 200px;">
+                                                    <i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyText"
+                                                </div>
+                                            }
+                                        </div>
                                     }
                                     else
                                     {
-                                        <span class="text-muted italic">Chưa có phản hồi</span>
+                                        <span class="text-muted fst-italic">Chưa có phản hồi</span>
                                     }
                                 </td>
                                 <td class="text-center">
@@ -103,7 +163,8 @@
                                             data-raw="@rawMessage"
                                             data-email="@recipientEmail"
                                             data-subject="@subjectVal"
-                                            data-img="@imagePath">
+                                            data-img="@imagePath"
+                                            data-audio="@audioPath">
                                         <i class="bi bi-eye me-1"></i> Xem
                                     </button>
 
@@ -121,16 +182,30 @@
                                                     <!-- 1. BÌA THIỆP -->
                                                     @if (!string.IsNullOrWhiteSpace(imagePath))
                                                     {
-                                                        <div class="text-center mb-4">
+                                                        <div class="text-center mb-3">
                                                             <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Ảnh Bìa Thiệp Đã Chọn:</label>
                                                             <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Ảnh bìa thiệp" />
                                                         </div>
                                                     }
 
-                                                    <!-- 2. FORM CHI TIẾT RUỘT -->
+                                                    <!-- 2. NHẠC NỀN KÈM THEO THIỆP (AUDIO_PATH) -->
+                                                    @if (!string.IsNullOrWhiteSpace(audioPath))
+                                                    {
+                                                        <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
+                                                            <h6 class="fw-bold text-primary mb-2">
+                                                                <i class="bi bi-music-note-beamed me-1"></i>Nhạc nền kèm theo thiệp:
+                                                            </h6>
+                                                            <audio controls class="w-100">
+                                                                <source src="@audioPath" type="audio/mpeg">
+                                                                Trình duyệt của bạn không hỗ trợ thẻ audio.
+                                                            </audio>
+                                                        </div>
+                                                    }
+
+                                                    <!-- 3. FORM CHI TIẾT RUỘT -->
                                                     <div class="border rounded-3 p-3 bg-light shadow-sm">
                                                         <h6 class="fw-bold text-primary mb-3">
-                                                            <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp (Form Thô):
+                                                            <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp:
                                                         </h6>
                                                         <div class="row g-3">
                                                             <div class="col-md-6">
@@ -197,7 +272,6 @@
 
 @section Scripts {
     <script>
-        // SỰ KIỆN TỰ ĐỘNG LẤY NỘI DUNG VÀ TÁCH THÔNG TIN CHO FORM RUỘT KHI MỞ MODAL
         document.querySelectorAll('.parse-json-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const rawData = this.getAttribute('data-raw');

@@ -15,6 +15,16 @@ public class HomeController : Controller
     // GET: / (Trang chủ)
     public async Task<IActionResult> Index()
     {
+        // 1. KIỂM TRA QUYỀN ADMIN: Tự động chuyển hướng về Admin Dashboard nếu đang giữ Session/Cookie Admin
+        if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            if (User.IsInRole("Admin") || User.IsInRole("ADMIN"))
+            {
+                return RedirectToAction("Dashboard", "Admin");
+            }
+        }
+
+        // 2. XỬ LÝ LẤY DỮ LIỆU TRANG CHỦ CHO USER THƯỜNG / KHÁCH
         var templates = await _context.Templates.Include(t => t.Category).ToListAsync();
 
         // Lấy danh sách ID thiệp mà user hiện tại đã thả tim
@@ -24,8 +34,8 @@ public class HomeController : Controller
             string currentUserName = User.Identity.Name ?? "";
             wishlistedCardIds = await _context.Wishlists
                 .Include(w => w.Account)
-                .Where(w => w.Account.Name == currentUserName || w.Account.Email == currentUserName)
-                .Select(w => w.TemplateId) // Kiểm tra tên cột TemplateId/CardId trong model Wishlist của bạn
+                .Where(w => w.Account != null && (w.Account.Name == currentUserName || w.Account.Email == currentUserName))
+                .Select(w => w.TemplateId)
                 .ToListAsync();
         }
 
