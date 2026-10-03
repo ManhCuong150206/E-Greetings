@@ -1,144 +1,65 @@
-﻿
-@model E_Greeting.ViewModels.Templates.TemplateListViewModel
+﻿@model E_Greeting.ViewModels.Templates.TemplateListViewModel
 
 <h2>Search</h2>
-<form asp-controller="Template"
-      asp-action="Index"
-      method="get">
-
-    <input type="text"
-           name="Keyword"
-           value="@Model.Filter.Keyword"
-           placeholder="Search template..." />
-
-    <input type="hidden"
-           name="CategoryId"
-           value="@Model.Filter.CategoryId" />
-
-    <input type="hidden"
-           name="IsFree"
-           value="@Model.Filter.IsFree" />
-
-    <button type="submit">
-        Search
-    </button>
-
+<form asp-controller="Template" asp-action="Index" method="get">
+    <input type="text" name="Keyword" value="@Model.Filter.Keyword" placeholder="Search template..." />
+    <input type="hidden" name="CategoryId" value="@Model.Filter.CategoryId" />
+    <input type="hidden" name="IsFree" value="@Model.Filter.IsFree" />
+    <button type="submit">Search</button>
 </form>
 
 <h2>Category</h2>
-<a asp-controller="Template"
-       asp-action="Index"
-       asp-route-keyword="@Model.Filter.Keyword"
-       asp-route-isFree="@Model.Filter.IsFree"
-       asp-route-page="1">
-
-    All
-
-</a>
-@foreach (var category in ViewBag.Category)
+<a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-isFree="@Model.Filter.IsFree" asp-route-page="1">All</a>
+@if (ViewBag.Category != null)
 {
-	<span> / </span>
-
-	<a asp-controller="Template"
-           asp-action="Index"
-           asp-route-keyword="@Model.Filter.Keyword"
-           asp-route-categoryId="@category.Id"
-           asp-route-isFree="@Model.Filter.IsFree"
-           asp-route-page="1">
-
-        @category.Name
-
-    </a>
+    foreach (var category in ViewBag.Category)
+    {
+        <span> / </span>
+        <a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@category.Id" asp-route-isFree="@Model.Filter.IsFree" asp-route-page="1">@category.Name</a>
+    }
 }
-
 
 <h2>Filter Free / Premium</h2>
-<a asp-controller="Template"
-       asp-action="Index"
-       asp-route-keyword="@Model.Filter.Keyword"
-       asp-route-categoryId="@Model.Filter.CategoryId"
-       asp-route-page="1">
-    All
-</a> / 
+<a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-page="1">All</a> /
+<a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-isFree="true" asp-route-page="1">Free</a> /
+<a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-isFree="false" asp-route-page="1">Premium</a>
 
-<a asp-controller="Template"
-       asp-action="Index"
-       asp-route-keyword="@Model.Filter.Keyword"
-       asp-route-categoryId="@Model.Filter.CategoryId"
-       asp-route-isFree="true"
-       asp-route-page="1">
-    Free
-</a> / 
-
-<a asp-controller="Template"
-       asp-action="Index"
-       asp-route-keyword="@Model.Filter.Keyword"
-       asp-route-categoryId="@Model.Filter.CategoryId"
-       asp-route-isFree="false"
-       asp-route-page="1">
-   Premium
-</a>
-
-<div class="col-lg-1 text-end">
-	<a asp-controller="Template"
-		   asp-action="Index">
-		<button id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="reset-all">
-			Reset All
-		</button>
-	</a>
+<div class="col-lg-1 text-end mt-2">
+    <!-- Đã sửa lồng thẻ button trong thẻ a -->
+    <a asp-controller="Template" asp-action="Index" id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="reset-all">
+        Reset All
+    </a>
 </div>
 
-
-
 <h2>Template</h2>
-@foreach (var template in Model.Templates)
+@if (Model.Templates != null && Model.Templates.Any())
 {
-    <div>
-        <img src="@template.ImagePath" width="120"/>
-
-        <h3>@template.Name</h3>
-
-        @if (template.IsFree)
-        {
-            <span>Free</span>
-        }
-        else
-        {
-            <span>Premium</span>
-        }
-
-        <span>
-            @template.Category.Name
-        </span>
-    </div>
+    foreach (var template in Model.Templates)
+    {
+        <div>
+            <img src="@template.ImagePath" width="120" />
+            <h3>@template.Name</h3>
+            @if (template.IsFree)
+            {
+                <span>Free</span>
+            }
+            else
+            {
+                <span>Premium</span>
+            }
+            <span>@template.Category?.Name</span>
+        </div>
+    }
 }
-
 
 <h2>Pagination</h2>
 @if (Model.CurrentPage > 1)
 {
-    <a asp-controller="Template"
-           asp-action="Index"
-           asp-route-page="@(Model.CurrentPage - 1)"
-           asp-route-keyword="@Model.Filter.Keyword"
-           asp-route-categoryId="@Model.Filter.CategoryId"
-           asp-route-isFree="@Model.Filter.IsFree">
-        Previous
-    </a>
+    <a asp-controller="Template" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-isFree="@Model.Filter.IsFree">Previous</a>
 }
-
-<span>
-    Page @Model.CurrentPage / @Model.TotalPages
-</span>
+<span>Page @Model.CurrentPage / @Model.TotalPages</span>
 
 @if (Model.CurrentPage < Model.TotalPages)
 {
-    <a asp-controller="Template"
-           asp-action="Index"
-           asp-route-page="@(Model.CurrentPage + 1)"
-           asp-route-keyword="@Model.Filter.Keyword"
-           asp-route-categoryId="@Model.Filter.CategoryId"
-           asp-route-isFree="@Model.Filter.IsFree">
-        Next
-    </a>
+    <a asp-controller="Template" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-isFree="@Model.Filter.IsFree">Next</a>
 }

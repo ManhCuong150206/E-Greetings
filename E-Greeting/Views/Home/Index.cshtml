@@ -33,7 +33,6 @@
 <section id="cardCatalog" class="mb-4">
     <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
         <div class="row g-3 align-items-center">
-            <!-- Ô Tìm Kiếm -->
             <div class="col-lg-4 col-md-4">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
@@ -41,7 +40,6 @@
                 </div>
             </div>
 
-            <!-- Lọc Theo Chủ Đề -->
             <div class="col-lg-3 col-md-3">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">Tất cả chủ đề</option>
@@ -52,7 +50,6 @@
                 </select>
             </div>
 
-            <!-- Lọc Theo Loại Thiệp -->
             <div class="col-lg-3 col-md-3">
                 <select id="typeFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">Tất cả loại thiệp</option>
@@ -61,14 +58,12 @@
                 </select>
             </div>
 
-            <!-- NÚT XEM DANH SÁCH YÊU THÍCH (WISHLIST) -->
             <div class="col-lg-1 col-md-1">
                 <button id="btnWishlistFilter" class="btn btn-outline-danger w-100 rounded-3 shadow-sm d-flex align-items-center justify-content-center" title="Xem thiệp đã thả tim">
                     <i class="bi bi-heart-fill"></i>
                 </button>
             </div>
 
-            <!-- Nút Reset Filter -->
             <div class="col-lg-1 col-md-1 text-end">
                 <button id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="Đặt lại bộ lọc">
                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -78,7 +73,7 @@
     </div>
 </section>
 
-<!-- 3. DANH SÁCH THIỆP TỪ DATABASE (CARD GRID) -->
+<!-- 3. DANH SÁCH THIỆP TỪ DATABASE -->
 <section class="mb-5">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="cardGrid">
         @if (Model != null && Model.Any())
@@ -97,7 +92,6 @@
 
                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover position-relative">
 
-                        <!-- NÚT TRÁI TIM YÊU THÍCH (GÓC TRÊN TRÁI) -->
                         <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-2 z-3 btn-toggle-wishlist"
                                 data-id="@card.Id"
                                 style="width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;"
@@ -105,27 +99,26 @@
                             <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart text-secondary") fs-6"></i>
                         </button>
 
-                        <!-- Nhãn Miễn Phí / Trả Phí (GÓC TRÊN PHẢI) -->
                         <span class="position-absolute top-0 end-0 m-2 badge z-2 @(card.IsFree ? "bg-success" : "bg-warning text-dark")">
                             @(card.IsFree ? "Miễn phí" : "Trả phí")
                         </span>
 
-                        <!-- Khung Chứa Ảnh -->
                         <div class="card-img-container bg-light d-flex align-items-center justify-content-center p-2"
                              style="height: 280px; overflow: hidden;">
-                            <img src="@imgPath"
-                                 class="card-img-top img-fluid rounded-3"
-                                 style="max-height: 100%; width: auto; object-fit: contain;"
-                                 alt="@card.Name" />
+                            <a href="/template/details/@card.Id" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                <img src="@imgPath"
+                                     class="card-img-top img-fluid rounded-3"
+                                     style="max-height: 100%; width: auto; object-fit: contain;"
+                                     alt="@card.Name" />
+                            </a>
                         </div>
 
-                        <!-- Nội Dung Thiệp -->
                         <div class="card-body d-flex flex-column p-3">
                             <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
 
-                            <!-- Nút Chọn Tạo Thiệp -->
-                            <a href="/Card/Personalize/@card.Id" class="btn btn-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
-                                🎨 Tạo Thiệp Này
+                            <!-- ĐỔI THÀNH NÚT XEM CHI TIẾT SANG TRANG DETAIL -->
+                            <a href="/template/details/@card.Id" class="btn btn-outline-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
+                                🔍 Xem Chi Tiết
                             </a>
                         </div>
                     </div>
@@ -135,7 +128,6 @@
         }
     </div>
 
-    <!-- Thông báo khi không có thiệp hoặc không tìm thấy kết quả -->
     <div id="noResults" class="text-center py-5 @(Model != null && Model.Any() ? "d-none" : "")">
         <i class="bi bi-search-heart text-muted display-1"></i>
         <h5 class="mt-3 text-secondary">Không tìm thấy mẫu thiệp phù hợp</h5>
@@ -143,14 +135,13 @@
     </div>
 </section>
 
-<!-- 4. PHÂN TRANG (PAGINATION) -->
+<!-- 4. PHÂN TRANG -->
 <section class="d-flex justify-content-center my-4">
     <nav aria-label="Page navigation">
         <ul class="pagination pagination-md shadow-sm rounded-pill overflow-hidden" id="paginationList"></ul>
     </nav>
 </section>
 
-<!-- 5. NÚT SCROLL TO TOP -->
 <button id="btnScrollTop" class="btn btn-primary rounded-circle shadow-lg position-fixed bottom-0 end-0 m-4 d-none" style="z-index: 1000; width: 48px; height: 48px;">
     <i class="bi bi-arrow-up fs-5"></i>
 </button>
@@ -168,11 +159,10 @@
             const btnScrollTop = document.getElementById("btnScrollTop");
             const paginationList = document.getElementById("paginationList");
 
-            let onlyWishlist = false; // Trạng thái bộ lọc yêu thích
+            let onlyWishlist = false;
             const itemsPerPage = 8;
             let currentPage = 1;
 
-            // --- LÔ-GÍC FILTER TỰ ĐỘNG ---
             function updateGridAndPagination() {
                 const keyword = searchInput.value.toLowerCase().trim();
                 const selectedCategory = categoryFilter.value;
@@ -222,29 +212,25 @@
                 renderPagination(totalPages);
             }
 
-            // --- HÀM TẠO PHÂN TRANG ---
             function renderPagination(totalPages) {
                 if (totalPages <= 1) {
                     paginationList.innerHTML = "";
                     return;
                 }
 
-                let html = `
-                            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                            </li>`;
+                let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                        <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                                    </li>`;
 
                 for (let i = 1; i <= totalPages; i++) {
-                    html += `
-                                <li class="page-item ${i === currentPage ? 'active' : ''}">
-                                    <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
-                                </li>`;
+                    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                                        <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
+                                    </li>`;
                 }
 
-                html += `
-                            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                            </li>`;
+                html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                    <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                                </li>`;
 
                 paginationList.innerHTML = html;
 
@@ -260,7 +246,7 @@
                 });
             }
 
-            // --- XỬ LÝ BẤM TRÁI TIM (THẢ TIM / BỎ THẢ TIM VIA AJAX) ---
+            // AJAX TOGGLE WISHLIST
             document.querySelectorAll(".btn-toggle-wishlist").forEach(btn => {
                 btn.addEventListener("click", function(e) {
                     e.preventDefault();
@@ -272,12 +258,7 @@
                     fetch(`/Home/ToggleWishlist?templateId=${templateId}`, {
                         method: 'POST'
                     })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error("HTTP Status: " + response.status);
-                            }
-                            return response.json();
-                        })
+                        .then(response => response.json())
                         .then(data => {
                             if (data.success) {
                                 if (data.isAdded) {
@@ -294,12 +275,11 @@
                         })
                         .catch(err => {
                             console.error("Lỗi Wishlist:", err);
-                            alert("Không thể cập nhật yêu thích! Chi tiết: " + err.message);
+                            alert("Vui lòng đăng nhập để thực hiện tính năng này!");
                         });
                 });
             });
 
-            // --- NÚT BẬT/TẮT LỌC YÊU THÍCH ---
             if (btnWishlistFilter) {
                 btnWishlistFilter.addEventListener("click", function() {
                     onlyWishlist = !onlyWishlist;
@@ -313,7 +293,6 @@
                 });
             }
 
-            // --- GÁN SỰ KIỆN CHO CÁC BỘ LỌC CÒN LẠI ---
             if (searchInput) searchInput.addEventListener("keyup", () => { currentPage = 1; updateGridAndPagination(); });
             if (categoryFilter) categoryFilter.addEventListener("change", () => { currentPage = 1; updateGridAndPagination(); });
             if (typeFilter) typeFilter.addEventListener("change", () => { currentPage = 1; updateGridAndPagination(); });
@@ -330,7 +309,6 @@
                 });
             }
 
-            // --- SCROLL TO TOP ---
             window.addEventListener("scroll", function() {
                 if (window.scrollY > 300) btnScrollTop.classList.remove("d-none");
                 else btnScrollTop.classList.add("d-none");
@@ -340,7 +318,6 @@
                 btnScrollTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
             }
 
-            // Chạy lần đầu
             updateGridAndPagination();
         });
     </script>
