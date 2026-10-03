@@ -22,7 +22,7 @@
         <div class="col-md-7">
             <div class="card shadow-sm p-3 rounded-3 h-100">
                 <h6 class="fw-bold mb-2"><i class="bi bi-plus-circle text-primary me-1"></i> Thêm Danh mục Mới</h6>
-                <form asp-action="Create" method="post" class="row g-2 align-items-center">
+                <form asp-controller="AdminCategory" asp-action="Create" method="post" class="row g-2 align-items-center">
                     <div class="col-8">
                         <input type="text" name="Name" class="form-control" placeholder="Nhập tên danh mục mới..." required />
                     </div>
@@ -38,7 +38,7 @@
         <div class="col-md-5">
             <div class="card shadow-sm p-3 rounded-3 h-100 bg-light">
                 <h6 class="fw-bold mb-2"><i class="bi bi-search text-info me-1"></i> Tìm kiếm Danh mục</h6>
-                <form asp-action="Categories" method="get" class="row g-2">
+                <form asp-controller="AdminCategory" asp-action="Categories" method="get" class="row g-2">
                     <div class="col-8">
                         <input type="text" name="searchName" value="@ViewBag.SearchName" class="form-control" placeholder="Nhập tên danh mục cần tìm..." />
                     </div>
@@ -74,21 +74,22 @@
                                 <td class="fw-semibold">@item.Name</td>
 
                                 <td class="text-center">
-                                    <a asp-action="Templates" asp-route-categoryId="@item.Id" class="btn btn-sm btn-outline-info rounded-pill fw-semibold me-1">
+                                    <!-- FIX: Bổ sung asp-controller="AdminTemplate" để tìm đúng Controller quản lý Template -->
+                                    <a asp-controller="AdminTemplate" asp-action="Templates" asp-route-categoryId="@item.Id" class="btn btn-sm btn-outline-info rounded-pill fw-semibold me-1">
                                         <i class="bi bi-images me-1"></i> Xem (@(item.Templates?.Count ?? 0) Template)
                                     </a>
-                                    
-                                    <!-- NÚT FAST-ACCESS: TẠO TEMPLATE NHANH TRỰC TIẾP -->
-                                    <a asp-action="CreateTemplate" asp-route-categoryId="@item.Id" class="btn btn-sm btn-success rounded-pill fw-semibold" title="Tạo mẫu thiệp nhanh cho danh mục này">
+
+                                    <!-- FIX: Bổ sung asp-controller="AdminTemplate" -->
+                                    <a asp-controller="AdminTemplate" asp-action="CreateTemplate" asp-route-categoryId="@item.Id" class="btn btn-sm btn-success rounded-pill fw-semibold" title="Tạo mẫu thiệp nhanh cho danh mục này">
                                         <i class="bi bi-plus-lg me-1"></i> Thêm Template Mới
                                     </a>
                                 </td>
 
                                 <td class="text-center">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning me-1 fw-semibold">
+                                    <a asp-controller="AdminCategory" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning me-1 fw-semibold">
                                         <i class="bi bi-pencil-square"></i> Sửa
                                     </a>
-                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa danh mục này?');">
+                                    <form asp-controller="AdminCategory" asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa danh mục này?');">
                                         <button type="submit" class="btn btn-sm btn-danger fw-semibold">
                                             <i class="bi bi-trash"></i> Xóa
                                         </button>
@@ -100,7 +101,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">Khôn tìm thấy danh mục nào phù hợp.</td>
+                            <td colspan="4" class="text-center py-4 text-muted">Không tìm thấy danh mục nào phù hợp.</td>
                         </tr>
                     }
                 </tbody>
@@ -116,7 +117,7 @@
                         @for (int i = 1; i <= ViewBag.TotalPages; i++)
                         {
                             <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                <a class="page-link" asp-action="Categories" asp-route-searchName="@ViewBag.SearchName" asp-route-page="@i">@i</a>
+                                <a class="page-link" asp-controller="AdminCategory" asp-action="Categories" asp-route-searchName="@ViewBag.SearchName" asp-route-page="@i">@i</a>
                             </li>
                         }
                     </ul>

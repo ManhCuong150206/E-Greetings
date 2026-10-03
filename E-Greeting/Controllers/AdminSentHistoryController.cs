@@ -1,0 +1,93 @@
+﻿using E_Greeting.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace E_Greeting.Controllers
+{
+    [Authorize(Roles = "Admin,ADMIN")]
+    public class AdminSentHistoryController : Controller
+    {
+        private readonly AppDbContext _context;
+
+        public AdminSentHistoryController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // CẤP 1: DANH SÁCH USERS ĐÃ TỪNG GỬI THIỆP
+        [HttpGet("Admin/SentLogs")]
+        [HttpGet("AdminSentHistory/SentLogs")]
+        public async Task<IActionResult> SentLogs(string? search, int page = 1)
+        {
+            int pageSize = 10;
+
+            var query = _context.Accounts
+                .Where(a => _context.SentCards.Any(s => s.AccountId == a.Id))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(a => a.Name.Contains(search) || a.Email.Contains(search));
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var usersList = await query
+                .OrderByDescending(a => a.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var sentCounts = await _context.SentCards
+                .Where(s => s.AccountId.HasValue)
+                .GroupBy(s => s.AccountId!.Value)
+                .Select(g => new { AccountId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.AccountId, g => g.Count);
+
+            ViewBag.SentCounts = sentCounts;
+            ViewBag.Search = search;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
+            return View("~/Views/Admin/SentLogs.cshtml", usersList);
+        }
+
+        // CẤP 2: DANH SÁCH THIỆP ĐÃ GỬI CỦA USER
+        [HttpGet("Admin/UserSentCards/{accountId}")]
+        public async Task<IActionResult> UserSentCards(int accountId, int page = 1)
+        {
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null) return NotFound();
+
+            int pageSize = 10;
+            var query = _context.SentCards
+                .Include(s => s.Template)
+                .Where(s => s.AccountId == accountId)
+                .AsQueryable();
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var cards = await query
+                .OrderByDescending(s => s.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.AccountName = account.Name;
+            ViewBag.AccountEmail = account.Email;
+            ViewBag.AccountId = accountId;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
+            return View("~/Views/Admin/UserSentCards.cshtml", cards);
+        }
+    }
+}
