@@ -70,14 +70,14 @@
         function showExpiredUI() {
             stopAll();
             document.querySelector('.card').innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-clock-history text-danger" style="font-size: 3rem;"></i>
-                    <h4 class="fw-bold mt-3">Mã QR đã hết hạn</h4>
-                    <p class="text-muted">Đơn thanh toán chỉ có hiệu lực trong 2 phút. Vui lòng đăng ký lại.</p>
-                    <a href="@Url.Action("Index", "Subscription")" class="btn btn-primary rounded-pill px-4 mt-2">
-                        Quay lại chọn gói
-                    </a>
-                </div>`;
+                        <div class="text-center py-5">
+                            <i class="bi bi-clock-history text-danger" style="font-size: 3rem;"></i>
+                            <h4 class="fw-bold mt-3">Mã QR đã hết hạn</h4>
+                            <p class="text-muted">Đơn thanh toán chỉ có hiệu lực trong 2 phút. Vui lòng đăng ký lại.</p>
+                            <a href="@Url.Action("Index", "Subscription")" class="btn btn-primary rounded-pill px-4 mt-2">
+                                Quay lại chọn gói
+                            </a>
+                        </div>`;
         }
 
         if (expiresAt > 0) {
