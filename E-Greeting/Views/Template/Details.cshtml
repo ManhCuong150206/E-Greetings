@@ -1,126 +1,110 @@
 ﻿@model E_Greeting.Models.Template
 @{
     ViewData["Title"] = Model.Name ?? "Chi tiết thiệp";
+    bool isWishlisted = ViewBag.IsWishlisted ?? false;
+    bool isUserVip = ViewBag.IsUserVip ?? false;
 }
 
-<!-- Breadcrumb -->
-<div class="container my-3">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0 small text-muted">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none text-muted">Home</a></li>
-            <li class="breadcrumb-item"><a asp-controller="Template" asp-action="Index" class="text-decoration-none text-muted">Invitations</a></li>
-            <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">@Model.Category?.Name</a></li>
-            <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">@Model.Name</li>
-        </ol>
-    </nav>
-</div>
+<div class="container my-4">
+    <!-- NÚT QUAY LẠI TRANG CHỦ -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-0"><i class="bi bi-card-heading text-primary me-2"></i>Trang Chi Tiết Thiệp</h2>
+            <span class="text-muted small">Khám phá và tùy chỉnh thông điệp yêu thương của bạn</span>
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại trang chủ
+        </a>
+    </div>
 
-
-
-<div class="container mb-5">
     <div class="row g-4 align-items-stretch">
-        
-        <!-- CỘT TRÁI: KHUNG THIỆP CÓ PHONG THƯ PHÍA DƯỚI -->
+
+        <!-- CỘT TRÁI: KHUNG HIỂN THỊ THIỆP PHÓNG LỚN (KÍCH THƯỚC LỚN HƠN) -->
         <div class="col-lg-8">
-            <div class="envelope-preview-bg rounded-4 p-4 p-md-5 position-relative d-flex justify-content-center align-items-center h-100">
-                <!-- Nút Share & Save ở góc trên -->
-                <div class="position-absolute top-0 end-0 p-3 d-flex gap-2 z-3">
-                    <button class="btn btn-light rounded-pill px-3 py-1 shadow-sm btn-sm d-flex align-items-center gap-1 border">
-                        <i class="bi bi-share"></i> Share
-                    </button>
-                    <button class="btn btn-light rounded-pill px-3 py-1 shadow-sm btn-sm d-flex align-items-center gap-1 border">
-                        <i class="bi bi-heart"></i> Save
-                    </button>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden p-3 p-md-4 d-flex flex-column align-items-center justify-content-center h-100" style="background-color: #f4f5f7;">
+                <div class="w-100 mb-2 text-start">
+                    <span class="badge bg-white text-secondary border fw-semibold px-3 py-2 rounded-pill shadow-sm">
+                        <i class="bi bi-eye-fill text-primary me-1"></i> Xem Trước Mẫu Thiệp
+                    </span>
                 </div>
 
-                <!-- Envelope Wrapper: Bao gồm Phong thư nằm dưới & Thiệp nổi lên trên -->
-                <div class="card-envelope-container">
-                    <!-- Phong thư nằm dưới -->
-                    <div class="envelope-back shadow-sm">
-                        <div class="envelope-flap"></div>
-                    </div>
-
-                    <!-- Thiệp nổi đè lên trên phong thư -->
-                    <div id="card-preview-area" class="card-floating-wrapper shadow-lg rounded-2 overflow-hidden">
-                        <img src="@Model.ImagePath" alt="@Model.Name" class="img-fluid bg-card-img" />
-                    </div>
+                <!-- Khung chứa ảnh mở rộng kích thước tối đa -->
+                <div class="preview-wrapper bg-white rounded-3 p-2 shadow-lg d-inline-block text-center my-auto w-100" style="max-width: 100%;">
+                    <img src="@(string.IsNullOrEmpty(Model.ImagePath) ? "/images/default-card.jpg" : Model.ImagePath)"
+                         alt="@Model.Name"
+                         class="img-fluid rounded-2 mx-auto"
+                         style="max-height: 680px; width: auto; max-width: 100%; object-fit: contain; display: block;" />
                 </div>
             </div>
         </div>
 
-        <!-- CỘT PHẢI: RIGHT-SIDEBAR THEO MẪU GIỐNG HÌNH -->
+        <!-- CỘT PHẢI: BẢNG THÔNG TIN VÀ CÔNG CỤ THIẾT KẾ -->
         <div class="col-lg-4">
-            <div class="ps-lg-2 d-flex flex-column gap-3">
-                
-                <!-- 1. Header & Badges -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
                 <div>
-                    <h2 class="fw-bold fs-3 text-dark mb-1">@Model.Name</h2>
-                    <div class="text-secondary small mb-3">@(Model.Category?.Name ?? "Wedding invitation")</div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-secondary small">Size 5"x7"</span>
-                        @if (Model.IsFree)
-                        {
-                            <span class="badge border text-dark fw-normal px-2 py-1 rounded">Free</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded">Premium</span>
-                        }
-                    </div>
+                    <!-- TIÊU ĐỀ KHỐI THÔNG TIN -->
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Thông Tin Thiệp
+                    </h5>
 
-                    <!-- 2. Color Swatches (Chọn màu) -->
-                    <div class="color-picker-box p-3 rounded-4 border mb-3">
-                        <div class="small fw-semibold mb-2 text-dark">Color <span class="fw-normal text-muted" id="selected-color-name">White</span></div>
-                        <div class="d-flex gap-2">
-                            <span class="color-circle active bg-white border" data-color="White"></span>
-                            <span class="color-circle" style="background-color: #d1b894;" data-color="Beige"></span>
-                            <span class="color-circle" style="background-color: #1a233a;" data-color="Navy"></span>
-                            <span class="color-circle" style="background-color: #5c0622;" data-color="Burgundy"></span>
-                            <span class="color-circle" style="background-color: #111111;" data-color="Black"></span>
+                    <!-- TÊN THIỆP & THỂ LOẠI -->
+                    <div class="mb-3">
+                        <div class="fs-6 text-secondary mb-1">
+                            <span class="fw-bold text-dark">Tên thiệp:</span> @Model.Name
+                        </div>
+                        <div class="fs-6 text-secondary mb-2">
+                            <span class="fw-bold text-dark">Thể loại:</span> @(Model.Category?.Name ?? "Thiệp điện tử")
+                        </div>
+                        <div class="fs-6 text-secondary mb-2">
+                            <span class="fw-bold text-dark">Định dạng:</span> Thiệp Điện Tử (E-Card HD)
+                        </div>
+                        <div class="fs-6 text-secondary">
+                            <span class="fw-bold text-dark">Tương thích:</span> PC, Tablet & Mobile
                         </div>
                     </div>
 
-                    <!-- 3. Nút Customize chính màu xanh lá -->
-                    <a asp-controller="Template" asp-action="Personalize" asp-route-id="@Model.Id" class="btn btn-customize w-100 rounded-pill py-3 fw-bold text-white fs-5 mb-3 shadow-sm">
-                        Customize
-                    </a>
-                </div>
+                    <div class="d-flex align-items-center mb-4">
+                        @if (Model.IsFree)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold fs-6">Miễn phí</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill fw-bold fs-6"><i class="bi bi-star-fill me-1"></i>Premium VIP</span>
+                        }
+                    </div>
 
-                <!-- 4. Khối Spread the joy -->
-                <div class="sidebar-card p-3 rounded-4 border">
-                    <h6 class="fw-bold text-dark fs-7 mb-3">Spread the joy</h6>
-                    <div class="d-flex flex-column gap-2">
-                        <a href="#" class="sidebar-action-item"><i class="bi bi-download"></i> Download image</a>
-                        <a href="#" class="sidebar-action-item"><i class="bi bi-file-earmark-pdf"></i> Download PDF</a>
-                        <a href="#" class="sidebar-action-item"><i class="bi bi-printer"></i> Print</a>
-                        <a href="#" class="sidebar-action-item"><i class="bi bi-share"></i> Share</a>
-                        <a href="#" class="sidebar-action-item"><i class="bi bi-card-checklist"></i> Order prints</a>
+                    <!-- HÀNG NÚT CUSTOM TEMPLATE VÀ NÚT WISHLIST -->
+                    <div class="d-flex gap-2 mb-4">
+                        <button id="btnCustomize" class="btn btn-success btn-lg flex-grow-1 rounded-pill py-3 fw-bold text-white fs-5 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-palette-fill"></i> Custom Template
+                        </button>
+
+                        <button id="btnSaveWishlist" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;" title="Lưu thiệp yêu thích" data-id="@Model.Id">
+                            <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart") fs-4" id="wishlistIcon"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- 5. Khối Add RSVP and manage your guests -->
-                <div class="sidebar-card p-3 rounded-4 border">
-                    <h6 class="fw-bold text-dark fs-7 mb-3">Add RSVP and manage your guests</h6>
-                    <div class="d-flex flex-column gap-2 text-secondary small">
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-people fs-6"></i> Unlimited guests, no signup required</div>
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-calendar-event fs-6"></i> Set deadlines and guest limits</div>
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-geo-alt fs-6"></i> Add maps and registries</div>
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-qr-code fs-6"></i> Share via link or QR code</div>
-                        <div class="d-flex align-items-center gap-2"><i class="bi bi-graph-up-arrow fs-6"></i> Track responses in real time</div>
-                    </div>
+                <!-- KHỐI BỔ SUNG THÔNG TIN NGẮN BÊN DƯỚI NÚT -->
+                <div class="p-3 bg-light rounded-3 border">
+                    <h6 class="fw-bold text-dark fs-7 mb-2"><i class="bi bi-stars text-warning me-1"></i>Tính năng nổi bật:</h6>
+                    <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Chỉnh sửa linh hoạt văn bản, font chữ và màu sắc.</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Thêm sticker, hình ảnh cá nhân và nhạc nền.</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Xuất thiệp nét cao và gửi trực tiếp qua Email.</li>
+                    </ul>
                 </div>
-
             </div>
         </div>
 
     </div>
-   
-    <!-- SECTION 2: DANH SÁCH MẪU THIỆP TƯƠNG TỰ (Gợi ý như hình 2) -->
+
+    <!-- CÓ THỂ BẠN CŨNG THÍCH -->
     <div class="mt-5 pt-5 border-top">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-bold mb-0">Có thể bạn cũng thích</h4>
-            <a asp-controller="Template" asp-action="Index" class="text-primary text-decoration-none fw-semibold small">
+            <a asp-controller="Home" asp-action="Index" class="text-primary text-decoration-none fw-semibold small">
                 Xem tất cả <i class="bi bi-arrow-right"></i>
             </a>
         </div>
@@ -131,17 +115,19 @@
                 @foreach (var item in ViewBag.RelatedTemplates)
                 {
                     <div class="col">
-                        <div class="card h-100 border-0 shadow-sm hover-top transition-all">
-                            <div class="position-relative overflow-hidden rounded-top">
-                                <img src="@item.ImagePath" class="card-img-top object-fit-cover" style="height: 260px;" alt="@item.Name">
-                                <span class="badge @(item.IsFree ? "bg-success" : "bg-warning") position-absolute top-0 end-0 m-2">
-                                    @(item.IsFree ? "Miễn phí" : "Trả phí")
+                        <div class="card h-100 border-0 shadow-sm hover-top transition-all rounded-4 overflow-hidden">
+                            <div class="position-relative overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 240px;">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                    <img src="@item.ImagePath" class="card-img-top img-fluid p-2" style="max-height: 100%; object-fit: contain;" alt="@item.Name">
+                                </a>
+                                <span class="badge @(item.IsFree ? "bg-success" : "bg-warning text-dark") position-absolute top-0 end-0 m-2">
+                                    @(item.IsFree ? "Miễn phí" : "VIP")
                                 </span>
                             </div>
-                            <div class="card-body text-center d-flex flex-column justify-content-between">
+                            <div class="card-body text-center d-flex flex-column justify-content-between p-3">
                                 <h6 class="card-title text-truncate fw-bold mb-2">@item.Name</h6>
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm rounded-pill w-100">
-                                    <i class="bi bi-magic me-1"></i> Tạo Thiệp Này
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-semibold">
+                                    Xem Thiệp Này
                                 </a>
                             </div>
                         </div>
@@ -151,7 +137,7 @@
         </div>
     </div>
 
-    <!-- SECTION 3: CÂU HỎI THƯỜNG GẶP (FAQ Accordion) -->
+    <!-- CÂU HỎI THƯỜNG GẶP -->
     <div class="mt-5 pt-4">
         <h4 class="fw-bold text-center mb-4">Các câu hỏi thường gặp</h4>
         <div class="accordion accordion-flush max-w-2xl mx-auto shadow-sm rounded-3 overflow-hidden border" id="faqAccordion">
@@ -182,3 +168,77 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL CỬA SỔ THÔNG BÁO YÊU CẦU NÂNG CẤP VIP GIỮA MÀN HÌNH -->
+<div class="modal fade" id="vipAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg text-center p-3">
+            <div class="modal-body">
+                <div class="text-warning display-3 mb-3">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-3">Yêu Cầu Tài Khoản Premium VIP</h5>
+                <p class="text-secondary mb-4 fs-6">
+                    Mẫu thiệp này thuộc danh mục VIP. Bạn cần đăng ký tài khoản Premium VIP mới có thể sử dụng thiệp này!
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold border" data-bs-dismiss="modal">Hủy</button>
+                    <a href="/Subscription" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm">
+                        Đồng ý Nâng cấp VIP
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const isFreeTemplate = @(Model.IsFree ? "true" : "false");
+            const isUserVip = @(isUserVip ? "true" : "false");
+            const templateId = @Model.Id;
+
+            // 1. XỬ LÝ BẤM NÚT CUSTOM TEMPLATE (KIỂM TRA VIP)
+            const btnCustomize = document.getElementById("btnCustomize");
+            if (btnCustomize) {
+                btnCustomize.addEventListener("click", function(e) {
+                    e.preventDefault();
+
+                    if (!isFreeTemplate && !isUserVip) {
+                        const modal = new bootstrap.Modal(document.getElementById('vipAlertModal'));
+                        modal.show();
+                    } else {
+                        window.location.href = `/Card/Personalize/${templateId}`;
+                    }
+                });
+            }
+
+            // 2. XỬ LÝ THẢ TIM (SAVE WISHLIST)
+            const btnSaveWishlist = document.getElementById("btnSaveWishlist");
+            const wishlistIcon = document.getElementById("wishlistIcon");
+
+            if (btnSaveWishlist) {
+                btnSaveWishlist.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    fetch(`/Home/ToggleWishlist?templateId=${templateId}`, {
+                        method: 'POST'
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (data.isAdded) {
+                                    wishlistIcon.className = "bi bi-heart-fill text-danger fs-4";
+                                } else {
+                                    wishlistIcon.className = "bi bi-heart fs-4";
+                                }
+                            } else {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(err => alert("Vui lòng đăng nhập để lưu thiệp yêu thích!"));
+                });
+            }
+        });
+    </script>
+}
