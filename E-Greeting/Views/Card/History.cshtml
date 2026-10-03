@@ -1,0 +1,271 @@
+﻿@model E_Greeting.Models.UserHistoryViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Lịch Sử Hoạt Động & Giao Dịch";
+    string activeTab = ViewBag.ActiveTab as string ?? "cards";
+}
+
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="bi bi-clock-history me-2"></i>Lịch Sử Hoạt Động & Giao Dịch
+            </h2>
+            <p class="text-muted small mb-0">Theo dõi lịch sử gửi thiệp và các gói dịch vụ bạn đã đăng ký</p>
+        </div>
+    </div>
+
+    <ul class="nav nav-pills gap-2 mb-4 p-2 bg-light rounded-3 border shadow-sm" id="historyTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 py-2 @(activeTab == "cards" ? "active" : "")"
+                    id="cards-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#cards-content"
+                    type="button"
+                    role="tab">
+                <i class="bi bi-card-heading me-2"></i>1. Lịch Sử Gửi Thiệp (@(Model.SentCards?.Count ?? 0))
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 py-2 @(activeTab == "payments" ? "active" : "")"
+                    id="payments-tab"
+                    data-bs-toggle="pill"
+                    data-bs-target="#payments-content"
+                    type="button"
+                    role="tab">
+                <i class="bi bi-credit-card-2-front me-2"></i>2. Lịch Sử Đăng Ký Gói VIP (@(Model.Subscriptions?.Count ?? 0))
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="historyTabContent">
+
+        <!-- TAB 1: LỊCH SỬ GỬI THIỆP -->
+        <div class="tab-pane fade @(activeTab == "cards" ? "show active" : "")" id="cards-content" role="tabpanel">
+            @if (Model.SentCards == null || !Model.SentCards.Any())
+            {
+                <div class="text-center py-5 bg-light rounded-3 border">
+                    <i class="bi bi-card-heading text-muted display-1"></i>
+                    <h5 class="fw-bold text-secondary mt-3">Bạn chưa gửi thiệp nào</h5>
+                    <a href="/" class="btn btn-primary mt-2">Tạo Thiệp Mới Ngay</a>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark text-nowrap">
+                                <tr>
+                                    <th style="width: 90px;" class="text-center">Ảnh Thiệp</th>
+                                    <th>Thông Tin Thiệp & Người Nhận</th>
+                                    <th class="text-center">Thời Gian Gửi</th>
+                                    <th class="text-center">Thời Gian Mở Thiệp</th>
+                                    <th>Trạng Thái Phản Hồi</th>
+                                    <th class="text-center" style="width: 120px;">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var card in Model.SentCards)
+                                {
+                                    string displayImg = !string.IsNullOrEmpty(card.ImagePath)
+                                        ? card.ImagePath
+                                        : (card.Template?.ImagePath ?? "/images/default-card.jpg");
+
+                                    string attendanceStatus = "";
+                                    string replyMessage = "";
+
+                                    if (!string.IsNullOrWhiteSpace(card.RecipientReply))
+                                    {
+                                        try
+                                        {
+                                            using var doc = JsonDocument.Parse(card.RecipientReply);
+                                            if (doc.RootElement.TryGetProperty("Status", out var statusProp))
+                                                attendanceStatus = statusProp.GetString() ?? "";
+                                            if (doc.RootElement.TryGetProperty("Text", out var textProp))
+                                                replyMessage = textProp.GetString() ?? "";
+                                        }
+                                        catch
+                                        {
+                                            replyMessage = card.RecipientReply;
+                                        }
+                                    }
+
+                                    <tr>
+                                        <!-- Cột 1: Ảnh -->
+                                        <td class="text-center">
+                                            <img src="@displayImg" class="img-thumbnail rounded shadow-sm" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='/images/default-card.jpg';" />
+                                        </td>
+
+                                        <!-- Cột 2: Thông tin -->
+                                        <td>
+                                            <div class="fw-bold text-dark fs-6 mb-1">@(string.IsNullOrWhiteSpace(card.Subject) ? "Thiệp chúc mừng" : card.Subject)</div>
+                                            <div class="text-muted small"><i class="bi bi-envelope-at me-1 text-primary"></i>@card.RecipientEmail</div>
+                                        </td>
+
+                                        <!-- Cột 3: Thời gian gửi (Hiển thị đúng badge nếu là hẹn giờ) -->
+                                        <td class="text-center text-nowrap small text-secondary">
+                                            @if (card.ScheduledAt.HasValue && card.SentAt == null)
+                                            {
+                                                <span class="badge bg-warning text-dark px-2 py-1">
+                                                    <i class="bi bi-clock-history me-1"></i>Hẹn gửi:<br />
+                                                    @card.ScheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                                </span>
+                                            }
+                                            else if (card.SentAt.HasValue)
+                                            {
+                                                <i class="bi bi-calendar3 me-1"></i>
+                                                @card.SentAt.Value.ToString("dd/MM/yyyy")
+                                                <br />
+                                                <i class="bi bi-clock me-1"></i>
+                                                @card.SentAt.Value.ToString("HH:mm")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Chưa gửi</span>
+                                            }
+                                        </td>
+
+                                        <!-- Cột 4: Thời gian mở -->
+                                        <td class="text-center text-nowrap">
+                                            @if (card.OpenAt.HasValue)
+                                            {
+                                                <span class="badge bg-info text-dark px-2 py-1"><i class="bi bi-eye-fill me-1"></i>@card.OpenAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary bg-opacity-50 text-dark px-2 py-1"><i class="bi bi-eye-slash me-1"></i>Chưa mở</span>
+                                            }
+                                        </td>
+
+                                        <!-- Cột 5: Phản hồi -->
+                                        <td style="max-width: 280px;">
+                                            <div class="mb-1">
+                                                @if (attendanceStatus == "Sẽ tham dự")
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
+                                                }
+                                                else if (attendanceStatus == "Phân vân")
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Phân vân</span>
+                                                }
+                                                else if (attendanceStatus == "Không thể tham dự")
+                                                {
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Không thể tham dự</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-muted border"><i class="bi bi-dash-circle me-1"></i>Chưa chọn trạng thái</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(replyMessage))
+                                            {
+                                                <div class="p-2 bg-light rounded text-dark small border text-break"><i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyMessage"</div>
+                                            }
+                                        </td>
+
+                                        <!-- Cột 6: Thao tác -->
+                                        <td class="text-center">
+                                            <a href="/Card/ViewCard/@card.Id" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Xem Thiệp
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- TAB 2: LỊCH SỬ GIAO DỊCH VIP -->
+        <div class="tab-pane fade @(activeTab == "payments" ? "show active" : "")" id="payments-content" role="tabpanel">
+            @if (Model.Subscriptions == null || !Model.Subscriptions.Any())
+            {
+                <div class="text-center py-5 bg-light rounded-3 border">
+                    <i class="bi bi-receipt text-muted display-1"></i>
+                    <h5 class="fw-bold text-secondary mt-3">Bạn chưa có giao dịch đăng ký gói dịch vụ nào</h5>
+                    <a href="/Subscription" class="btn btn-success mt-2 fw-semibold">
+                        <i class="bi bi-star-fill me-1"></i> Mua Gói VIP Ngay
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark text-nowrap">
+                                <tr>
+                                    <th class="text-center" style="width: 80px;">Mã HĐ</th>
+                                    <th>Gói Đăng Ký</th>
+                                    <th class="text-end">Số Tiền</th>
+                                    <th class="text-center">Ngày Bắt Đầu</th>
+                                    <th class="text-center">Thời Hạn Gói</th>
+                                    <th class="text-center">Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sub in Model.Subscriptions)
+                                {
+                                    string packageName = sub.Service?.Name ?? "Gói VIP";
+                                    decimal price = sub.Service?.Price ?? sub.Payments.FirstOrDefault()?.Amount ?? 0;
+                                    bool isExpired = sub.EndDate.HasValue && sub.EndDate.Value < DateOnly.FromDateTime(DateTime.Now);
+                                    bool isActive = sub.IsActive && !isExpired;
+
+                                    <tr>
+                                        <td class="text-center fw-bold text-primary">#@sub.Id</td>
+                                        <td>
+                                            <span class="badge bg-info text-dark fs-6 px-3 py-2">
+                                                <i class="bi bi-gem me-1"></i>@packageName
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold text-success fs-6">
+                                            @price.ToString("N0") đ
+                                        </td>
+                                        <td class="text-center text-nowrap small text-secondary">
+                                            <i class="bi bi-calendar-event me-1"></i>@sub.StartDate.ToString("dd/MM/yyyy")
+                                        </td>
+                                        <td class="text-center text-nowrap small">
+                                            @if (sub.EndDate.HasValue)
+                                            {
+                                                <span>@sub.StartDate.ToString("dd/MM/yyyy") - @sub.EndDate.Value.ToString("dd/MM/yyyy")</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Từ @sub.StartDate.ToString("dd/MM/yyyy")</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (isActive)
+                                            {
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Đang Hoạt Động
+                                                </span>
+                                            }
+                                            else if (isExpired)
+                                            {
+                                                <span class="badge bg-secondary px-3 py-2">
+                                                    <i class="bi bi-clock-history me-1"></i>Đã Hết Hạn
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark px-3 py-2">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Ngưng Hoạt Động
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+    </div>
+</div>

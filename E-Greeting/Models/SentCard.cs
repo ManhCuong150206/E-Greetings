@@ -56,9 +56,8 @@ public class SentCard
     [Column("subject")]
     public string Subject { get; set; } = string.Empty;
 
-    // --- Các thuộc tính bổ sung (Dùng [NotMapped] để EF Core KHÔNG tìm trong CSDL) ---
+    // --- Các thuộc tính bổ sung ([NotMapped]) ---
 
-    // 1. Lưu/Đọc nội dung HTML thiệp trực tiếp qua cột `message`
     [NotMapped]
     public string CardHtmlContent
     {
@@ -66,7 +65,6 @@ public class SentCard
         set => Message = value;
     }
 
-    // 2. Đọc/Ghi ngày tạo thiệp trực tiếp qua cột `sent_at`
     [NotMapped]
     public DateTime? CreatedDate
     {
@@ -74,7 +72,6 @@ public class SentCard
         set => SentAt = value;
     }
 
-    // 3. Tự động lấy Email người gửi từ bảng Account liên kết
     [NotMapped]
-    public string SenderEmail => Account?.Email ?? string.Empty; // Giả định thuộc tính Email bên class Account tên là Email
+    public string SenderEmail => Account?.Email ?? string.Empty;
 }
