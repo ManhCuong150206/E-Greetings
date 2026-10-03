@@ -1,13 +1,26 @@
-﻿@model IEnumerable<E_Greeting.Models.SentCard>
+﻿@model E_Greeting.Models.UserHistoryViewModel
 
 @{
     ViewData["Title"] = "Lịch Sử Hoạt Động & Giao Dịch";
 }
 
 <div class="container mt-4">
-    <h3 class="fw-bold text-primary mb-3">
-        <i class="bi bi-clock-history me-2"></i>Lịch Sử Hoạt Động & Giao Dịch
-    </h3>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold text-primary mb-1">
+                <i class="bi bi-clock-history me-2"></i>Lịch Sử Hoạt Động & Giao Dịch
+            </h3>
+            <small class="text-muted">Quản lý lịch sử gửi thiệp chúc mừng và thông tin các gói dịch vụ VIP đã đăng ký</small>
+        </div>
+        <div>
+            <a href="/Home/Index" class="btn btn-primary fw-semibold me-2">
+                <i class="bi bi-plus-circle me-1"></i>Tạo Thiệp Mới
+            </a>
+            <a href="/Subscription" class="btn btn-warning text-dark fw-bold">
+                <i class="bi bi-star-fill me-1"></i>Nâng Cấp VIP
+            </a>
+        </div>
+    </div>
 
     <!-- BẢNG DANH SÁCH THIỆP ĐÃ GỬI -->
     <div class="card shadow-sm rounded-3 mt-3">
@@ -15,19 +28,18 @@
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th width="70">ID</th>
-                        <th>Mẫu Thiệp</th>
-                        <th>Thông Tin & Người Nhận</th>
-                        <th>Thời Gian Gửi / Hẹn Giờ</th>
+                        <th width="80" class="text-center">Ảnh</th>
+                        <th>Thông Tin Thiệp & Người Nhận</th>
+                        <th>Thời Gian Gửi / Trạng Thái</th>
                         <th class="text-center">Trạng Thái Mở</th>
                         <th>Phản Hồi Từ Người Nhận</th>
                         <th class="text-center" width="100">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (Model?.SentCards != null && Model.SentCards.Any())
                     {
-                        foreach (var item in Model)
+                        foreach (var item in Model.SentCards)
                         {
                             // BÓC TÁCH DỮ LIỆU BẰNG REFLECTION
                             var props = item.GetType().GetProperties();
@@ -66,32 +78,85 @@
                             }
 
                             <tr>
-                                <td class="fw-bold">#@item.Id</td>
-                                <td>
-                                    <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") fs-6 shadow-sm">
-                                        <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
-                                        @(item.Template?.Name ?? "Mẫu Thiệp")
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="fw-semibold text-primary">@recipientEmail</div>
-                                    <small class="text-muted">@subjectVal</small>
-                                </td>
-                                <td>
-                                    @if (scheduledAt.HasValue)
+                                <!-- 1. CỘT ẢNH BÌA THIỆP -->
+                                <td class="text-center p-2">
+                                    @if (!string.IsNullOrWhiteSpace(imagePath))
                                     {
-                                        <div><span class="badge text-white mb-1" style="background-color: #6f42c1;"><i class="bi bi-clock me-1"></i>Hẹn giờ</span></div>
-                                        <small class="fw-semibold text-dark">@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
-                                    }
-                                    else if (sentAt.HasValue)
-                                    {
-                                        <span class="fw-semibold text-dark">@sentAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                        <img src="@imagePath" class="rounded border shadow-sm" style="width: 55px; height: 55px; object-fit: cover;" alt="Bìa thiệp" />
                                     }
                                     else
                                     {
-                                        <span class="text-muted">Chờ gửi...</span>
+                                        <div class="bg-light rounded border d-flex align-items-center justify-content-center mx-auto" style="width: 55px; height: 55px;">
+                                            <i class="bi bi-image text-muted fs-4"></i>
+                                        </div>
                                     }
                                 </td>
+
+                                <!-- 2. THÔNG TIN THIỆP & NGƯỜI NHẬN -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") shadow-sm">
+                                            <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
+                                            @(item.Template?.Name ?? "Mẫu Thiệp")
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(subjectVal))
+                                        {
+                                            <span class="fw-bold text-dark">@subjectVal</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-envelope me-1"></i>@recipientEmail
+                                    </div>
+                                </td>
+
+                                <!-- 3. THỜI GIAN GỬI / HẸN GIỜ (CẬP NHẬT) -->
+                                <td>
+                                    @if (sentAt.HasValue)
+                                    {
+                                        <div>
+                                            <span class="badge bg-success mb-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Đã gửi
+                                            </span>
+                                        </div>
+                                        <small class="fw-semibold text-dark d-block">
+                                            <i class="bi bi-calendar-check me-1 text-muted"></i>@sentAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    }
+                                    else if (scheduledAt.HasValue)
+                                    {
+                                        if (scheduledAt.Value > DateTime.Now)
+                                        {
+                                            <div>
+                                                <span class="badge text-white mb-1" style="background-color: #6f42c1;">
+                                                    <i class="bi bi-clock-history me-1"></i>Đã hẹn giờ
+                                                </span>
+                                            </div>
+                                            <small class="fw-semibold text-dark d-block">
+                                                <i class="bi bi-calendar-event me-1 text-muted"></i>@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="badge bg-warning text-dark mb-1">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Đang xử lý...
+                                                </span>
+                                            </div>
+                                            <small class="text-muted d-block">Đang trong hàng chờ gửi</small>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div>
+                                            <span class="badge bg-secondary opacity-75 mb-1">
+                                                <i class="bi bi-dash-circle me-1"></i>Chờ gửi
+                                            </span>
+                                        </div>
+                                        <small class="text-muted d-block">Chưa khởi tạo</small>
+                                    }
+                                </td>
+
+                                <!-- 4. TRẠNG THÁI MỞ -->
                                 <td class="text-center">
                                     @if (openAt.HasValue)
                                     {
@@ -104,13 +169,15 @@
                                         <span class="badge bg-secondary opacity-75">Chưa mở</span>
                                     }
                                 </td>
+
+                                <!-- 5. PHẢN HỒI TỪ NGƯỜI NHẬN -->
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
                                     {
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             @if (!string.IsNullOrWhiteSpace(replyStatus))
                                             {
-                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
                                                 {
                                                     <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
                                                 }
@@ -138,11 +205,11 @@
                                     }
                                     else
                                     {
-                                        <span class="text-muted fst-italic">Chưa có phản hồi</span>
+                                        <span class="text-muted fst-italic">Chưa phản hồi</span>
                                     }
                                 </td>
 
-                                <!-- NÚT BẬT POPUP XEM CHI TIẾT -->
+                                <!-- 6. NÚT XEM CHI TIẾT (MODAL POPUP) -->
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
                                             data-bs-toggle="modal"
@@ -166,7 +233,7 @@
                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <div class="modal-body p-4">
-                                                    <!-- 1. BÌA THIỆP -->
+                                                    <!-- BÌA THIỆP -->
                                                     @if (!string.IsNullOrWhiteSpace(imagePath))
                                                     {
                                                         <div class="text-center mb-3">
@@ -175,7 +242,7 @@
                                                         </div>
                                                     }
 
-                                                    <!-- 2. NHẠC NỀN -->
+                                                    <!-- NHẠC NỀN -->
                                                     @if (!string.IsNullOrWhiteSpace(audioPath))
                                                     {
                                                         <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
@@ -189,7 +256,7 @@
                                                         </div>
                                                     }
 
-                                                    <!-- 3. FORM CHI TIẾT RUỘT THIỆP -->
+                                                    <!-- FORM CHI TIẾT RUỘT THIỆP -->
                                                     <div class="border rounded-3 p-3 bg-light shadow-sm">
                                                         <h6 class="fw-bold text-primary mb-3">
                                                             <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp:
@@ -231,7 +298,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">Bạn chưa gửi thiệp nào.</td>
+                            <td colspan="6" class="text-center py-4 text-muted">Bạn chưa gửi thiệp nào.</td>
                         </tr>
                     }
                 </tbody>

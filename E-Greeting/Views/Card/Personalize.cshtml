@@ -105,13 +105,11 @@
                 <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-card-heading me-2"></i>Thông Tin Chi Tiết Đi Kèm Thiệp</h5>
 
-                    <!-- HÀNG 1: Tiêu đề Email -->
                     <div class="mb-3">
                         <label for="input-email-subject" class="form-label fw-bold">Tiêu Đề Email (*):</label>
                         <input type="text" id="input-email-subject" name="Subject" class="form-control" placeholder="Lời mời trân trọng dành riêng cho bạn..." required />
                     </div>
 
-                    <!-- HÀNG 2: Tên Người Nhận + Email Người Nhận -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="input-recipient-name" class="form-label fw-bold">Tên Người Nhận (*):</label>
@@ -123,13 +121,11 @@
                         </div>
                     </div>
 
-                    <!-- HÀNG 3: Địa Chỉ / Địa Điểm Tổ Chức -->
                     <div class="mb-3">
                         <label for="input-event-address" class="form-label fw-bold">Địa Chỉ / Địa Điểm Tổ Chức (*):</label>
                         <input type="text" id="input-event-address" name="Location" class="form-control" placeholder="Ví dụ: Trung tâm Tiệc cưới White Palace, TPHCM" required />
                     </div>
 
-                    <!-- HÀNG 4: Thời Gian Diễn Ra + Hẹn Giờ Gửi Email -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="input-event-time" class="form-label fw-bold">Thời Gian Diễn Ra (*):</label>
@@ -147,7 +143,7 @@
 
                             @if (isVip)
                             {
-                                <input type="datetime-local" id="input-scheduled-at" name="ScheduledAt" class="form-control" placeholder="Bỏ trống nếu muốn gửi ngay" />
+                                <input type="datetime-local" id="scheduledAt" name="ScheduledAt" class="form-control" placeholder="Bỏ trống nếu muốn gửi ngay" />
                                 <small class="text-muted fs-7">Để trống nếu bạn muốn hệ thống gửi ngay lập tức.</small>
                             }
                             else
@@ -174,7 +170,6 @@
                         <button type="button" id="btn-clear-canvas" class="btn btn-sm btn-outline-danger w-50"><i class="bi bi-trash me-1"></i>Xóa đối tượng chọn</button>
                     </div>
 
-                    <!-- Ô NHẬP TRỰC TIẾP CHO TEXT ĐANG CHỌN TRÊN CANVAS -->
                     <div class="mb-3 p-2 border rounded bg-light">
                         <label for="input-active-text-val" class="form-label form-label-sm fw-bold text-dark mb-1">
                             <i class="bi bi-pencil me-1"></i> Sửa nội dung văn bản đang chọn:
@@ -182,7 +177,6 @@
                         <textarea id="input-active-text-val" class="form-control form-control-sm" rows="2" placeholder="Nhấp chọn một khung chữ trên thiệp để sửa..."></textarea>
                     </div>
 
-                    <!-- BỘ ĐỊNH DẠNG VĂN BẢN -->
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-bold">Định dạng văn bản:</label>
                         <div class="row g-2 mb-2">
@@ -225,7 +219,6 @@
                         </div>
                     </div>
 
-                    <!-- THÊM ẢNH CÁ NHÂN -->
                     <div class="mb-3 border p-2 rounded bg-light">
                         <label class="form-label form-label-sm fw-bold text-primary mb-1">
                             <i class="bi bi-image me-1"></i> Thêm ảnh cá nhân:
@@ -256,7 +249,6 @@
                         </div>
                     </div>
 
-                    <!-- STICKER -->
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-bold">Thêm Sticker:</label>
                         <div class="d-flex gap-2 fs-4 p-1 border rounded justify-content-around bg-light">
@@ -269,20 +261,19 @@
                         </div>
                     </div>
 
-                    <!-- NHẠC NỀN -->
                     <div class="mb-3">
                         <label for="select-audio" class="form-label form-label-sm fw-bold">Nhạc nền:</label>
                         <select id="select-audio" class="form-select form-select-sm mb-2">
                             <option value="">-- Không chọn nhạc --</option>
                             <option value="/audio/music1.mp3">Nhạc sinh nhật 1</option>
                             <option value="/audio/music2.mp3">Nhạc sinh nhật 2</option>
+                            <option value="/audio/Dù Cho Mai Về Sau.mp3">Anh xin lỗi em bée</option>
                         </select>
                         <audio id="audio-player" controls class="w-100 d-none" style="height: 32px;"></audio>
                     </div>
 
                     <hr class="my-2">
 
-                    <!-- NÚT TIẾP TỤC XEM TRƯỚC -->
                     <button type="button" id="btnToPreview" class="btn btn-primary rounded-pill w-100 fw-bold py-3 fs-5 shadow">
                         Tiếp Tục Xem Trước <i class="bi bi-arrow-right ms-1"></i>
                     </button>
@@ -297,20 +288,17 @@
     <!-- ========================================================================= -->
     <div id="section-preview" class="d-none my-3">
         <div class="card border-0 shadow-lg rounded-4 overflow-hidden mx-auto" style="max-width: 800px;">
-            <!-- Header thiệp -->
             <div class="bg-primary text-white text-center py-3 fw-bold fs-5 shadow-sm">
                 <i class="bi bi-card-heading me-2"></i> Thiệp Chúc Mừng Dành Cho Bạn
             </div>
 
             <div class="card-body p-4 bg-light">
-                <!-- 1. Ảnh thiệp được render lại từ Canvas -->
                 <div class="text-center mb-4">
                     <div class="bg-white p-2 rounded-3 shadow-sm d-inline-block border">
                         <img id="preview-card-img" src="" class="img-fluid rounded" style="max-height: 500px; object-fit: contain;" alt="Bản xem trước thiệp">
                     </div>
                 </div>
 
-                <!-- 2. Trình phát nhạc nền (Chỉ hiện nếu người dùng có chọn nhạc) -->
                 <div id="preview-audio-container" class="bg-white p-3 rounded-3 shadow-sm mb-4 border d-none">
                     <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-semibold small">
                         <i class="bi bi-music-note-beamed fs-5"></i> Nhạc nền kèm theo thiệp:
@@ -318,7 +306,6 @@
                     <audio id="preview-audio-player" controls class="w-100" style="height: 36px;"></audio>
                 </div>
 
-                <!-- 3. Thông tin sự kiện -->
                 <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
                     <h6 class="fw-bold text-primary mb-3">
                         <i class="bi bi-info-circle-fill me-2"></i> Thông Tin Sự Kiện & Thiệp
@@ -347,13 +334,15 @@
                     </div>
                 </div>
 
-                <!-- 4. Hai nút chuyển hướng Back & Send -->
-                <div class="d-flex justify-content-between align-items-center gap-3 mt-4">
-                    <button type="button" id="btnBackToEdit" class="btn btn-outline-secondary btn-lg rounded-pill fw-bold px-4 shadow-sm">
-                        <i class="bi bi-arrow-left me-1"></i> Quay Lại Sửa
+                <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2 pb-4">
+                    <!-- Nút Quay Lại chuyển về Section Edit -->
+                    <button type="button" id="btnBackToEdit" class="btn btn-secondary rounded-pill px-4">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại
                     </button>
-                    <button type="button" id="btnOpenConfirmModal" class="btn btn-success btn-lg rounded-pill fw-bold px-5 shadow">
-                        <i class="bi bi-send me-1"></i> Gửi Thiệp Ngay
+
+                    <!-- Nút Mở Pop-up Modal Xác Nhận (Nhãn nút sẽ được thay đổi linh hoạt bởi JS) -->
+                    <button type="button" id="btnOpenConfirmModal" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi
                     </button>
                 </div>
             </div>
@@ -395,7 +384,7 @@
     <script src="~/js/personalize.js" asp-append-version="true"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const sectionEdit = document.getElementById("section-edit");
             const sectionPreview = document.getElementById("section-preview");
 
@@ -404,14 +393,15 @@
             const btnOpenConfirmModal = document.getElementById("btnOpenConfirmModal");
             const btnFinalSend = document.getElementById("btnFinalSend");
 
-            // Modal Bootstrap
-            const confirmModal = new bootstrap.Modal(document.getElementById('confirmSendModal'));
+            // Modal Bootstrap Instance
+            const confirmModalEl = document.getElementById('confirmSendModal');
+            const confirmModal = confirmModalEl ? new bootstrap.Modal(confirmModalEl) : null;
 
             // Nghe thử nhạc nền ở phần chỉnh sửa
             const selectAudio = document.getElementById("select-audio");
             const audioPlayer = document.getElementById("audio-player");
             if (selectAudio && audioPlayer) {
-                selectAudio.addEventListener("change", function() {
+                selectAudio.addEventListener("change", function () {
                     if (this.value) {
                         audioPlayer.src = this.value;
                         audioPlayer.classList.remove("d-none");
@@ -425,12 +415,16 @@
 
             // --- 1. CHUYỂN TỪ EDIT SANG PREVIEW ---
             if (btnToPreview) {
-                btnToPreview.addEventListener("click", function() {
+                btnToPreview.addEventListener("click", function () {
                     const subject = document.getElementById("input-email-subject")?.value.trim();
                     const recipientName = document.getElementById("input-recipient-name")?.value.trim();
                     const recipientEmail = document.getElementById("input-recipient-email")?.value.trim();
                     const location = document.getElementById("input-event-address")?.value.trim();
                     const eventTime = document.getElementById("input-event-time")?.value;
+
+                    // Giá trị ô Hẹn Giờ (chỉ áp dụng nếu tài khoản VIP)
+                    const scheduledAtInput = document.getElementById("scheduledAt");
+                    const scheduledAtVal = scheduledAtInput ? scheduledAtInput.value : "";
 
                     // Validation đầy đủ thông tin bắt buộc
                     if (!subject) {
@@ -464,7 +458,7 @@
                     btnToPreview.disabled = true;
                     btnToPreview.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang tạo bản xem trước...';
 
-                    // Luyện dữ liệu viền nét đứt hiện tại & Tạm ẩn viền để chụp html2canvas đẹp mắt
+                    // Luyện & tạm ẩn đường viền nét đứt của thẻ chữ để chụp canvas đẹp
                     const draggableElems = document.querySelectorAll(".draggable-text-box, .draggable-element");
                     draggableElems.forEach(el => {
                         el.setAttribute("data-border-backup", el.style.border || "");
@@ -481,14 +475,11 @@
                         allowTaint: false,
                         backgroundColor: "#ffffff"
                     }).then(canvas => {
-                        // Gán hình chụp Base64 vào phần Preview
                         const imgData = canvas.toDataURL("image/jpeg", 0.85);
                         document.getElementById("preview-card-img").src = imgData;
 
-                        // Định dạng thời gian
                         let formattedTime = eventTime ? new Date(eventTime).toLocaleString("vi-VN") : "(Chưa chọn)";
 
-                        // Đưa dữ liệu sang Preview
                         document.getElementById("preview-recipient-name").innerText = recipientName;
                         document.getElementById("preview-event-time").innerText = formattedTime;
                         document.getElementById("preview-event-address").innerText = location;
@@ -508,7 +499,49 @@
                             previewAudioContainer.classList.add("d-none");
                         }
 
-                        // Chuyển sang màn hình Preview
+                        // =========================================================================
+                        // TỰ ĐỘNG CẬP NHẬT GIAO DIỆN NÚT & POPUP THEO TRẠNG THÁI HẸN GIỜ
+                        // =========================================================================
+                        const modalTitle = document.getElementById("confirmSendModalLabel");
+                        const modalBodyText = document.querySelector("#confirmSendModal .modal-body p");
+
+                        if (scheduledAtVal) {
+                            // CÓ HẸN GIỜ GỬI EMAIL
+                            const formattedScheduleTime = new Date(scheduledAtVal).toLocaleString("vi-VN");
+
+                            if (btnOpenConfirmModal) {
+                                btnOpenConfirmModal.innerHTML = '<i class="bi bi-clock-history me-1"></i> Xác Nhận Hẹn Giờ';
+                                btnOpenConfirmModal.className = "btn btn-warning text-dark rounded-pill px-4 fw-bold shadow-sm";
+                            }
+                            if (modalTitle) {
+                                modalTitle.innerHTML = '<i class="bi bi-clock-history me-2"></i>Xác Nhận Hẹn Giờ Gửi Thiệp';
+                            }
+                            if (modalBodyText) {
+                                modalBodyText.innerHTML = `Hệ thống sẽ lên lịch và <b>tự động gửi email</b> tới người nhận vào lúc: <br><span class="text-primary fw-bold fs-6">${formattedScheduleTime}</span>`;
+                            }
+                            if (btnFinalSend) {
+                                btnFinalSend.innerHTML = '<i class="bi bi-clock-history me-1"></i> Xác Nhận Hẹn Giờ';
+                                btnFinalSend.className = "btn btn-warning text-dark rounded-pill px-4 fw-bold shadow-sm";
+                            }
+                        } else {
+                            // GỬI EMAIL NGAY LẬP TỨC
+                            if (btnOpenConfirmModal) {
+                                btnOpenConfirmModal.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+                                btnOpenConfirmModal.className = "btn btn-primary rounded-pill px-4 fw-bold shadow-sm";
+                            }
+                            if (modalTitle) {
+                                modalTitle.innerHTML = '<i class="bi bi-envelope-paper-heart me-2"></i>Xác Nhận Gửi Thiệp';
+                            }
+                            if (modalBodyText) {
+                                modalBodyText.innerText = "Hệ thống sẽ tiến hành lưu dữ liệu thiệp và gửi email trực tiếp tới người nhận ngay lập tức.";
+                            }
+                            if (btnFinalSend) {
+                                btnFinalSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+                                btnFinalSend.className = "btn btn-primary rounded-pill px-4 fw-bold shadow-sm";
+                            }
+                        }
+
+                        // Chuyển màn hình sang Preview
                         sectionEdit.classList.add("d-none");
                         sectionPreview.classList.remove("d-none");
                         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -516,21 +549,19 @@
                         console.error("Lỗi html2canvas:", err);
                         alert("Không thể tạo ảnh xem trước. Vui lòng thử lại!");
                     }).finally(() => {
-                        // Khôi phục nút bấm
                         btnToPreview.disabled = false;
                         btnToPreview.innerHTML = originalBtnHtml;
                     });
                 });
             }
 
-            // --- 2. NÚT BACK (QUAY LẠI CHỈNH SỬA) ---
+            // --- 2. NÚT QUAY LẠI (QUAY LẠI CHỈNH SỬA) ---
             if (btnBackToEdit) {
-                btnBackToEdit.addEventListener("click", function() {
-                    // Dừng nhạc preview
+                btnBackToEdit.addEventListener("click", function () {
                     const previewAudioPlayer = document.getElementById("preview-audio-player");
                     if (previewAudioPlayer) previewAudioPlayer.pause();
 
-                    // Khôi phục viền nét đứt cho các phần tử chỉnh sửa trên Canvas
+                    // Khôi phục viền nét đứt trên Canvas
                     const draggableElems = document.querySelectorAll(".draggable-text-box, .draggable-element");
                     draggableElems.forEach((el, index) => {
                         const backupBorder = el.getAttribute("data-border-backup");
@@ -552,17 +583,17 @@
                 });
             }
 
-            // --- 3. MỞ MODAL CONFIRM ---
+            // --- 3. MỞ MODAL XÁC NHẬN ---
             if (btnOpenConfirmModal) {
-                btnOpenConfirmModal.addEventListener("click", function() {
-                    confirmModal.show();
+                btnOpenConfirmModal.addEventListener("click", function () {
+                    if (confirmModal) confirmModal.show();
                 });
             }
 
-            // --- 4. BẤM XÁC NHẬN GỬI THIỆP TRONG MODAL ---
+            // --- 4. BẤM XÁC NHẬN TRONG MODAL ---
             if (btnFinalSend) {
-                btnFinalSend.addEventListener("click", function() {
-                    confirmModal.hide();
+                btnFinalSend.addEventListener("click", function () {
+                    if (confirmModal) confirmModal.hide();
 
                     if (typeof saveAndSendCard === 'function') {
                         saveAndSendCard();

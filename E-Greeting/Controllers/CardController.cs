@@ -25,10 +25,10 @@ public class SaveCardRequest
     public string CardHtmlContent { get; set; } = string.Empty;
     public string? Message { get; set; }
 
-    // Hỗ trợ cả DateTime lẫn chuỗi string từ Frontend
     public DateTime? ScheduledAt { get; set; }
     public string? ScheduledAtStr { get; set; }
 }
+
 public class ReplyRequest
 {
     public int CardId { get; set; }
@@ -43,12 +43,18 @@ public class CardController : Controller
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _configuration;
 
-    public CardController(AppDbContext context, IEmailService emailService, IWebHostEnvironment env)
+    public CardController(
+        AppDbContext context,
+        IEmailService emailService,
+        IWebHostEnvironment env,
+        IConfiguration configuration)
     {
         _context = context;
         _emailService = emailService;
         _env = env;
+        _configuration = configuration;
     }
 
     // GET: /Card/Personalize/1
@@ -59,30 +65,30 @@ public class CardController : Controller
         if (template == null) return NotFound("Không tìm thấy mẫu thiệp này!");
 
         bool isVip = false;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int userId))
+        int? userId = GetCurrentUserId();
+        if (userId.HasValue)
         {
-            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == userId && s.IsActive);
+            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == userId.Value && s.IsActive);
         }
 
         ViewBag.IsVip = isVip;
         return View(template);
     }
 
-    // POST: /Card/SaveCardConfig
+    // POST: /Card/SaveCardConfig (Hàm lưu/tạo thiệp từ trang Personalize)
     [HttpPost]
     [DisableRequestSizeLimit]
     public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest req)
     {
         if (req == null)
-            return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+            return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ!" });
 
-        // 1. Lấy AccountId từ User đang đăng nhập
-        int? accountId = null;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int parsedUserId))
+        // 1. Lấy AccountId người dùng đang đăng nhập
+        int? accountId = GetCurrentUserId();
+        Account? account = null;
+        if (accountId.HasValue)
         {
-            accountId = parsedUserId;
+            account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value);
         }
 
         // 2. Xử lý lưu ảnh Base64
@@ -90,14 +96,49 @@ public class CardController : Controller
                                ?? SaveBase64Image(req.ImagePath)
                                ?? req.ImagePath;
 
-        // 3. Xử lý ép kiểu Ngày/Giờ hẹn gửi từ Frontend
-        DateTime? scheduledTime = req.ScheduledAt;
-        if (!scheduledTime.HasValue && !string.IsNullOrWhiteSpace(req.ScheduledAtStr))
+        // 3. Xử lý Parse Ngày/Giờ hẹn gửi linh hoạt
+        DateTime? scheduledTime = null;
+
+        if (!string.IsNullOrWhiteSpace(req.ScheduledAtStr))
         {
-            if (DateTime.TryParse(req.ScheduledAtStr, out var parsedDate))
+            string[] supportedFormats = new[] {
+                "yyyy-MM-ddTHH:mm:ss",
+                "yyyy-MM-ddTHH:mm",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm",
+                "dd/MM/yyyy HH:mm:ss",
+                "dd/MM/yyyy HH:mm",
+                "dd/MM/yyyy hh:mm tt",
+                "dd/MM/yyyy h:mm tt"
+            };
+
+            var viCulture = new System.Globalization.CultureInfo("vi-VN");
+
+            if (DateTime.TryParseExact(req.ScheduledAtStr, supportedFormats,
+                viCulture, System.Globalization.DateTimeStyles.None, out var parsedExact))
             {
-                scheduledTime = parsedDate;
+                scheduledTime = parsedExact;
             }
+            else if (DateTime.TryParse(req.ScheduledAtStr, viCulture, System.Globalization.DateTimeStyles.None, out var parsedFallback))
+            {
+                scheduledTime = parsedFallback;
+            }
+        }
+
+        if (!scheduledTime.HasValue && req.ScheduledAt.HasValue)
+        {
+            scheduledTime = req.ScheduledAt.Value;
+        }
+
+        // Chuẩn hóa múi giờ về Local
+        if (scheduledTime.HasValue)
+        {
+            if (scheduledTime.Value.Kind == DateTimeKind.Utc)
+            {
+                scheduledTime = scheduledTime.Value.ToLocalTime();
+            }
+
+            scheduledTime = DateTime.SpecifyKind(scheduledTime.Value, DateTimeKind.Unspecified);
         }
 
         // 4. Khởi tạo Entity SentCard
@@ -120,38 +161,44 @@ public class CardController : Controller
                 })
         };
 
-        // 5. LOGIC HẸN GIỜ: Kiểm tra thời gian hẹn so với hiện tại
+        // 5. PHÂN LẠI ĐIỀU KIỆN: HẸN GIỜ VS GỬI NGAY
+        bool isScheduledForFuture = false;
+        DateTime now = DateTime.Now;
+
         if (scheduledTime.HasValue)
         {
-            newCard.ScheduledAt = scheduledTime.Value; // Lưu thời gian hẹn vào DB
+            // Kiểm tra giờ hẹn phải ở tương lai
+            if (scheduledTime.Value <= now)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Thời gian hẹn ({scheduledTime.Value:HH:mm dd/MM/yyyy}) phải lớn hơn thời điểm hiện tại ({now:HH:mm dd/MM/yyyy})!"
+                });
+            }
 
-            if (scheduledTime.Value > DateTime.Now)
-            {
-                // Hẹn giờ tương lai -> Chưa gửi email ngay lúc này
-                newCard.SentAt = null;
-            }
-            else
-            {
-                // Giờ hẹn đã qua hoặc bằng hiện tại -> Cho gửi ngay
-                newCard.SentAt = DateTime.Now;
-            }
+            // HẸN GIỜ TƯƠNG LAI: Giữ SentAt = NULL, chỉ gán ScheduledAt
+            newCard.ScheduledAt = scheduledTime.Value;
+            newCard.SentAt = null;
+            isScheduledForFuture = true;
         }
         else
         {
-            // Không chọn hẹn giờ -> Gửi ngay
+            // GỬI NGAY: ScheduledAt = NULL, SentAt = Giờ hiện tại
             newCard.ScheduledAt = null;
-            newCard.SentAt = DateTime.Now;
+            newCard.SentAt = now;
         }
 
         // 6. Lưu vào Database
         _context.SentCards.Add(newCard);
         await _context.SaveChangesAsync();
 
-        // 7. CHỈ GỬI EMAIL NẾU SentAt CÓ GIÁ TRỊ (Không hẹn giờ hoặc đã tới giờ)
-        if (newCard.SentAt.HasValue)
+        // 7. GỬI EMAIL NGAY (Chỉ khi không hẹn giờ)
+        if (newCard.SentAt.HasValue && !isScheduledForFuture)
         {
-            string cardViewUrl = $"{Request.Scheme}://{Request.Host}/Card/ViewCard/{newCard.Id}";
-            string senderName = User.Identity?.Name ?? "Hệ thống E-Greeting";
+            string domain = _configuration["AppSettings:Domain"] ?? $"{Request.Scheme}://{Request.Host}";
+            string cardViewUrl = $"{domain}/Card/ViewCard/{newCard.Id}";
+            string senderName = account?.Name ?? User.Identity?.Name ?? "Hệ thống E-Greeting";
 
             try
             {
@@ -163,14 +210,15 @@ public class CardController : Controller
             }
         }
 
-        // 8. Trả về thông báo tương ứng cho Client
+        // 8. Trả về kết quả JSON
         return Json(new
         {
             success = true,
-            message = (newCard.ScheduledAt.HasValue && !newCard.SentAt.HasValue)
+            message = isScheduledForFuture
                 ? $"Đã lên lịch hẹn giờ gửi thiệp vào lúc {newCard.ScheduledAt.Value:HH:mm dd/MM/yyyy}!"
                 : "Đã gửi thiệp thành công!",
-            cardId = newCard.Id
+            cardId = newCard.Id,
+            redirectUrl = "/History"
         });
     }
 
@@ -240,12 +288,7 @@ public class CardController : Controller
     [Route("History")]
     public async Task<IActionResult> History(string tab = "cards")
     {
-        int? accountId = null;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int parsedUserId))
-        {
-            accountId = parsedUserId;
-        }
+        int? accountId = GetCurrentUserId();
 
         var sentCards = await _context.SentCards
             .Include(c => c.Template)
@@ -309,7 +352,16 @@ public class CardController : Controller
         return Json(new { success = true, message = "Đã gửi phản hồi thành công!" });
     }
 
-    // --- HÀM BỔ TRỢ XỬ LÝ ẢNH ---
+    // --- HÀM BỔ TRỢ HỆ THỐNG ---
+    private int? GetCurrentUserId()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirstValue("UserId")
+                     ?? User.FindFirstValue(ClaimTypes.Name);
+
+        return int.TryParse(userIdStr, out int userId) ? userId : null;
+    }
+
     private string CleanImagePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;

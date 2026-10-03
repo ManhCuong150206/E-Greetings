@@ -394,24 +394,92 @@
             }
         });
     }
+
+    // --- LẮNG NGHE SỰ KIỆN THAY ĐỔI Ô HẸN GIỜ ---
+    document.addEventListener("change", function (e) {
+        if (e.target && (e.target.id === "input-scheduled-at" || e.target.id === "scheduledAt" || e.target.type === "datetime-local")) {
+            updateSendButtonText();
+        }
+    });
+
+    document.addEventListener("input", function (e) {
+        if (e.target && (e.target.id === "input-scheduled-at" || e.target.id === "scheduledAt" || e.target.type === "datetime-local")) {
+            updateSendButtonText();
+        }
+    });
+
+    updateSendButtonText();
 });
 
 // =========================================================================
-// 8. HÀM TOÀN CỤC: LƯU VÀ GỬI THIỆP (SAVE & SEND CARD)
+// 8. HÀM TÌM ĐÚNG INPUT HẸN GIỜ (CHỐNG LỖI LỆCH ID)
+// =========================================================================
+function getScheduledInput() {
+    return document.getElementById("scheduledAt") ||
+        document.getElementById("input-scheduled-at") ||
+        document.getElementById("scheduledAtInput") ||
+        document.querySelector("input[name='ScheduledAt']") ||
+        document.querySelector("input[name='scheduledAt']");
+}
+
+// =========================================================================
+// 9. HÀM TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI NÚT GỬI / HẸN GIỜ
+// =========================================================================
+function updateSendButtonText() {
+    const btnSend = document.getElementById("btnFinalSend") || document.getElementById("btnSendCard");
+    const scheduledInput = getScheduledInput();
+
+    if (!btnSend) return;
+
+    if (scheduledInput && scheduledInput.value && scheduledInput.value.trim() !== "") {
+        btnSend.innerHTML = '<i class="bi bi-clock-history me-1"></i> Xác Nhận Hẹn Giờ';
+        btnSend.classList.remove('btn-primary');
+        btnSend.classList.add('btn-warning');
+    } else {
+        btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+        btnSend.classList.remove('btn-warning');
+        btnSend.classList.add('btn-primary');
+    }
+}
+
+// =========================================================================
+// 10. HÀM LƯU VÀ GỬI THIỆP (SAVE & SEND CARD)
 // =========================================================================
 async function saveAndSendCard() {
-    const btnSend = document.getElementById("btnFinalSend");
+    const btnSend = document.getElementById("btnFinalSend") || document.getElementById("btnSendCard");
+    const scheduledInput = getScheduledInput();
+
+    // Lấy giá trị thời gian hẹn giờ
+    const scheduledValue = (scheduledInput && scheduledInput.value.trim() !== "") ? scheduledInput.value : null;
+
+    console.log("[DEBUG FRONTEND] Giá trị giờ hẹn gửi:", scheduledValue);
+
     if (btnSend) {
         btnSend.disabled = true;
-        btnSend.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
+        btnSend.innerHTML = scheduledValue
+            ? '<span class="spinner-border spinner-border-sm me-2"></span>Đang lên lịch...'
+            : '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
     }
 
     try {
-        // 1. Lấy dữ liệu từ các input trên Form
-        const templateId = parseInt(document.getElementById("template-id")?.value || "0");
-        const recipientEmail = document.getElementById("input-recipient-email")?.value?.trim() || "";
-        const subject = document.getElementById("input-email-subject")?.value?.trim() || "";
-        const recipientName = document.getElementById("input-recipient-name")?.value?.trim() || "";
+        const templateId = parseInt(
+            document.getElementById("template-id")?.value ||
+            document.getElementById("templateId")?.value || "0"
+        );
+        const recipientEmail = (
+            document.getElementById("input-recipient-email")?.value ||
+            document.getElementById("recipientEmail")?.value || ""
+        ).trim();
+
+        const subject = (
+            document.getElementById("input-email-subject")?.value ||
+            document.getElementById("emailSubject")?.value || ""
+        ).trim();
+
+        const recipientName = (
+            document.getElementById("input-recipient-name")?.value ||
+            document.getElementById("recipientName")?.value || ""
+        ).trim();
 
         const location = (
             document.getElementById("input-event-address")?.value ||
@@ -419,18 +487,16 @@ async function saveAndSendCard() {
             document.getElementById("input-location")?.value || ""
         ).trim();
 
-        const eventTime = document.getElementById("input-event-time")?.value || "";
+        const eventTime = (
+            document.getElementById("input-event-time")?.value ||
+            document.getElementById("eventTime")?.value || ""
+        );
 
-        // Hẹn giờ (VIP)
-        const scheduledInput = document.getElementById("scheduledAt") || document.querySelector("input[name='scheduledAt']");
-        const scheduledValue = scheduledInput ? scheduledInput.value : null;
-
-        // Nhạc, Ảnh thiệp & Khai báo cardArea ngay trong hàm
         const audioPath = document.getElementById("select-audio")?.value || "";
-        const imagePath = document.getElementById("preview-card-img")?.src || "";
-        const cardArea = document.getElementById("card-preview-area"); // <-- BỔ SUNG DÒNG NÀY
+        const base64Image = document.getElementById("preview-card-img")?.src || "";
+        const cardArea = document.getElementById("card-preview-area");
 
-        // 2. Đóng gói Payload dạng Object JSON
+        // Đóng gói JSON truyền lên Server
         const payload = {
             templateId: templateId,
             recipientEmail: recipientEmail,
@@ -441,11 +507,11 @@ async function saveAndSendCard() {
             scheduledAt: scheduledValue,
             scheduledAtStr: scheduledValue,
             audioPath: audioPath,
-            imagePath: imagePath,
+            cardImageBase64: base64Image,
+            imagePath: base64Image,
             cardHtmlContent: cardArea ? cardArea.innerHTML : ""
         };
 
-        // 3. Gửi Request tới Endpoint /Card/SaveCardConfig
         const response = await fetch('/Card/SaveCardConfig', {
             method: 'POST',
             headers: {
@@ -458,12 +524,12 @@ async function saveAndSendCard() {
 
         if (result.success) {
             alert(result.message);
-            window.location.href = `/Card/ViewCard/${result.cardId}`;
+            window.location.href = result.redirectUrl || '/History';
         } else {
             alert(result.message || "Có lỗi xảy ra khi lưu thiệp!");
             if (btnSend) {
                 btnSend.disabled = false;
-                btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+                updateSendButtonText();
             }
         }
     } catch (error) {
@@ -471,12 +537,12 @@ async function saveAndSendCard() {
         alert("Đã xảy ra lỗi kết nối máy chủ!");
         if (btnSend) {
             btnSend.disabled = false;
-            btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+            updateSendButtonText();
         }
     }
 }
 
-window.handleSaveAndSend = saveAndSendCard;
+window.getScheduledInput = getScheduledInput;
+window.updateSendButtonText = updateSendButtonText;
 window.saveAndSendCard = saveAndSendCard;
-
 window.handleSaveAndSend = saveAndSendCard;
