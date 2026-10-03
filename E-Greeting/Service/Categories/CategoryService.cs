@@ -7,7 +7,8 @@ namespace E_Greeting.Service.Categories
     {
         public async Task<IEnumerable<Category>> GetCategories()
         {
-            return await context.Categories.ToListAsync();
+            return await context.Categories.AsNoTracking()
+            .OrderBy(c => c.Name).ToListAsync();
         }
     }
 }
