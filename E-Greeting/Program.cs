@@ -21,7 +21,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
-
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = int.MaxValue;
+    options.MemoryBufferThreshold = int.MaxValue;
+});
 
 // Add services to the container.
 

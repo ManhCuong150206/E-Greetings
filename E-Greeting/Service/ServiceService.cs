@@ -22,8 +22,8 @@ public class ServiceService : IServiceService
                 {
                     "Gửi tối đa 5 thiệp/tháng",
                     "Sử dụng mẫu thiệp cơ bản",
-                    "Đính kèm Logo E-Greeting",
-                    "Hỗ trợ qua Email"
+                    "Gửi thiệp thủ công",
+
                 }
             }
         };

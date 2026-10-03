@@ -1,0 +1,307 @@
+﻿@model IEnumerable<E_Greeting.Models.SentCard>
+
+@{
+    ViewData["Title"] = "Danh sách Thiệp của " + ViewBag.AccountName;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>
+            <i class="bi bi-envelope-paper-fill text-primary me-2"></i>Lịch sử gửi thiệp của User:
+            <span class="text-primary fw-bold">@ViewBag.AccountName</span>
+            <small class="text-muted fs-6">(@ViewBag.AccountEmail)</small>
+        </h4>
+        <a asp-controller="AdminSentHistory" asp-action="SentLogs" class="btn btn-outline-secondary rounded-pill fw-semibold">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại Danh sách User
+        </a>
+    </div>
+
+    <!-- BẢNG DANH SÁCH CHI TIẾT CÁC THIỆP -->
+    <div class="card shadow-sm rounded-3 mt-3">
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="70">ID</th>
+                        <th>Mẫu Thiệp Sử Dụng</th>
+                        <th>Email Người Nhận</th>
+                        <th>Thời Gian Gửi / Hẹn Giờ</th>
+                        <th class="text-center">Thời Gian Mở Thiệp</th>
+                        <th>Phản Hồi Người Nhận</th>
+                        <th class="text-center" width="130">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            var props = item.GetType().GetProperties();
+                            string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
+                            string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string rawMessage = props.FirstOrDefault(p => p.Name.Equals("Message", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string imagePath = props.FirstOrDefault(p => p.Name.Equals("ImagePath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? item.Template?.ImagePath ?? "";
+                            string audioPath = props.FirstOrDefault(p => p.Name.Equals("AudioPath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string rawReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+
+                            DateTime? sentAt = props.FirstOrDefault(p => p.Name.Equals("SentAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                            DateTime? scheduledAt = props.FirstOrDefault(p => p.Name.Equals("ScheduledAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                            DateTime? openAt = props.FirstOrDefault(p => p.Name.Equals("OpenAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+
+                            bool isVip = item.Template != null && !item.Template.IsFree;
+
+                            // PARSE JSON PHẢN HỒI NGUỜI NHẬN (REPLY)
+                            string replyStatus = "";
+                            string replyText = "";
+                            if (!string.IsNullOrWhiteSpace(rawReply))
+                            {
+                                try
+                                {
+                                    using var replyDoc = System.Text.Json.JsonDocument.Parse(rawReply);
+                                    var root = replyDoc.RootElement;
+                                    if (root.TryGetProperty("Status", out var statusProp))
+                                    {
+                                        replyStatus = statusProp.GetString() ?? "";
+                                    }
+                                    else if (root.TryGetProperty("status", out var statusProp2))
+                                    {
+                                        replyStatus = statusProp2.GetString() ?? "";
+                                    }
+
+                                    if (root.TryGetProperty("Text", out var textProp))
+                                    {
+                                        replyText = textProp.GetString() ?? "";
+                                    }
+                                    else if (root.TryGetProperty("text", out var textProp2))
+                                    {
+                                        replyText = textProp2.GetString() ?? "";
+                                    }
+                                }
+                                catch
+                                {
+                                    replyStatus = rawReply;
+                                }
+                            }
+
+                            <tr>
+                                <td class="fw-bold">#@item.Id</td>
+                                <td>
+                                    <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") fs-6 shadow-sm">
+                                        <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
+                                        @(item.Template?.Name ?? "Mẫu Thiệp") @(isVip ? "(VIP)" : "(Miễn phí)")
+                                    </span>
+                                </td>
+                                <td class="fw-semibold text-primary">@recipientEmail</td>
+                                <td>
+                                    @if (scheduledAt.HasValue)
+                                    {
+                                        <div><span class="badge text-white mb-1" style="background-color: #6f42c1;"><i class="bi bi-clock me-1"></i>Hẹn giờ</span></div>
+                                        <small class="fw-semibold text-dark">@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                    }
+                                    else if (sentAt.HasValue)
+                                    {
+                                        <span class="fw-semibold text-dark">@sentAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Chờ gửi...</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (openAt.HasValue)
+                                    {
+                                        <span class="badge bg-info text-dark border px-2 py-1">
+                                            <i class="bi bi-envelope-open me-1"></i>@openAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary opacity-75">Chưa mở</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
+                                    {
+                                        <div class="d-flex flex-column align-items-start gap-1">
+                                            @if (!string.IsNullOrWhiteSpace(replyStatus))
+                                            {
+                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
+                                                }
+                                                else if (replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Phân vân</span>
+                                                }
+                                                else if (replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Không thể tham dự</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">@replyStatus</span>
+                                                }
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(replyText))
+                                            {
+                                                <div class="p-1 px-2 bg-light border rounded text-dark small w-100" style="max-width: 200px;">
+                                                    <i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyText"
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Chưa có phản hồi</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-primary fw-semibold rounded-pill parse-json-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalCard-@item.Id"
+                                            data-raw="@rawMessage"
+                                            data-email="@recipientEmail"
+                                            data-subject="@subjectVal"
+                                            data-img="@imagePath"
+                                            data-audio="@audioPath">
+                                        <i class="bi bi-eye me-1"></i> Xem
+                                    </button>
+
+                                    <!-- MODAL XEM CHI TIẾT GIAO DIỆN FORM THÔ -->
+                                    <div class="modal fade" id="modalCard-@item.Id" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header bg-primary text-white py-2">
+                                                    <h5 class="modal-title fs-6 fw-bold">
+                                                        <i class="bi bi-file-earmark-text me-2"></i>Chi Tiết Thông Tin Đi Kèm Thiệp #@item.Id
+                                                    </h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <!-- 1. BÌA THIỆP -->
+                                                    @if (!string.IsNullOrWhiteSpace(imagePath))
+                                                    {
+                                                        <div class="text-center mb-3">
+                                                            <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Ảnh Bìa Thiệp Đã Chọn:</label>
+                                                            <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Ảnh bìa thiệp" />
+                                                        </div>
+                                                    }
+
+                                                    <!-- 2. NHẠC NỀN KÈM THEO THIỆP (AUDIO_PATH) -->
+                                                    @if (!string.IsNullOrWhiteSpace(audioPath))
+                                                    {
+                                                        <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
+                                                            <h6 class="fw-bold text-primary mb-2">
+                                                                <i class="bi bi-music-note-beamed me-1"></i>Nhạc nền kèm theo thiệp:
+                                                            </h6>
+                                                            <audio controls class="w-100">
+                                                                <source src="@audioPath" type="audio/mpeg">
+                                                                Trình duyệt của bạn không hỗ trợ thẻ audio.
+                                                            </audio>
+                                                        </div>
+                                                    }
+
+                                                    <!-- 3. FORM CHI TIẾT RUỘT -->
+                                                    <div class="border rounded-3 p-3 bg-light shadow-sm">
+                                                        <h6 class="fw-bold text-primary mb-3">
+                                                            <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp:
+                                                        </h6>
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Tên Người Nhận (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-name" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Thời Gian Diễn Ra (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-time" readonly />
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-bold small text-dark">Địa Chỉ / Địa Điểm Tổ Chức (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-address" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Email Người Nhận (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-email" value="@recipientEmail" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Tiêu Đề Email:</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-subject" value="@subjectVal" readonly />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-2">
+                                                    <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Đóng</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">Tài khoản này chưa có thiệp nào đã gửi.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PHÂN TRANG -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <div class="card-footer bg-white d-flex justify-content-center py-2">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                <a class="page-link" asp-controller="AdminSentHistory" asp-action="UserSentCards" asp-route-accountId="@ViewBag.AccountId" asp-route-page="@i">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.parse-json-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rawData = this.getAttribute('data-raw');
+                const targetModal = document.querySelector(this.getAttribute('data-bs-target'));
+
+                const inputName = targetModal.querySelector('.modal-field-name');
+                const inputTime = targetModal.querySelector('.modal-field-time');
+                const inputAddress = targetModal.querySelector('.modal-field-address');
+
+                let rName = "N/A", rTime = "N/A", rAddr = "N/A";
+
+                if (rawData && rawData.trim() !== '') {
+                    try {
+                        const jsonObj = JSON.parse(rawData);
+                        rName = jsonObj.recipientName || jsonObj.Name || jsonObj.name || "N/A";
+                        rAddr = jsonObj.eventAddress || jsonObj.Address || jsonObj.address || "N/A";
+
+                        let timeVal = jsonObj.eventTime || jsonObj.Time || jsonObj.time;
+                        if (timeVal) {
+                            try { rTime = new Date(timeVal).toLocaleString('vi-VN'); } catch (e) { rTime = timeVal; }
+                        }
+                    } catch (e) {
+                        rName = rawData;
+                    }
+                }
+
+                inputName.value = rName;
+                inputTime.value = rTime;
+                inputAddress.value = rAddr;
+            });
+        });
+    </script>
+}

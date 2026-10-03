@@ -1,4 +1,5 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
+    // --- 1. KHAI BÁO BIẾN & LẤY ĐỐI TƯỢNG DOM ---
     const cardArea = document.getElementById("card-preview-area");
     const selectFont = document.getElementById("select-font");
     const selectFontSize = document.getElementById("select-fontsize");
@@ -7,7 +8,7 @@
     const btnItalic = document.getElementById("btn-italic");
     const selectAudio = document.getElementById("select-audio");
     const audioPlayer = document.getElementById("audio-player");
-    const btnSaveCard = document.getElementById("btn-save-card");
+
     const btnAddText = document.getElementById("btn-add-text");
     const btnClearCanvas = document.getElementById("btn-clear-canvas");
     const inputActiveTextVal = document.getElementById("input-active-text-val");
@@ -28,6 +29,7 @@
     let activeElement = document.querySelector(".draggable-text-box.active, .draggable-element.active") ||
         document.querySelector(".draggable-text-box, .draggable-element");
 
+    // --- 2. HÀM TRỢ GIÚP CHUYỂN RGB SANG HEX ---
     function rgbToHex(rgbStr) {
         if (!rgbStr || rgbStr.startsWith('#')) return rgbStr || "#000000";
         const matches = rgbStr.match(/\d+/g);
@@ -38,6 +40,7 @@
         return `#${r}${g}${b}`;
     }
 
+    // --- 3. ĐỒNG BỘ BẢNG CÔNG CỤ THEO THÀNH PHẦN ĐANG CHỌN ---
     function syncControlsWithElement(element) {
         if (!element) return;
 
@@ -88,6 +91,7 @@
         }
     }
 
+    // --- 4. SỰ KIỆN SỬA NỘI DUNG VĂN BẢN TRỰC TIẾP ---
     if (inputActiveTextVal) {
         inputActiveTextVal.addEventListener("input", function () {
             if (activeElement && !activeElement.querySelector("img")) {
@@ -101,6 +105,7 @@
         });
     }
 
+    // --- 5. HÀM KÉO THẢ THÀNH PHẦN (DRAG & DROP) ---
     function makeDraggable(element) {
         let isDragging = false;
         let offsetX = 0, offsetY = 0;
@@ -161,17 +166,18 @@
         element.addEventListener("touchstart", onStart, { passive: false });
     }
 
-    // Kích hoạt kéo thả cho các phần tử mẫu
-    cardArea.querySelectorAll("*").forEach(el => {
-        if (el.parentElement === cardArea) {
-            el.classList.add("draggable-element");
-            makeDraggable(el);
-        }
-    });
+    if (cardArea) {
+        cardArea.querySelectorAll("*").forEach(el => {
+            if (el.parentElement === cardArea) {
+                el.classList.add("draggable-element");
+                makeDraggable(el);
+            }
+        });
+    }
 
     if (activeElement) syncControlsWithElement(activeElement);
 
-    // Tải ảnh cá nhân & tự động nén
+    // --- 6. TẢI ẢNH CÁ NHÂN VÀ NÉN TỰ ĐỘNG ---
     if (inputUploadImage) {
         inputUploadImage.addEventListener("change", function (e) {
             const file = e.target.files[0];
@@ -221,6 +227,7 @@
         });
     }
 
+    // --- 7. CÔNG CỤ ĐIỀU CHỈNH ẢNH & VĂN BẢN ---
     if (btnImgCircle) {
         btnImgCircle.addEventListener("click", function () {
             if (activeElement) {
@@ -317,16 +324,19 @@
             if (activeElement && !activeElement.querySelector("img")) activeElement.style.fontFamily = this.value;
         });
     }
+
     if (selectFontSize) {
         selectFontSize.addEventListener("change", function () {
             if (activeElement && !activeElement.querySelector("img")) activeElement.style.fontSize = this.value;
         });
     }
+
     if (inputColor) {
         inputColor.addEventListener("input", function () {
             if (activeElement && !activeElement.querySelector("img")) activeElement.style.color = this.value;
         });
     }
+
     if (btnBold) {
         btnBold.addEventListener("click", function () {
             if (activeElement && !activeElement.querySelector("img")) {
@@ -337,6 +347,7 @@
             }
         });
     }
+
     if (btnItalic) {
         btnItalic.addEventListener("click", function () {
             if (activeElement && !activeElement.querySelector("img")) {
@@ -347,6 +358,7 @@
             }
         });
     }
+
     if (sliderTextWidth) {
         sliderTextWidth.addEventListener("input", function () {
             if (valTextWidth) valTextWidth.innerText = this.value + "px";
@@ -354,6 +366,7 @@
         });
     }
 
+    // STICKER
     document.querySelectorAll(".sticker-opt").forEach(sticker => {
         sticker.addEventListener("click", function () {
             const stickerDiv = document.createElement("div");
@@ -368,6 +381,7 @@
         });
     });
 
+    // NHẠC NỀN
     if (selectAudio && audioPlayer) {
         selectAudio.addEventListener("change", function () {
             if (this.value) {
@@ -380,90 +394,84 @@
             }
         });
     }
-
-    // 5. HOÀN TẤT VÀ LƯU THIỆP (CHỤP VÀ MERGE THÀNH 1 TẤM ẢNH DUY NHẤT)
-    if (btnSaveCard) {
-        btnSaveCard.addEventListener("click", async function () {
-            const recipientName = (document.getElementById("input-recipient-name")?.value || "").trim();
-            const eventTime = (document.getElementById("input-event-time")?.value || "").trim();
-            const eventAddress = (document.getElementById("input-event-address")?.value || "").trim();
-            const recipientEmail = (document.getElementById("input-recipient-email")?.value || "").trim();
-            const emailSubject = (document.getElementById("input-email-subject")?.value || "Thiệp chúc mừng").trim();
-
-            if (!recipientName || !eventTime || !eventAddress || !recipientEmail) {
-                alert("Vui lòng điền đầy đủ Thông Tin Chi Tiết (Tên người nhận, Thời gian, Địa chỉ, Email)!");
-                return;
-            }
-
-            try {
-                btnSaveCard.disabled = true;
-                btnSaveCard.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang tạo ảnh thiệp...`;
-
-                // Loại bỏ viền nét đứt active trước khi chụp
-                document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(el => {
-                    el.classList.remove("active");
-                    el.style.border = "none";
-                    el.style.outline = "none";
-                    el.style.boxShadow = "none";
-                });
-
-                // Kiểm tra xem thư viện html2canvas đã được nạp chưa
-                if (typeof html2canvas === "undefined") {
-                    alert("Lỗi: Thư viện html2canvas chưa được nạp. Vui lòng kiểm tra lại file Personalize.cshtml!");
-                    return;
-                }
-
-                // Chụp khung Canvas thành 1 bức ảnh Base64
-                const canvas = await html2canvas(cardArea, {
-                    useCORS: true,
-                    allowTaint: true,
-                    scale: 2,
-                    backgroundColor: null
-                });
-
-                const mergedCardBase64 = canvas.toDataURL("image/png");
-
-                const formInfoJson = JSON.stringify({
-                    recipientName: recipientName,
-                    eventTime: eventTime,
-                    eventAddress: eventAddress
-                });
-
-                const audioPath = selectAudio ? selectAudio.value : "";
-                const templateId = document.getElementById("template-id")?.value || 1;
-
-                const payload = {
-                    templateId: parseInt(templateId),
-                    recipientEmail: recipientEmail,
-                    subject: emailSubject,
-                    imagePath: mergedCardBase64, // Gửi bức ảnh đã gộp chữ, sticker và background
-                    audioPath: audioPath,
-                    cardHtmlContent: "",
-                    message: formInfoJson
-                };
-
-                btnSaveCard.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi thiệp...`;
-
-                const response = await fetch("/Card/SaveCardConfig", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    alert("🎉 Thiệp đã tạo và gộp ảnh thành công!");
-                    window.location.href = result.cardUrl;
-                } else {
-                    alert("Lỗi: " + (result.message || "Không thể lưu thiệp."));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Lỗi tạo ảnh thiệp: " + err.message);
-            } finally {
-                btnSaveCard.disabled = false;
-                btnSaveCard.innerHTML = `<i class="bi bi-send-check me-1"></i> Hoàn Tất & Gửi Thiệp`;
-            }
-        });
-    }
 });
+
+// =========================================================================
+// 8. HÀM TOÀN CỤC: LƯU VÀ GỬI THIỆP (SAVE & SEND CARD)
+// =========================================================================
+async function saveAndSendCard() {
+    const btnSend = document.getElementById("btnFinalSend");
+    if (btnSend) {
+        btnSend.disabled = true;
+        btnSend.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
+    }
+
+    try {
+        // 1. Lấy dữ liệu từ các input trên Form (Quét nhiều ID để tránh lấy rỗng)
+        const templateId = parseInt(document.getElementById("template-id")?.value || "0");
+        const recipientEmail = document.getElementById("input-recipient-email")?.value?.trim() || "";
+        const subject = document.getElementById("input-email-subject")?.value?.trim() || "";
+        const recipientName = document.getElementById("input-recipient-name")?.value?.trim() || "";
+
+        const location = (
+            document.getElementById("input-event-address")?.value ||
+            document.getElementById("input-event-location")?.value ||
+            document.getElementById("input-location")?.value || ""
+        ).trim();
+
+        const eventTime = document.getElementById("input-event-time")?.value || "";
+
+        // Hẹn giờ (VIP)
+        const scheduledAtVal = document.getElementById("input-scheduled-at")?.value;
+        const scheduledAt = scheduledAtVal ? scheduledAtVal : null;
+
+        // Nhạc & Ảnh thiệp cá nhân hóa (Base64)
+        const audioPath = document.getElementById("select-audio")?.value || "";
+        const imagePath = document.getElementById("preview-card-img")?.src || "";
+
+        // 2. Đóng gói Payload dạng Object JSON
+        const payload = {
+            templateId: templateId,
+            recipientEmail: recipientEmail,
+            subject: subject,
+            recipientName: recipientName,
+            location: location,
+            eventTime: eventTime,
+            scheduledAt: scheduledAt,
+            audioPath: audioPath,
+            imagePath: imagePath,
+            cardHtmlContent: ""
+        };
+
+        // 3. Gửi Request đúng Endpoint /Card/SaveCardConfig
+        const response = await fetch('/Card/SaveCardConfig', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            window.location.href = `/Card/ViewCard/${result.cardId}`;
+        } else {
+            alert(result.message || "Có lỗi xảy ra khi lưu thiệp!");
+            if (btnSend) {
+                btnSend.disabled = false;
+                btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+            }
+        }
+    } catch (error) {
+        console.error("Lỗi khi gửi thiệp:", error);
+        alert("Đã xảy ra lỗi kết nối máy chủ!");
+        if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+        }
+    }
+}
+
+window.handleSaveAndSend = saveAndSendCard;

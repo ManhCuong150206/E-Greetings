@@ -15,22 +15,84 @@ public class HomeController : Controller
     // GET: / (Trang chủ)
     public async Task<IActionResult> Index()
     {
-        // 1. Chặn Admin vào giao diện User: Nếu tài khoản đang đăng nhập là Admin -> Chuyển thẳng tới Admin Dashboard
+        // 1. KIỂM TRA QUYỀN ADMIN: Tự động chuyển hướng về Admin Dashboard nếu đang giữ Session/Cookie Admin
         if (User.Identity != null && User.Identity.IsAuthenticated)
         {
             if (User.IsInRole("Admin") || User.IsInRole("ADMIN"))
             {
-                return RedirectToAction("Dashboard", "Admin"); // Đổi thành "Index" nếu action mặc định của AdminController là Index
+                return RedirectToAction("Dashboard", "Admin");
             }
         }
 
-        // 2. Nếu là User bình thường hoặc Khách chưa đăng nhập -> Hiển thị danh sách Template
-        var templates = await _context.Templates
-            .Where(t => t.IsActive == true)
-            .ToListAsync();
+        // 2. XỬ LÝ LẤY DỮ LIỆU TRANG CHỦ CHO USER THƯỜNG / KHÁCH
+        var templates = await _context.Templates.Include(t => t.Category).ToListAsync();
 
+        // Lấy danh sách ID thiệp mà user hiện tại đã thả tim
+        List<int> wishlistedCardIds = new();
+        if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            string currentUserName = User.Identity.Name ?? "";
+            wishlistedCardIds = await _context.Wishlists
+                .Include(w => w.Account)
+                .Where(w => w.Account != null && (w.Account.Name == currentUserName || w.Account.Email == currentUserName))
+                .Select(w => w.TemplateId)
+                .ToListAsync();
+        }
+
+        ViewBag.WishlistCardIds = wishlistedCardIds;
         return View(templates);
     }
+
+    // 2. Thêm Action AJAX xử lý Thêm / Xóa Yêu thích
+    [HttpPost]
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> ToggleWishlist(int templateId)
+    {
+        try
+        {
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập để thực hiện tính năng này!" });
+            }
+
+            string currentUserName = User.Identity.Name ?? "";
+
+            var account = await _context.Accounts
+                .FirstOrDefaultAsync(a => a.Name == currentUserName || a.Email == currentUserName);
+
+            if (account == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy thông tin tài khoản!" });
+            }
+
+            var existingItem = await _context.Wishlists
+                .FirstOrDefaultAsync(w => w.AccountId == account.Id && w.TemplateId == templateId);
+
+            bool isAdded = false;
+            if (existingItem != null)
+            {
+                _context.Wishlists.Remove(existingItem);
+            }
+            else
+            {
+                _context.Wishlists.Add(new Wishlist
+                {
+                    AccountId = account.Id,
+                    TemplateId = templateId
+                });
+                isAdded = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, isAdded = isAdded });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = "Lỗi máy chủ: " + ex.Message });
+        }
+    }
+
 
     public IActionResult Privacy() => View();
 

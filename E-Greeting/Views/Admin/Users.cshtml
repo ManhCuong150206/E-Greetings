@@ -1,0 +1,361 @@
+﻿@model E_Greeting.Models.UserManagementViewModel
+@{
+    ViewData["Title"] = "Quản Lý Users & Gói VIP";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-primary mb-0">
+            <i class="bi bi-people-fill me-2"></i>Quản Lý Tài Khoản Users & Gói VIP
+        </h3>
+    </div>
+
+    <!-- CÁC TAB CHÍNH -->
+    <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded border" id="userManagementTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link fw-bold @(Model.ActiveTab == "users" ? "active" : "")" href="/Admin/Users?tab=users">
+                <i class="bi bi-person-badge me-2"></i>1. Danh Sách Tài Khoản Users
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link fw-bold @(Model.ActiveTab == "payments" ? "active" : "")" href="/Admin/Users?tab=payments">
+                <i class="bi bi-card-checklist me-2"></i>2. Gói VIP & Lịch Sử Thanh Toán
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- SUB-TAB 1: DANH SÁCH USER -->
+        @if (Model.ActiveTab == "users")
+        {
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <form method="get" action="/Admin/Users" class="row g-2 align-items-center">
+                        <input type="hidden" name="tab" value="users" />
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                                <input type="text" name="searchUser" class="form-control" placeholder="Tìm theo tên hoặc email..." value="@Model.SearchUser">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-filter me-1"></i>Tìm kiếm</button>
+                            <a href="/Admin/Users?tab=users" class="btn btn-outline-secondary">Đặt lại</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên User</th>
+                                    <th>Email</th>
+                                    <th>Gói VIP Hiện Tại</th>
+                                    <th>Thiệp Đã Gửi</th>
+                                    <th>Trạng Thái</th>
+                                    <th class="text-end me-3">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Users != null && Model.Users.Any())
+                                {
+                                    int index = 1;
+                                    @foreach (var u in Model.Users)
+                                    {
+                                        <tr>
+                                            <td>@(index++)</td>
+                                            <td class="fw-bold text-dark">@u.Name</td>
+                                            <td>@u.Email</td>
+                                            <td>
+                                                @if (u.CurrentVipPackage != "Miễn phí")
+                                                {
+                                                    <span class="badge bg-success">@u.CurrentVipPackage</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Gói Free</span>
+                                                }
+                                            </td>
+                                            <td><span class="fw-bold">@u.SentCardsCount</span> bài</td>
+                                            <td>
+                                                @if (u.Status)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success">Hoạt động</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger">Đã khóa</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editUserModal_@u.Id">
+                                                    <i class="bi bi-pencil"></i> Sửa
+                                                </button>
+                                                <form method="post" action="/Admin/ToggleUserStatus" class="d-inline">
+                                                    <input type="hidden" name="id" value="@u.Id" />
+                                                    @if (u.Status)
+                                                    {
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn khóa tài khoản này?')">
+                                                            <i class="bi bi-lock"></i> Khóa
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                                            <i class="bi bi-unlock"></i> Mở khóa
+                                                        </button>
+                                                    }
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy tài khoản nào.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODALS DÀNH CHO USER (ĐẶT NGOÀI TABLE DỂ TRÁNH LỖI HTML) -->
+            @if (Model.Users != null && Model.Users.Any())
+            {
+                @foreach (var u in Model.Users)
+                {
+                    <div class="modal fade" id="editUserModal_@u.Id" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="post" action="/Admin/EditUser">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title fw-bold">Chỉnh Sửa Thông Tin User</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="id" value="@u.Id" />
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Họ và Tên</label>
+                                            <input type="text" name="name" class="form-control" value="@u.Name" required />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Email</label>
+                                            <input type="email" name="email" class="form-control" value="@u.Email" required />
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        }
+
+        <!-- SUB-TAB 2: GÓI VIP & LỊCH SỬ THANH TOÁN -->
+        @if (Model.ActiveTab == "payments")
+        {
+            <!-- KHỐI 1: QUẢN LÝ GÓI DỊCH VỤ -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>Danh Sách Gói Dịch Vụ VIP (Services)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @foreach (var s in Model.Services)
+                        {
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge bg-primary mb-1">ID #@s.Id</span>
+                                        <h5 class="fw-bold text-dark mb-1">@s.Name</h5>
+                                        <div class="text-muted small mb-1">Giá: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
+                                        <div class="text-secondary small">Tính năng: @s.Features</div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editServiceModal_@s.Id">
+                                            <i class="bi bi-pencil"></i> Sửa gói
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Edit Service -->
+                            <div class="modal fade" id="editServiceModal_@s.Id" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="post" action="/Admin/EditService">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title fw-bold">Chỉnh Sửa Gói Dịch Vụ VIP</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" name="id" value="@s.Id" />
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Tên Gói</label>
+                                                    <input type="text" name="name" class="form-control" value="@s.Name" required />
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Giá Tiền (VNĐ)</label>
+                                                    <input type="number" name="price" class="form-control" value="@s.Price" step="1000" required />
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Tính Năng Của Gói</label>
+                                                    <textarea name="features" class="form-control" rows="3">@s.Features</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                <button type="submit" class="btn btn-primary">Lưu gói</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- KHỐI 2: LỊCH SỬ GIAO DỊCH VÀ BỘ LỌC TỰ ĐỘNG -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <form method="get" action="/Admin/Users" class="row g-2 align-items-center">
+                        <input type="hidden" name="tab" value="payments" />
+                        <div class="col-md-4">
+                            <input type="text" name="searchTx" class="form-control" placeholder="Tìm theo tên user, email, mã HĐ..." value="@Model.SearchTransaction">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="serviceId" class="form-select">
+                                <option value="">-- Tất cả gói VIP --</option>
+                                @foreach (var s in Model.Services)
+                                {
+                                    <option value="@s.Id" selected="@(Model.SelectedServiceId == s.Id)">@s.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">-- Tất cả trạng thái --</option>
+                                <option value="PAID" selected="@(Model.SelectedStatus == "PAID")">PAID (Đã thanh toán)</option>
+                                <option value="UNPAID" selected="@(Model.SelectedStatus == "UNPAID")">UNPAID (Chờ thanh toán)</option>
+                                <option value="EXPIRED" selected="@(Model.SelectedStatus == "EXPIRED")">EXPIRED (Hết hạn)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-1">
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Lọc</button>
+                            <a href="/Admin/Users?tab=payments" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã HĐ</th>
+                                    <th>Người Mua</th>
+                                    <th>Gói Đăng Ký</th>
+                                    <th>Số Tiền</th>
+                                    <th>Ngày Tạo HĐ</th>
+                                    <th>Thời Hạn Gói</th>
+                                    <th>Trạng Thái</th>
+                                    <th class="text-end me-2">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Transactions != null && Model.Transactions.Any())
+                                {
+                                    @foreach (var t in Model.Transactions)
+                                    {
+                                        <tr>
+                                            <td><strong class="text-primary">#@t.PaymentId</strong></td>
+                                            <td>
+                                                <div class="fw-bold">@t.UserName</div>
+                                                <div class="small text-muted">@t.UserEmail</div>
+                                            </td>
+                                            <td><span class="badge bg-info text-dark">@t.ServiceName</span></td>
+                                            <td class="fw-bold text-success">@t.Amount.ToString("N0") đ</td>
+                                            <td>@t.PaymentDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                @if (t.VipStartDate.HasValue && t.VipEndDate.HasValue)
+                                                {
+                                                    <div class="small fw-semibold text-dark">
+                                                        @t.VipStartDate.Value.ToString("dd/MM/yy") - @t.VipEndDate.Value.ToString("dd/MM/yy")
+                                                    </div>
+
+                                                    @if (t.Status == "PAID")
+                                                    {
+                                                        if (t.VipEndDate.Value >= DateTime.Now.Date)
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success border border-success mt-1" style="font-size: 10px;">
+                                                                <i class="bi bi-clock-check me-1"></i>Còn hạn
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary mt-1" style="font-size: 10px;">
+                                                                <i class="bi bi-clock-history me-1"></i>Đã hết hạn
+                                                            </span>
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">N/A</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (t.Status == "PAID")
+                                                {
+                                                    <span class="badge bg-success">PAID</span>
+                                                }
+                                                else if (t.Status == "UNPAID")
+                                                {
+                                                    <span class="badge bg-warning text-dark">UNPAID</span>
+                                                }
+                                                else if (t.Status == "EXPIRED")
+                                                {
+                                                    <span class="badge bg-secondary">EXPIRED</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@t.Status</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (t.Status == "UNPAID" || t.Status == "EXPIRED")
+                                                {
+                                                    <form method="post" action="/Admin/ApprovePayment" class="d-inline">
+                                                        <input type="hidden" name="paymentId" value="@t.PaymentId" />
+                                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Xác nhận duyệt thủ công đơn hàng này thành PAID?')">
+                                                            <i class="bi bi-check-lg"></i> Duyệt PAID
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Hoàn tất</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="8" class="text-center py-4 text-muted">Chưa có giao dịch nào phù hợp.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
