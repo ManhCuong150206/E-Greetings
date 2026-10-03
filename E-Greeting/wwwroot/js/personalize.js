@@ -407,7 +407,7 @@ async function saveAndSendCard() {
     }
 
     try {
-        // 1. Lấy dữ liệu từ các input trên Form (Quét nhiều ID để tránh lấy rỗng)
+        // 1. Lấy dữ liệu từ các input trên Form
         const templateId = parseInt(document.getElementById("template-id")?.value || "0");
         const recipientEmail = document.getElementById("input-recipient-email")?.value?.trim() || "";
         const subject = document.getElementById("input-email-subject")?.value?.trim() || "";
@@ -422,12 +422,13 @@ async function saveAndSendCard() {
         const eventTime = document.getElementById("input-event-time")?.value || "";
 
         // Hẹn giờ (VIP)
-        const scheduledAtVal = document.getElementById("input-scheduled-at")?.value;
-        const scheduledAt = scheduledAtVal ? scheduledAtVal : null;
+        const scheduledInput = document.getElementById("scheduledAt") || document.querySelector("input[name='scheduledAt']");
+        const scheduledValue = scheduledInput ? scheduledInput.value : null;
 
-        // Nhạc & Ảnh thiệp cá nhân hóa (Base64)
+        // Nhạc, Ảnh thiệp & Khai báo cardArea ngay trong hàm
         const audioPath = document.getElementById("select-audio")?.value || "";
         const imagePath = document.getElementById("preview-card-img")?.src || "";
+        const cardArea = document.getElementById("card-preview-area"); // <-- BỔ SUNG DÒNG NÀY
 
         // 2. Đóng gói Payload dạng Object JSON
         const payload = {
@@ -437,13 +438,14 @@ async function saveAndSendCard() {
             recipientName: recipientName,
             location: location,
             eventTime: eventTime,
-            scheduledAt: scheduledAt,
+            scheduledAt: scheduledValue,
+            scheduledAtStr: scheduledValue,
             audioPath: audioPath,
             imagePath: imagePath,
-            cardHtmlContent: ""
+            cardHtmlContent: cardArea ? cardArea.innerHTML : ""
         };
 
-        // 3. Gửi Request đúng Endpoint /Card/SaveCardConfig
+        // 3. Gửi Request tới Endpoint /Card/SaveCardConfig
         const response = await fetch('/Card/SaveCardConfig', {
             method: 'POST',
             headers: {
@@ -473,5 +475,8 @@ async function saveAndSendCard() {
         }
     }
 }
+
+window.handleSaveAndSend = saveAndSendCard;
+window.saveAndSendCard = saveAndSendCard;
 
 window.handleSaveAndSend = saveAndSendCard;
