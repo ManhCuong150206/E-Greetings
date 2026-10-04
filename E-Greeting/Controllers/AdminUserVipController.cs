@@ -46,7 +46,13 @@ namespace E_Greeting.Controllers
             }
 
             var rawUsers = await usersQuery.OrderByDescending(u => u.Id).ToListAsync();
-            var subscriptions = await _context.Subscriptions.Include(s => s.Service).Where(s => s.IsActive == true).ToListAsync();
+
+            // Lấy danh sách Subscriptions Active (Sắp xếp Id giảm dần để luôn lấy Gói MỚI NHẤT)
+            var subscriptions = await _context.Subscriptions
+                .Include(s => s.Service)
+                .Where(s => s.IsActive == true)
+                .OrderByDescending(s => s.Id)
+                .ToListAsync();
 
             var sentCardCounts = await _context.SentCards
                 .Where(s => s.AccountId.HasValue)
@@ -55,6 +61,7 @@ namespace E_Greeting.Controllers
                 .ToDictionaryAsync(g => g.AccountId, g => g.Count);
 
             model.Users = rawUsers.Select(u => {
+                // Ưu tiên lấy gói cước Active mới nhất của user
                 var activeSub = subscriptions.FirstOrDefault(s => s.AccountId == u.Id);
 
                 DateTime? endDate = activeSub != null ? ConvertToNullableDateTime((object)activeSub.EndDate) : null;
@@ -171,11 +178,14 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
 
-        // Action duyệt thủ công trạng thái thanh toán
+        // Action duyệt thủ công trạng thái thanh toán (ĐÃ DỰA TRÊN LOGIC CHUẨN TẮT GÓI CŨ)
         [HttpPost("Admin/ApprovePayment")]
         public async Task<IActionResult> ApprovePayment(int paymentId)
         {
-            var payment = await _context.Payments.Include(p => p.Subscription).FirstOrDefaultAsync(p => p.Id == paymentId);
+            var payment = await _context.Payments
+                .Include(p => p.Subscription)
+                .FirstOrDefaultAsync(p => p.Id == paymentId);
+
             if (payment != null)
             {
                 payment.Status = "PAID";
@@ -183,6 +193,20 @@ namespace E_Greeting.Controllers
 
                 if (payment.Subscription != null)
                 {
+                    int accountId = payment.Subscription.AccountId;
+
+                    // 1. TẮT TẤT CẢ GÓI CŨ ĐANG ACTIVE CỦA USER NÀY (Chuyển IsActive = false)
+                    var oldActiveSubs = await _context.Subscriptions
+                        .Where(s => s.AccountId == accountId && s.IsActive == true && s.Id != payment.SubscriptionId)
+                        .ToListAsync();
+
+                    foreach (var oldSub in oldActiveSubs)
+                    {
+                        oldSub.IsActive = false;
+                        _context.Subscriptions.Update(oldSub);
+                    }
+
+                    // 2. BẬT GÓI MỚI NÀY LÊN (IsActive = true)
                     payment.Subscription.IsActive = true;
                     _context.Subscriptions.Update(payment.Subscription);
                 }
