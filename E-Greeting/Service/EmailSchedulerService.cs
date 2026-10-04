@@ -20,53 +20,58 @@ public class EmailSchedulerService : BackgroundService
         {
             try
             {
-                using (var scope = _serviceProvider.CreateScope())
-                {
-                    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
-
-                    var now = DateTime.Now;
-
-                    // Tìm các thiệp ĐANG CHỜ (SentAt == null) và ĐÃ TỚI HẠN GỬI (ScheduledAt <= now)
-                    var pendingCards = await context.SentCards
-                        .Where(c => c.SentAt == null && c.ScheduledAt != null && c.ScheduledAt <= now)
-                        .ToListAsync(stoppingToken);
-
-                    foreach (var card in pendingCards)
-                    {
-                        try
-                        {
-                            string fullCardUrl = $"https://localhost:7130/Card/ViewCard/{card.Id}";
-
-                            await emailService.SendCardEmailAsync(
-                                card.RecipientEmail,
-                                card.Subject,
-                                fullCardUrl,
-                                "hethong@e-greeting.com"
-                            );
-
-                            // Đánh dấu đã gửi thành công
-                            card.SentAt = DateTime.Now;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"Lỗi gửi email thiệp ID {card.Id}: {ex.Message}");
-                        }
-                    }
-
-                    if (pendingCards.Any())
-                    {
-                        await context.SaveChangesAsync(stoppingToken);
-                    }
-                }
+                await ProcessPendingEmailsAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi quét email hẹn giờ");
+                _logger.LogError(ex, "Lỗi xảy ra trong EmailSchedulerService");
             }
 
-            // Quét lại CSDL sau mỗi 1 phút
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            // Quét CSDL mỗi 10 giây
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
+    }
+
+    private async Task ProcessPendingEmailsAsync()
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        DateTime now = DateTime.Now;
+
+        // CHỈ LẤY THIỆP: Chưa gửi (SentAt == null) + CÓ hẹn giờ (ScheduledAt != null) + ĐÃ ĐẾN GIỜ (ScheduledAt <= now)
+        var pendingCards = await context.SentCards
+            .Include(c => c.Account)
+            .Where(c => c.SentAt == null
+                     && c.ScheduledAt.HasValue
+                     && c.ScheduledAt.Value <= now)
+            .ToListAsync();
+
+        if (!pendingCards.Any()) return;
+
+        string domain = configuration["AppSettings:Domain"] ?? "https://localhost:7130";
+
+        foreach (var card in pendingCards)
+        {
+            try
+            {
+                string cardViewUrl = $"{domain}/Card/ViewCard/{card.Id}";
+                string senderName = card.Account?.Name ?? "Hệ thống E-Greeting";
+
+                await emailService.SendCardEmailAsync(card.RecipientEmail, card.Subject, cardViewUrl, senderName);
+
+                // Gửi xong mới cập nhật SentAt
+                card.SentAt = DateTime.Now;
+                context.SentCards.Update(card);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi gửi email cho Card ID: {card.Id}");
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 }

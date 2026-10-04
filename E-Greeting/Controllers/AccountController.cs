@@ -1,10 +1,15 @@
 ﻿using E_Greeting.Models;
 using E_Greeting.Service;
+using MailKit.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using MimeKit;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace E_Greeting.Controllers;
 
@@ -12,11 +17,16 @@ public class AccountController : Controller
 {
     private readonly IAccountService _accountService;
     private readonly AppDbContext _context;
+    private readonly IMemoryCache _cache;
+    private readonly IConfiguration _config;
 
-    public AccountController(IAccountService accountService, AppDbContext context)
+    public AccountController(IAccountService accountService, AppDbContext context,
+        IMemoryCache cache, IConfiguration config)
     {
         _accountService = accountService;
         _context = context;
+        _cache = cache;
+        _config = config;
     }
 
     [HttpGet]
@@ -49,33 +59,22 @@ public class AccountController : Controller
                 return View(model);
         }
 
-        // Tới đây chắc chắn result == LoginResult.Success, account không null
         var userRole = account.Role.Trim().ToLower() == "admin" ? "Admin" : account.Role.Trim();
 
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new(ClaimTypes.Name, account.Name ?? account.Email),
-            new(ClaimTypes.Email, account.Email), // Bổ sung Claim Email để tự động dùng khi gửi thiệp
+            new(ClaimTypes.Email, account.Email),
             new(ClaimTypes.Role, userRole)
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
-        // Nếu là Admin -> Luôn luôn chuyển hướng về trang Quản trị Admin
-        if (userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return RedirectToAction("Dashboard", "Admin"); // Đổi thành "Index" nếu action mặc định của bạn là Index
-        }
-
-        // Nếu là User và có returnUrl hợp lệ
-        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-        {
-            return Redirect(returnUrl);
-        }
-
-        return RedirectToAction("Index", "Home");
+        return userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            ? RedirectToAction("Dashboard", "Admin")
+            : !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) ? Redirect(returnUrl) : RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
@@ -110,7 +109,6 @@ public class AccountController : Controller
     // MỤC 4: QUẢN LÝ THÔNG TIN CÁ NHÂN & ĐỔI MẬT KHẨU
     // ==========================================
 
-    // GET: /Account/Profile - Lấy thông tin Account truyền trực tiếp sang View
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Profile()
@@ -122,7 +120,6 @@ public class AccountController : Controller
         return account == null ? RedirectToAction("Login") : View(account);
     }
 
-    // POST: /Account/UpdateProfile - Cập nhật Họ và tên
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> UpdateProfile(string name)
@@ -141,7 +138,6 @@ public class AccountController : Controller
         return RedirectToAction("Profile");
     }
 
-    // POST: /Account/ChangePassword - Kiểm tra mật khẩu cũ & Cập nhật mật khẩu mới
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
@@ -171,4 +167,160 @@ public class AccountController : Controller
         TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
         return RedirectToAction("Profile");
     }
+
+    // ==========================================
+    // QUÊN MẬT KHẨU (OTP QUA GMAIL)
+    // ==========================================
+
+    [HttpGet]
+    public IActionResult ForgotPassword() => View();
+
+    [HttpPost]
+    public async Task<IActionResult> ForgotPassword(string email)
+    {
+        email = (email ?? "").Trim();
+
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
+        if (account == null)
+        {
+            TempData["ErrorMessage"] = "Tài khoản không tồn tại.";
+            return RedirectToAction("ForgotPassword");
+        }
+
+        // Tạo OTP 6 số, lưu 5 phút
+        var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        _cache.Set(OtpKey(email), new OtpEntry { Code = otp }, TimeSpan.FromMinutes(5));
+
+        try
+        {
+            await SendOtpMailAsync(email, otp);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("Gửi OTP lỗi: " + ex.Message + " | INNER: " + ex.InnerException?.Message);
+            TempData["ErrorMessage"] = "Không gửi được email, vui lòng thử lại sau.";
+            return RedirectToAction("ForgotPassword");
+        }
+
+        TempData["SuccessMessage"] = "Mã OTP đã được gửi tới email của bạn (hiệu lực 5 phút).";
+        return RedirectToAction("ResetPassword", new { email });
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string email)
+    {
+        ViewBag.Email = email;
+        ViewBag.Verified = false;
+        return View();
+    }
+
+    // Bước 1: kiểm tra OTP
+    [HttpPost]
+    public IActionResult VerifyOtp(string email, string otp)
+    {
+        if (!CheckOtp(email, otp, out var error))
+        {
+            TempData["ErrorMessage"] = error;
+            return RedirectToAction("ResetPassword", new { email });
+        }
+
+        ViewBag.Email = email;
+        ViewBag.Otp = otp;
+        ViewBag.Verified = true;
+        return View("ResetPassword");
+    }
+
+    // Bước 2: đổi mật khẩu (kiểm tra lại OTP để không ai nhảy cóc bước 1)
+    [HttpPost]
+    public async Task<IActionResult> ResetPassword(string email, string otp, string newPassword, string confirmPassword)
+    {
+        if (!CheckOtp(email, otp, out var error))
+        {
+            TempData["ErrorMessage"] = error;
+            return RedirectToAction("ResetPassword", new { email });
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
+        {
+            TempData["ErrorMessage"] = "Mật khẩu xác nhận không khớp!";
+            ViewBag.Email = email;
+            ViewBag.Otp = otp;
+            ViewBag.Verified = true;
+            return View("ResetPassword");
+        }
+
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
+        if (account == null)
+        {
+            TempData["ErrorMessage"] = "Tài khoản không tồn tại.";
+            return RedirectToAction("ForgotPassword");
+        }
+
+        account.Password = newPassword;
+        await _context.SaveChangesAsync();
+        _cache.Remove(OtpKey(email)); // OTP dùng một lần
+
+        TempData["SuccessMessage"] = "Đổi mật khẩu thành công, hãy đăng nhập.";
+        return RedirectToAction("Login");
+    }
+
+    private static string OtpKey(string email) => "otp:" + (email ?? "").Trim().ToLower();
+
+    private bool CheckOtp(string email, string otp, out string error)
+    {
+        error = "";
+        if (!_cache.TryGetValue(OtpKey(email), out OtpEntry? entry) || entry == null)
+        {
+            error = "OTP đã hết hạn, vui lòng gửi lại mã mới.";
+            return false;
+        }
+        if (entry.Attempts >= 5)
+        {
+            _cache.Remove(OtpKey(email));
+            error = "Bạn nhập sai quá 5 lần, vui lòng gửi lại mã mới.";
+            return false;
+        }
+        if (entry.Code != otp)
+        {
+            entry.Attempts++;
+            error = "OTP không đúng.";
+            return false;
+        }
+        return true;
+    }
+
+    private async Task SendOtpMailAsync(string toEmail, string otp)
+    {
+        var senderEmail = _config["OtpMail:SenderEmail"];
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_config["OtpMail:SenderName"] ?? "E-Greeting", senderEmail));
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Mã OTP đặt lại mật khẩu - E-Greeting";
+        message.Body = new BodyBuilder
+        {
+            HtmlBody = $@"
+            <div style='font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:25px;border:1px solid #e2e8f0;border-radius:12px;text-align:center'>
+                <h2 style='color:#0d6efd;margin:0 0 10px'>E-Greeting</h2>
+                <p style='color:#334155'>Mã OTP đặt lại mật khẩu của bạn là:</p>
+                <div style='font-size:36px;font-weight:bold;letter-spacing:10px;color:#0d6efd;margin:20px 0'>{otp}</div>
+                <p style='color:#64748b;font-size:14px'>Mã có hiệu lực trong 5 phút. Không chia sẻ mã này cho bất kỳ ai.</p>
+            </div>"
+        }.ToMessageBody();
+
+        using var client = new MailKit.Net.Smtp.SmtpClient();
+        await client.ConnectAsync(
+            _config["OtpMail:SmtpServer"],
+            int.Parse(_config["OtpMail:Port"] ?? "587"),
+            SecureSocketOptions.StartTls);
+        await client.AuthenticateAsync(senderEmail, _config["OtpMail:Password"]);
+        await client.SendAsync(message);
+        await client.DisconnectAsync(true);
+    }
+}
+
+public class OtpEntry
+{
+    public string Code { get; set; } = "";
+    public int Attempts { get; set; }
 }

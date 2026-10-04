@@ -16,10 +16,13 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-// Đăng ký Service Nhắc hết hạn gói VIP (Feature tự động gửi mail ngầm)
+// Service gửi mail nhắc hết hạn gói VIP (Admin)
 builder.Services.AddScoped<IAdminEmailService, AdminEmailService>();
 builder.Services.AddScoped<ISubscriptionReminderService, SubscriptionReminderService>();
 builder.Services.AddHostedService<SubscriptionReminderService>();
+
+// Service hẹn giờ gửi thiệp tự động (User)
+builder.Services.AddHostedService<EmailSchedulerService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -36,7 +39,6 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 });
 
 // Add services to the container.
-builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddControllersWithViews();
 

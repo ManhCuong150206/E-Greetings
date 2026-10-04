@@ -14,24 +14,19 @@ public class SaveCardRequest
     public int TemplateId { get; set; }
     public string RecipientEmail { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
-
-    // Các trường thông tin sự kiện chi tiết
     public string? RecipientName { get; set; }
     public string? Location { get; set; }
     public string? EventTime { get; set; }
-
-    // Đường dẫn ảnh & nhạc (hỗ trợ cả alias từ JS)
     public string? ImagePath { get; set; }
     public string? CardImageBase64 { get; set; }
     public string? AudioPath { get; set; }
     public string? AudioUrl { get; set; }
-
     public string? SubscriptionId { get; set; }
-    public string CardHtmlContent { get; set; } = string.Empty; // Canvas HTML
-    public string? Message { get; set; } // Chuỗi JSON hoặc lời nhắn bổ sung
+    public string CardHtmlContent { get; set; } = string.Empty;
+    public string? Message { get; set; }
 
-    // Thuộc tính hẹn giờ gửi (Gói VIP)
     public DateTime? ScheduledAt { get; set; }
+    public string? ScheduledAtStr { get; set; }
 }
 
 public class ReplyRequest
@@ -48,12 +43,18 @@ public class CardController : Controller
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _configuration;
 
-    public CardController(AppDbContext context, IEmailService emailService, IWebHostEnvironment env)
+    public CardController(
+        AppDbContext context,
+        IEmailService emailService,
+        IWebHostEnvironment env,
+        IConfiguration configuration)
     {
         _context = context;
         _emailService = emailService;
         _env = env;
+        _configuration = configuration;
     }
 
     // GET: /Card/Personalize/1
@@ -63,181 +64,161 @@ public class CardController : Controller
         var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
         if (template == null) return NotFound("Không tìm thấy mẫu thiệp này!");
 
-        // Kiểm tra tài khoản hiện tại có trong bảng Subscriptions không
         bool isVip = false;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int userId))
+        int? userId = GetCurrentUserId();
+        if (userId.HasValue)
         {
-            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == userId);
+            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == userId.Value && s.IsActive);
         }
 
         ViewBag.IsVip = isVip;
         return View(template);
     }
 
-    // POST: /Card/SaveCardConfig
+    // POST: /Card/SaveCardConfig (Hàm lưu/tạo thiệp từ trang Personalize)
     [HttpPost]
     [DisableRequestSizeLimit]
-    public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest request)
+    public async Task<IActionResult> SaveCardConfig([FromBody] SaveCardRequest req)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.RecipientEmail))
-        {
-            return Json(new { success = false, message = "Vui lòng nhập Email người nhận hợp lệ!" });
-        }
+        if (req == null)
+            return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ!" });
 
-        var senderEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? "nguoidung@domain.com";
-
-        int? accountId = null;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int parsedUserId))
-        {
-            accountId = parsedUserId;
-        }
-
-        // 1. Kiểm tra tài khoản VIP / Subscription
-        bool isVip = false;
+        // 1. Lấy AccountId người dùng đang đăng nhập
+        int? accountId = GetCurrentUserId();
+        Account? account = null;
         if (accountId.HasValue)
         {
-            isVip = await _context.Subscriptions.AnyAsync(s => s.AccountId == accountId.Value);
+            account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value);
         }
 
-        // 2. Xử lý Logic Hẹn giờ gửi (ScheduledAt)
-        bool isScheduled = false;
-        if (request.ScheduledAt.HasValue)
+        // 2. Xử lý lưu ảnh Base64
+        string? finalImagePath = SaveBase64Image(req.CardImageBase64)
+                               ?? SaveBase64Image(req.ImagePath)
+                               ?? req.ImagePath;
+
+        // 3. Xử lý Parse Ngày/Giờ hẹn gửi linh hoạt
+        DateTime? scheduledTime = null;
+
+        if (!string.IsNullOrWhiteSpace(req.ScheduledAtStr))
         {
-            if (!isVip)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "Bạn cần đăng ký gói VIP/Subscription để sử dụng tính năng Hẹn giờ gửi thiệp!"
-                });
-            }
-
-            // Cho phép độ trễ 1 phút so với thời gian hiện tại
-            if (request.ScheduledAt.Value <= DateTime.Now.AddMinutes(-1))
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = $"Thời gian hẹn giờ ({request.ScheduledAt.Value:HH:mm dd/MM/yyyy}) đã trôi qua so với hiện tại ({DateTime.Now:HH:mm dd/MM/yyyy}). Vui lòng chọn thời gian ở tương lai!"
-                });
-            }
-
-            isScheduled = true;
-        }
-
-        int? validTemplateId = null;
-        Template? template = null;
-        if (request.TemplateId > 0)
-        {
-            template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == request.TemplateId);
-            if (template != null) validTemplateId = request.TemplateId;
-        }
-
-        // 3. Chuẩn hóa nguồn ảnh & nhạc truyền vào (hỗ trợ các tên biến khác nhau từ JS)
-        string inputImage = !string.IsNullOrWhiteSpace(request.ImagePath) ? request.ImagePath : (request.CardImageBase64 ?? "");
-        string? inputAudio = !string.IsNullOrWhiteSpace(request.AudioPath) ? request.AudioPath : request.AudioUrl;
-
-        string rawImagePath = CleanImagePath(inputImage);
-        string? savedImagePath = SaveBase64Image(rawImagePath);
-
-        if (string.IsNullOrEmpty(savedImagePath))
-        {
-            if (string.IsNullOrWhiteSpace(inputImage))
-            {
-                savedImagePath = CleanImagePath(template?.ImagePath);
-            }
-            else
-            {
-                return Json(new { success = false, message = "Lỗi trong quá trình xử lý và lưu file ảnh thiệp!" });
-            }
-        }
-
-        if (!string.IsNullOrEmpty(savedImagePath) &&
-            !savedImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
-            !savedImagePath.StartsWith("/", StringComparison.OrdinalIgnoreCase) &&
-            !savedImagePath.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
-        {
-            savedImagePath = "/" + savedImagePath;
-        }
-
-        // 4. Lọc bỏ chuỗi HTML không hợp lệ
-        string safeCardHtml = request.CardHtmlContent ?? "";
-        if (safeCardHtml.TrimStart().StartsWith("{") || safeCardHtml.Contains("recipientName"))
-        {
-            safeCardHtml = "";
-        }
-
-        // 5. Đóng gói dữ liệu chi tiết sự kiện vào chuỗi JSON của Message
-        string finalMessage = request.Message ?? "";
-        if (!string.IsNullOrWhiteSpace(request.RecipientName) || !string.IsNullOrWhiteSpace(request.Location) || !string.IsNullOrWhiteSpace(request.EventTime))
-        {
-            var eventDetails = new
-            {
-                recipientName = request.RecipientName ?? "",
-                location = request.Location ?? "",
-                eventTime = request.EventTime ?? "",
-                note = request.Message ?? ""
+            string[] supportedFormats = new[] {
+                "yyyy-MM-ddTHH:mm:ss",
+                "yyyy-MM-ddTHH:mm",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm",
+                "dd/MM/yyyy HH:mm:ss",
+                "dd/MM/yyyy HH:mm",
+                "dd/MM/yyyy hh:mm tt",
+                "dd/MM/yyyy h:mm tt"
             };
-            finalMessage = JsonSerializer.Serialize(eventDetails);
+
+            var viCulture = new System.Globalization.CultureInfo("vi-VN");
+
+            if (DateTime.TryParseExact(req.ScheduledAtStr, supportedFormats,
+                viCulture, System.Globalization.DateTimeStyles.None, out var parsedExact))
+            {
+                scheduledTime = parsedExact;
+            }
+            else if (DateTime.TryParse(req.ScheduledAtStr, viCulture, System.Globalization.DateTimeStyles.None, out var parsedFallback))
+            {
+                scheduledTime = parsedFallback;
+            }
         }
 
-        // 6. Khởi tạo đối tượng SentCard
-        var sentCard = new SentCard
+        if (!scheduledTime.HasValue && req.ScheduledAt.HasValue)
+        {
+            scheduledTime = req.ScheduledAt.Value;
+        }
+
+        // Chuẩn hóa múi giờ về Local
+        if (scheduledTime.HasValue)
+        {
+            if (scheduledTime.Value.Kind == DateTimeKind.Utc)
+            {
+                scheduledTime = scheduledTime.Value.ToLocalTime();
+            }
+
+            scheduledTime = DateTime.SpecifyKind(scheduledTime.Value, DateTimeKind.Unspecified);
+        }
+
+        // 4. Khởi tạo Entity SentCard
+        var newCard = new SentCard
         {
             AccountId = accountId,
-            TemplateId = validTemplateId,
-            RecipientEmail = request.RecipientEmail.Trim(),
-            Subject = string.IsNullOrWhiteSpace(request.Subject) ? "Thiệp chúc mừng" : request.Subject.Trim(),
-            CardHtmlContent = safeCardHtml,
-            Message = finalMessage,
-            ImagePath = savedImagePath,
-            AudioPath = inputAudio,
-
-            ScheduledAt = isScheduled ? request.ScheduledAt : null,
-            SentAt = isScheduled ? null : DateTime.Now
+            TemplateId = req.TemplateId,
+            RecipientEmail = req.RecipientEmail,
+            Subject = req.Subject,
+            AudioPath = req.AudioPath ?? req.AudioUrl,
+            ImagePath = finalImagePath,
+            CardHtmlContent = req.CardHtmlContent,
+            Message = !string.IsNullOrWhiteSpace(req.Message)
+                ? req.Message
+                : JsonSerializer.Serialize(new
+                {
+                    recipientName = req.RecipientName,
+                    eventAddress = req.Location,
+                    eventTime = req.EventTime
+                })
         };
 
-        try
+        // 5. PHÂN LẠI ĐIỀU KIỆN: HẸN GIỜ VS GỬI NGAY
+        bool isScheduledForFuture = false;
+        DateTime now = DateTime.Now;
+
+        if (scheduledTime.HasValue)
         {
-            _context.SentCards.Add(sentCard);
-            await _context.SaveChangesAsync();
+            // Kiểm tra giờ hẹn phải ở tương lai
+            if (scheduledTime.Value <= now)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Thời gian hẹn ({scheduledTime.Value:HH:mm dd/MM/yyyy}) phải lớn hơn thời điểm hiện tại ({now:HH:mm dd/MM/yyyy})!"
+                });
+            }
+
+            // HẸN GIỜ TƯƠNG LAI: Giữ SentAt = NULL, chỉ gán ScheduledAt
+            newCard.ScheduledAt = scheduledTime.Value;
+            newCard.SentAt = null;
+            isScheduledForFuture = true;
         }
-        catch (Exception ex)
+        else
         {
-            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-            return Json(new { success = false, message = "Lỗi lưu CSDL: " + innerMsg });
+            // GỬI NGAY: ScheduledAt = NULL, SentAt = Giờ hiện tại
+            newCard.ScheduledAt = null;
+            newCard.SentAt = now;
         }
 
-        string fullCardUrl = $"{Request.Scheme}://{Request.Host}/Card/ViewCard/{sentCard.Id}";
+        // 6. Lưu vào Database
+        _context.SentCards.Add(newCard);
+        await _context.SaveChangesAsync();
 
-        // 7. Gửi Email ngay nếu KHÔNG phải bài hẹn giờ
-        if (!isScheduled)
+        // 7. GỬI EMAIL NGAY (Chỉ khi không hẹn giờ)
+        if (newCard.SentAt.HasValue && !isScheduledForFuture)
         {
+            string domain = _configuration["AppSettings:Domain"] ?? $"{Request.Scheme}://{Request.Host}";
+            string cardViewUrl = $"{domain}/Card/ViewCard/{newCard.Id}";
+            string senderName = account?.Name ?? User.Identity?.Name ?? "Hệ thống E-Greeting";
+
             try
             {
-                await _emailService.SendCardEmailAsync(
-                    sentCard.RecipientEmail,
-                    sentCard.Subject,
-                    fullCardUrl,
-                    senderEmail
-                );
+                await _emailService.SendCardEmailAsync(newCard.RecipientEmail, newCard.Subject, cardViewUrl, senderName);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Lỗi gửi email: " + ex.Message);
+                Console.WriteLine($"[Email Error]: {ex.Message}");
             }
         }
 
+        // 8. Trả về kết quả JSON
         return Json(new
         {
             success = true,
-            message = isScheduled
-                ? $"Thiệp đã được lưu thành công và hẹn giờ gửi tự động vào lúc {request.ScheduledAt!.Value:HH:mm dd/MM/yyyy}!"
-                : "Lưu thiệp & Gửi Email thành công!",
-            cardId = sentCard.Id,
-            cardUrl = fullCardUrl
+            message = isScheduledForFuture
+                ? $"Đã lên lịch hẹn giờ gửi thiệp vào lúc {newCard.ScheduledAt.Value:HH:mm dd/MM/yyyy}!"
+                : "Đã gửi thiệp thành công!",
+            cardId = newCard.Id,
+            redirectUrl = "/History"
         });
     }
 
@@ -307,12 +288,7 @@ public class CardController : Controller
     [Route("History")]
     public async Task<IActionResult> History(string tab = "cards")
     {
-        int? accountId = null;
-        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (int.TryParse(userIdStr, out int parsedUserId))
-        {
-            accountId = parsedUserId;
-        }
+        int? accountId = GetCurrentUserId();
 
         var sentCards = await _context.SentCards
             .Include(c => c.Template)
@@ -321,6 +297,8 @@ public class CardController : Controller
             .ToListAsync();
 
         var userSubscriptions = await _context.Subscriptions
+             .Include(s => s.Service)
+             .Include(s => s.Payments)
              .Where(s => s.AccountId == accountId)
              .OrderByDescending(s => s.Id)
              .ToListAsync();
@@ -339,26 +317,8 @@ public class CardController : Controller
     // POST: /Card/ReplyCard
     [AllowAnonymous]
     [HttpPost]
-    public async Task<IActionResult> ReplyCard(ReplyRequest request)
+    public async Task<IActionResult> ReplyCard([FromBody] ReplyRequest request)
     {
-        // Nếu gửi dạng JSON Body thô, tự động parse nếu request rỗng
-        if (request == null || request.CardId <= 0)
-        {
-            try
-            {
-                using var reader = new StreamReader(Request.Body);
-                var body = await reader.ReadToEndAsync();
-                if (!string.IsNullOrEmpty(body))
-                {
-                    request = System.Text.Json.JsonSerializer.Deserialize<ReplyRequest>(body, new System.Text.Json.JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new ReplyRequest();
-                }
-            }
-            catch { }
-        }
-
         if (request == null || request.CardId <= 0)
         {
             return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ!" });
@@ -385,14 +345,23 @@ public class CardController : Controller
             Text = request.ReplyMessage ?? ""
         };
 
-        card.RecipientReply = System.Text.Json.JsonSerializer.Serialize(replyData);
+        card.RecipientReply = JsonSerializer.Serialize(replyData);
         _context.SentCards.Update(card);
         await _context.SaveChangesAsync();
 
         return Json(new { success = true, message = "Đã gửi phản hồi thành công!" });
     }
 
-    // --- HÀM BỔ TRỢ XỬ LÝ ẢNH ---
+    // --- HÀM BỔ TRỢ HỆ THỐNG ---
+    private int? GetCurrentUserId()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirstValue("UserId")
+                     ?? User.FindFirstValue(ClaimTypes.Name);
+
+        return int.TryParse(userIdStr, out int userId) ? userId : null;
+    }
+
     private string CleanImagePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return string.Empty;
@@ -458,7 +427,7 @@ public class CardController : Controller
         }
 
         return base64String.StartsWith("/", StringComparison.OrdinalIgnoreCase) ||
-            base64String.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+               base64String.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? base64String
             : null;
     }

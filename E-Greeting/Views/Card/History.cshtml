@@ -1,271 +1,345 @@
 ﻿@model E_Greeting.Models.UserHistoryViewModel
-@using System.Text.Json
 
 @{
     ViewData["Title"] = "Lịch Sử Hoạt Động & Giao Dịch";
-    string activeTab = ViewBag.ActiveTab as string ?? "cards";
 }
 
-<div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2 class="fw-bold text-primary mb-1">
+            <h3 class="fw-bold text-primary mb-1">
                 <i class="bi bi-clock-history me-2"></i>Lịch Sử Hoạt Động & Giao Dịch
-            </h2>
-            <p class="text-muted small mb-0">Theo dõi lịch sử gửi thiệp và các gói dịch vụ bạn đã đăng ký</p>
+            </h3>
+            <small class="text-muted">Quản lý lịch sử gửi thiệp chúc mừng và thông tin các gói dịch vụ VIP đã đăng ký</small>
+        </div>
+        <div>
+            <a href="/Home/Index" class="btn btn-primary fw-semibold me-2">
+                <i class="bi bi-plus-circle me-1"></i>Tạo Thiệp Mới
+            </a>
+            <a href="/Subscription" class="btn btn-warning text-dark fw-bold">
+                <i class="bi bi-star-fill me-1"></i>Nâng Cấp VIP
+            </a>
         </div>
     </div>
 
-    <ul class="nav nav-pills gap-2 mb-4 p-2 bg-light rounded-3 border shadow-sm" id="historyTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-2 @(activeTab == "cards" ? "active" : "")"
-                    id="cards-tab"
-                    data-bs-toggle="pill"
-                    data-bs-target="#cards-content"
-                    type="button"
-                    role="tab">
-                <i class="bi bi-card-heading me-2"></i>1. Lịch Sử Gửi Thiệp (@(Model.SentCards?.Count ?? 0))
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-2 @(activeTab == "payments" ? "active" : "")"
-                    id="payments-tab"
-                    data-bs-toggle="pill"
-                    data-bs-target="#payments-content"
-                    type="button"
-                    role="tab">
-                <i class="bi bi-credit-card-2-front me-2"></i>2. Lịch Sử Đăng Ký Gói VIP (@(Model.Subscriptions?.Count ?? 0))
-            </button>
-        </li>
-    </ul>
+    <!-- BẢNG DANH SÁCH THIỆP ĐÃ GỬI -->
+    <div class="card shadow-sm rounded-3 mt-3">
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="80" class="text-center">Ảnh</th>
+                        <th>Thông Tin Thiệp & Người Nhận</th>
+                        <th>Thời Gian Gửi / Trạng Thái</th>
+                        <th class="text-center">Trạng Thái Mở</th>
+                        <th>Phản Hồi Từ Người Nhận</th>
+                        <th class="text-center" width="100">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model?.SentCards != null && Model.SentCards.Any())
+                    {
+                        foreach (var item in Model.SentCards)
+                        {
+                            // BÓC TÁCH DỮ LIỆU BẰNG REFLECTION
+                            var props = item.GetType().GetProperties();
+                            string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
+                            string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string rawMessage = props.FirstOrDefault(p => p.Name.Equals("Message", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string imagePath = props.FirstOrDefault(p => p.Name.Equals("ImagePath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? item.Template?.ImagePath ?? "";
+                            string audioPath = props.FirstOrDefault(p => p.Name.Equals("AudioPath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                            string rawReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
 
-    <div class="tab-content" id="historyTabContent">
+                            DateTime? sentAt = props.FirstOrDefault(p => p.Name.Equals("SentAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                            DateTime? scheduledAt = props.FirstOrDefault(p => p.Name.Equals("ScheduledAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                            DateTime? openAt = props.FirstOrDefault(p => p.Name.Equals("OpenAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
 
-        <!-- TAB 1: LỊCH SỬ GỬI THIỆP -->
-        <div class="tab-pane fade @(activeTab == "cards" ? "show active" : "")" id="cards-content" role="tabpanel">
-            @if (Model.SentCards == null || !Model.SentCards.Any())
-            {
-                <div class="text-center py-5 bg-light rounded-3 border">
-                    <i class="bi bi-card-heading text-muted display-1"></i>
-                    <h5 class="fw-bold text-secondary mt-3">Bạn chưa gửi thiệp nào</h5>
-                    <a href="/" class="btn btn-primary mt-2">Tạo Thiệp Mới Ngay</a>
-                </div>
-            }
-            else
-            {
-                <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark text-nowrap">
-                                <tr>
-                                    <th style="width: 90px;" class="text-center">Ảnh Thiệp</th>
-                                    <th>Thông Tin Thiệp & Người Nhận</th>
-                                    <th class="text-center">Thời Gian Gửi</th>
-                                    <th class="text-center">Thời Gian Mở Thiệp</th>
-                                    <th>Trạng Thái Phản Hồi</th>
-                                    <th class="text-center" style="width: 120px;">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var card in Model.SentCards)
+                            bool isVip = item.Template != null && !item.Template.IsFree;
+
+                            // PARSE JSON PHẢN HỒI NGƯỜI NHẬN
+                            string replyStatus = "";
+                            string replyText = "";
+                            if (!string.IsNullOrWhiteSpace(rawReply))
+                            {
+                                try
                                 {
-                                    string displayImg = !string.IsNullOrEmpty(card.ImagePath)
-                                        ? card.ImagePath
-                                        : (card.Template?.ImagePath ?? "/images/default-card.jpg");
+                                    using var replyDoc = System.Text.Json.JsonDocument.Parse(rawReply);
+                                    var root = replyDoc.RootElement;
+                                    if (root.TryGetProperty("Status", out var statusProp)) { replyStatus = statusProp.GetString() ?? ""; }
+                                    else if (root.TryGetProperty("status", out var statusProp2)) { replyStatus = statusProp2.GetString() ?? ""; }
 
-                                    string attendanceStatus = "";
-                                    string replyMessage = "";
+                                    if (root.TryGetProperty("Text", out var textProp)) { replyText = textProp.GetString() ?? ""; }
+                                    else if (root.TryGetProperty("text", out var textProp2)) { replyText = textProp2.GetString() ?? ""; }
+                                }
+                                catch
+                                {
+                                    replyStatus = rawReply;
+                                }
+                            }
 
-                                    if (!string.IsNullOrWhiteSpace(card.RecipientReply))
+                            <tr>
+                                <!-- 1. CỘT ẢNH BÌA THIỆP -->
+                                <td class="text-center p-2">
+                                    @if (!string.IsNullOrWhiteSpace(imagePath))
                                     {
-                                        try
+                                        <img src="@imagePath" class="rounded border shadow-sm" style="width: 55px; height: 55px; object-fit: cover;" alt="Bìa thiệp" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded border d-flex align-items-center justify-content-center mx-auto" style="width: 55px; height: 55px;">
+                                            <i class="bi bi-image text-muted fs-4"></i>
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- 2. THÔNG TIN THIỆP & NGƯỜI NHẬN -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") shadow-sm">
+                                            <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
+                                            @(item.Template?.Name ?? "Mẫu Thiệp")
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(subjectVal))
                                         {
-                                            using var doc = JsonDocument.Parse(card.RecipientReply);
-                                            if (doc.RootElement.TryGetProperty("Status", out var statusProp))
-                                                attendanceStatus = statusProp.GetString() ?? "";
-                                            if (doc.RootElement.TryGetProperty("Text", out var textProp))
-                                                replyMessage = textProp.GetString() ?? "";
+                                            <span class="fw-bold text-dark">@subjectVal</span>
                                         }
-                                        catch
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-envelope me-1"></i>@recipientEmail
+                                    </div>
+                                </td>
+
+                                <!-- 3. THỜI GIAN GỬI / HẸN GIỜ (CẬP NHẬT) -->
+                                <td>
+                                    @if (sentAt.HasValue)
+                                    {
+                                        <div>
+                                            <span class="badge bg-success mb-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Đã gửi
+                                            </span>
+                                        </div>
+                                        <small class="fw-semibold text-dark d-block">
+                                            <i class="bi bi-calendar-check me-1 text-muted"></i>@sentAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    }
+                                    else if (scheduledAt.HasValue)
+                                    {
+                                        if (scheduledAt.Value > DateTime.Now)
                                         {
-                                            replyMessage = card.RecipientReply;
+                                            <div>
+                                                <span class="badge text-white mb-1" style="background-color: #6f42c1;">
+                                                    <i class="bi bi-clock-history me-1"></i>Đã hẹn giờ
+                                                </span>
+                                            </div>
+                                            <small class="fw-semibold text-dark d-block">
+                                                <i class="bi bi-calendar-event me-1 text-muted"></i>@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="badge bg-warning text-dark mb-1">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Đang xử lý...
+                                                </span>
+                                            </div>
+                                            <small class="text-muted d-block">Đang trong hàng chờ gửi</small>
                                         }
                                     }
+                                    else
+                                    {
+                                        <div>
+                                            <span class="badge bg-secondary opacity-75 mb-1">
+                                                <i class="bi bi-dash-circle me-1"></i>Chờ gửi
+                                            </span>
+                                        </div>
+                                        <small class="text-muted d-block">Chưa khởi tạo</small>
+                                    }
+                                </td>
 
-                                    <tr>
-                                        <!-- Cột 1: Ảnh -->
-                                        <td class="text-center">
-                                            <img src="@displayImg" class="img-thumbnail rounded shadow-sm" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='/images/default-card.jpg';" />
-                                        </td>
+                                <!-- 4. TRẠNG THÁI MỞ -->
+                                <td class="text-center">
+                                    @if (openAt.HasValue)
+                                    {
+                                        <span class="badge bg-info text-dark border px-2 py-1">
+                                            <i class="bi bi-envelope-open me-1"></i>@openAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary opacity-75">Chưa mở</span>
+                                    }
+                                </td>
 
-                                        <!-- Cột 2: Thông tin -->
-                                        <td>
-                                            <div class="fw-bold text-dark fs-6 mb-1">@(string.IsNullOrWhiteSpace(card.Subject) ? "Thiệp chúc mừng" : card.Subject)</div>
-                                            <div class="text-muted small"><i class="bi bi-envelope-at me-1 text-primary"></i>@card.RecipientEmail</div>
-                                        </td>
-
-                                        <!-- Cột 3: Thời gian gửi (Hiển thị đúng badge nếu là hẹn giờ) -->
-                                        <td class="text-center text-nowrap small text-secondary">
-                                            @if (card.ScheduledAt.HasValue && card.SentAt == null)
+                                <!-- 5. PHẢN HỒI TỪ NGƯỜI NHẬN -->
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
+                                    {
+                                        <div class="d-flex flex-column align-items-start gap-1">
+                                            @if (!string.IsNullOrWhiteSpace(replyStatus))
                                             {
-                                                <span class="badge bg-warning text-dark px-2 py-1">
-                                                    <i class="bi bi-clock-history me-1"></i>Hẹn gửi:<br />
-                                                    @card.ScheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                                </span>
-                                            }
-                                            else if (card.SentAt.HasValue)
-                                            {
-                                                <i class="bi bi-calendar3 me-1"></i>
-                                                @card.SentAt.Value.ToString("dd/MM/yyyy")
-                                                <br />
-                                                <i class="bi bi-clock me-1"></i>
-                                                @card.SentAt.Value.ToString("HH:mm")
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">Chưa gửi</span>
-                                            }
-                                        </td>
-
-                                        <!-- Cột 4: Thời gian mở -->
-                                        <td class="text-center text-nowrap">
-                                            @if (card.OpenAt.HasValue)
-                                            {
-                                                <span class="badge bg-info text-dark px-2 py-1"><i class="bi bi-eye-fill me-1"></i>@card.OpenAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary bg-opacity-50 text-dark px-2 py-1"><i class="bi bi-eye-slash me-1"></i>Chưa mở</span>
-                                            }
-                                        </td>
-
-                                        <!-- Cột 5: Phản hồi -->
-                                        <td style="max-width: 280px;">
-                                            <div class="mb-1">
-                                                @if (attendanceStatus == "Sẽ tham dự")
+                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
                                                 {
                                                     <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
                                                 }
-                                                else if (attendanceStatus == "Phân vân")
+                                                else if (replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
                                                 {
                                                     <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Phân vân</span>
                                                 }
-                                                else if (attendanceStatus == "Không thể tham dự")
+                                                else if (replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
                                                 {
                                                     <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Không thể tham dự</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-light text-muted border"><i class="bi bi-dash-circle me-1"></i>Chưa chọn trạng thái</span>
+                                                    <span class="badge bg-primary">@replyStatus</span>
                                                 }
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(replyText))
+                                            {
+                                                <div class="p-1 px-2 bg-light border rounded text-dark small w-100" style="max-width: 200px;">
+                                                    <i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyText"
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Chưa phản hồi</span>
+                                    }
+                                </td>
+
+                                <!-- 6. NÚT XEM CHI TIẾT (MODAL POPUP) -->
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalCard-@item.Id"
+                                            data-raw="@rawMessage"
+                                            data-email="@recipientEmail"
+                                            data-subject="@subjectVal"
+                                            data-img="@imagePath"
+                                            data-audio="@audioPath">
+                                        <i class="bi bi-eye me-1"></i> Xem
+                                    </button>
+
+                                    <!-- MODAL POPUP CHI TIẾT THIỆP -->
+                                    <div class="modal fade" id="modalCard-@item.Id" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header bg-primary text-white py-2">
+                                                    <h5 class="modal-title fs-6 fw-bold">
+                                                        <i class="bi bi-file-earmark-text me-2"></i>Chi Tiết Thông Tin Đi Kèm Thiệp #@item.Id
+                                                    </h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <!-- BÌA THIỆP -->
+                                                    @if (!string.IsNullOrWhiteSpace(imagePath))
+                                                    {
+                                                        <div class="text-center mb-3">
+                                                            <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Ảnh Bìa Thiệp Đã Chọn:</label>
+                                                            <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Ảnh bìa thiệp" />
+                                                        </div>
+                                                    }
+
+                                                    <!-- NHẠC NỀN -->
+                                                    @if (!string.IsNullOrWhiteSpace(audioPath))
+                                                    {
+                                                        <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
+                                                            <h6 class="fw-bold text-primary mb-2">
+                                                                <i class="bi bi-music-note-beamed me-1"></i>Nhạc nền kèm theo thiệp:
+                                                            </h6>
+                                                            <audio controls class="w-100">
+                                                                <source src="@audioPath" type="audio/mpeg">
+                                                                Trình duyệt của bạn không hỗ trợ thẻ audio.
+                                                            </audio>
+                                                        </div>
+                                                    }
+
+                                                    <!-- FORM CHI TIẾT RUỘT THIỆP -->
+                                                    <div class="border rounded-3 p-3 bg-light shadow-sm">
+                                                        <h6 class="fw-bold text-primary mb-3">
+                                                            <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp:
+                                                        </h6>
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Tên Người Nhận (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-name" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Thời Gian Diễn Ra (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-time" readonly />
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-bold small text-dark">Địa Chỉ / Địa Điểm Tổ Chức (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-address" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Email Người Nhận (*):</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-email" value="@recipientEmail" readonly />
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-bold small text-dark">Tiêu Đề Email:</label>
+                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-subject" value="@subjectVal" readonly />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-2">
+                                                    <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Đóng</button>
+                                                </div>
                                             </div>
-                                            @if (!string.IsNullOrWhiteSpace(replyMessage))
-                                            {
-                                                <div class="p-2 bg-light rounded text-dark small border text-break"><i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyMessage"</div>
-                                            }
-                                        </td>
-
-                                        <!-- Cột 6: Thao tác -->
-                                        <td class="text-center">
-                                            <a href="/Card/ViewCard/@card.Id" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold">
-                                                <i class="bi bi-box-arrow-up-right me-1"></i> Xem Thiệp
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            }
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Bạn chưa gửi thiệp nào.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-
-        <!-- TAB 2: LỊCH SỬ GIAO DỊCH VIP -->
-        <div class="tab-pane fade @(activeTab == "payments" ? "show active" : "")" id="payments-content" role="tabpanel">
-            @if (Model.Subscriptions == null || !Model.Subscriptions.Any())
-            {
-                <div class="text-center py-5 bg-light rounded-3 border">
-                    <i class="bi bi-receipt text-muted display-1"></i>
-                    <h5 class="fw-bold text-secondary mt-3">Bạn chưa có giao dịch đăng ký gói dịch vụ nào</h5>
-                    <a href="/Subscription" class="btn btn-success mt-2 fw-semibold">
-                        <i class="bi bi-star-fill me-1"></i> Mua Gói VIP Ngay
-                    </a>
-                </div>
-            }
-            else
-            {
-                <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark text-nowrap">
-                                <tr>
-                                    <th class="text-center" style="width: 80px;">Mã HĐ</th>
-                                    <th>Gói Đăng Ký</th>
-                                    <th class="text-end">Số Tiền</th>
-                                    <th class="text-center">Ngày Bắt Đầu</th>
-                                    <th class="text-center">Thời Hạn Gói</th>
-                                    <th class="text-center">Trạng Thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var sub in Model.Subscriptions)
-                                {
-                                    string packageName = sub.Service?.Name ?? "Gói VIP";
-                                    decimal price = sub.Service?.Price ?? sub.Payments.FirstOrDefault()?.Amount ?? 0;
-                                    bool isExpired = sub.EndDate.HasValue && sub.EndDate.Value < DateOnly.FromDateTime(DateTime.Now);
-                                    bool isActive = sub.IsActive && !isExpired;
-
-                                    <tr>
-                                        <td class="text-center fw-bold text-primary">#@sub.Id</td>
-                                        <td>
-                                            <span class="badge bg-info text-dark fs-6 px-3 py-2">
-                                                <i class="bi bi-gem me-1"></i>@packageName
-                                            </span>
-                                        </td>
-                                        <td class="text-end fw-bold text-success fs-6">
-                                            @price.ToString("N0") đ
-                                        </td>
-                                        <td class="text-center text-nowrap small text-secondary">
-                                            <i class="bi bi-calendar-event me-1"></i>@sub.StartDate.ToString("dd/MM/yyyy")
-                                        </td>
-                                        <td class="text-center text-nowrap small">
-                                            @if (sub.EndDate.HasValue)
-                                            {
-                                                <span>@sub.StartDate.ToString("dd/MM/yyyy") - @sub.EndDate.Value.ToString("dd/MM/yyyy")</span>
-                                            }
-                                            else
-                                            {
-                                                <span>Từ @sub.StartDate.ToString("dd/MM/yyyy")</span>
-                                            }
-                                        </td>
-                                        <td class="text-center">
-                                            @if (isActive)
-                                            {
-                                                <span class="badge bg-success px-3 py-2">
-                                                    <i class="bi bi-check-circle-fill me-1"></i>Đang Hoạt Động
-                                                </span>
-                                            }
-                                            else if (isExpired)
-                                            {
-                                                <span class="badge bg-secondary px-3 py-2">
-                                                    <i class="bi bi-clock-history me-1"></i>Đã Hết Hạn
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-warning text-dark px-3 py-2">
-                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Ngưng Hoạt Động
-                                                </span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            }
-        </div>
-
     </div>
 </div>
+
+<!-- SCRIPT PARSE JSON KHI NHẤN NÚT XEM -->
+@section Scripts {
+    <script>
+        document.querySelectorAll('.parse-json-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rawData = this.getAttribute('data-raw');
+                const targetModal = document.querySelector(this.getAttribute('data-bs-target'));
+
+                const inputName = targetModal.querySelector('.modal-field-name');
+                const inputTime = targetModal.querySelector('.modal-field-time');
+                const inputAddress = targetModal.querySelector('.modal-field-address');
+
+                let rName = "N/A", rTime = "N/A", rAddr = "N/A";
+
+                if (rawData && rawData.trim() !== '') {
+                    try {
+                        const jsonObj = JSON.parse(rawData);
+                        rName = jsonObj.recipientName || jsonObj.Name || jsonObj.name || "N/A";
+                        rAddr = jsonObj.eventAddress || jsonObj.location || jsonObj.Address || jsonObj.address || "N/A";
+
+                        let timeVal = jsonObj.eventTime || jsonObj.Time || jsonObj.time;
+                        if (timeVal) {
+                            try { rTime = new Date(timeVal).toLocaleString('vi-VN'); } catch (e) { rTime = timeVal; }
+                        }
+                    } catch (e) {
+                        rName = rawData;
+                    }
+                }
+
+                inputName.value = rName;
+                inputTime.value = rTime;
+                inputAddress.value = rAddr;
+            });
+        });
+    </script>
+}
