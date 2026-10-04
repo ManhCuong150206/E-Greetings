@@ -1,6 +1,7 @@
 using E_Greeting.Models;
 using E_Greeting.Service;
 using E_Greeting.Service.Categories;
+using E_Greeting.Service.Subscriptions;
 using E_Greeting.Service.Templates;
 using E_Greeting.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -15,12 +16,18 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
+// Đăng ký Service Nhắc hết hạn gói VIP (Feature tự động gửi mail ngầm)
+builder.Services.AddScoped<IAdminEmailService, AdminEmailService>();
+builder.Services.AddScoped<ISubscriptionReminderService, SubscriptionReminderService>();
+builder.Services.AddHostedService<SubscriptionReminderService>();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
+
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
@@ -29,12 +36,8 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 });
 
 // Add services to the container.
-
-
 builder.Services.AddScoped<IServiceService, ServiceService>();
-
 builder.Services.AddMemoryCache();
-
 builder.Services.AddControllersWithViews();
 
 // Kết nối SQL Server
@@ -57,10 +60,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllers();
 
