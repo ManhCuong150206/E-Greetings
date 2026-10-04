@@ -45,26 +45,29 @@ public class SubscriptionController : Controller
     {
         var plans = _serviceService.GetAllPlans();
 
-        int currentRank = -1;
+        int currentRank = -1;          // -1 = chưa đăng nhập
         DateOnly? endDate = null;
 
         if (User.Identity?.IsAuthenticated == true)
         {
+            currentRank = 0;           // đã đăng nhập: mặc định Basic
+
             int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var today = DateOnly.FromDateTime(DateTime.Now);
 
-            var actives = _context.Subscriptions
-                .Where(s => s.AccountId == accountId && s.IsActive && s.EndDate >= today)
-                .ToList();
+            var top = _context.Subscriptions
+                .Where(s => s.AccountId == accountId
+                         && s.IsActive
+                         && s.EndDate >= today
+                         && s.ServiceId != null)
+                .AsEnumerable()
+                .OrderByDescending(s => s.ServiceId)
+                .ThenByDescending(s => s.EndDate)
+                .FirstOrDefault();
 
-            if (actives.Any())
+            if (top != null)
             {
-                var top = actives
-                    .OrderByDescending(s => s.ServiceId ?? 0)
-                    .ThenByDescending(s => s.EndDate)
-                    .First();
-
-                currentRank = top.ServiceId ?? 0;
+                currentRank = top.ServiceId!.Value;
                 endDate = top.EndDate;
             }
         }
@@ -81,15 +84,17 @@ public class SubscriptionController : Controller
         int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var today = DateOnly.FromDateTime(DateTime.Now);
 
-        // Hạng gói cao nhất đang hoạt động (Basic = 0, -1 = chưa đăng ký gì)
+        // Mặc định là Basic (0), lấy gói trả phí cao nhất đang hoạt động
         int currentRank = _context.Subscriptions
-            .Where(s => s.AccountId == accountId && s.IsActive && s.EndDate >= today)
-            .Select(s => s.ServiceId ?? 0)
-            .ToList()
-            .DefaultIfEmpty(-1)
+            .Where(s => s.AccountId == accountId
+                     && s.IsActive
+                     && s.EndDate >= today
+                     && s.ServiceId != null)
+            .Select(s => s.ServiceId!.Value)
+            .AsEnumerable()
+            .DefaultIfEmpty(0)
             .Max();
 
-        // Chỉ cho đăng ký gói có hạng CAO HƠN gói hiện tại
         if (planId <= currentRank)
         {
             TempData["ErrorMessage"] = planId == currentRank
@@ -98,25 +103,6 @@ public class SubscriptionController : Controller
             return RedirectToAction("Index");
         }
 
-        // Gói cơ bản (miễn phí)
-        if (planId == 0)
-        {
-            var freeSub = new Subscription
-            {
-                AccountId = accountId,
-                ServiceId = null,
-                StartDate = DateOnly.FromDateTime(DateTime.Now),
-                EndDate = DateOnly.FromDateTime(DateTime.Now.AddMonths(1)),
-                IsActive = true
-            };
-            _context.Subscriptions.Add(freeSub);
-            _context.SaveChanges();
-
-            TempData["SuccessMessage"] = "Đã kích hoạt Gói Cơ Bản!";
-            return RedirectToAction("Index");
-        }
-
-        // Gói trả phí
         var service = _context.Services.Find(planId);
         if (service == null)
         {
