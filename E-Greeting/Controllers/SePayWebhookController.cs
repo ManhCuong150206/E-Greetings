@@ -63,6 +63,13 @@ public class SePayWebhookController : ControllerBase
             else if (data.transferAmount >= payment.Amount)
             {
                 var today = DateOnly.FromDateTime(DateTime.Now);
+                var oldSubs = _context.Subscriptions
+        .Where(s => s.AccountId == payment.Subscription.AccountId
+                 && s.Id != payment.Subscription.Id
+                 && s.IsActive)
+        .ToList();
+                foreach (var s in oldSubs)
+                    s.IsActive = false;
                 payment.Status = "PAID";
                 payment.PaymentDate = today;
                 payment.Subscription.IsActive = true;
