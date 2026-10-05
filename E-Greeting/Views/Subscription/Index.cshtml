@@ -60,7 +60,11 @@
                     </ul>
 
                     <div class="mt-auto">
-                        @if (isCurrent)
+                        @if (currentRank < 0 && plan.Id == 0)
+                        {
+                            @* Chưa đăng nhập: thẻ Basic không hiện gì *@
+                        }
+                        else if (isCurrent)
                         {
                             <button type="button" class="btn btn-success rounded-pill w-100 fw-semibold py-2" disabled>
                                 <i class="bi bi-check-circle me-1"></i> Bạn đang sử dụng
