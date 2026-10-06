@@ -2,27 +2,30 @@
 @using Microsoft.EntityFrameworkCore
 @inject E_Greeting.Models.AppDbContext _context
 @{
-    // Mặc định không có badge nếu chưa đăng nhập hoặc dùng gói miễn phí
+    // Default: No badge if not logged in or on a free plan
     string userBadge = "";
 
     if (User.Identity != null && User.Identity.IsAuthenticated)
     {
-        // Lấy tên đăng nhập hiện tại
+        // Get current username or email
         string currentUserName = User.Identity.Name ?? "";
 
-        // Chuyển DateTime.Now thành DateOnly để so sánh chuẩn kiểu dữ liệu DB
+        // Convert DateTime.Now to DateOnly for DB comparison
         DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 
-        // Lấy danh sách tên tất cả các gói dịch vụ còn hạn của User
+        // Fetch active service names only if IsActive = true AND Payment Status = "PAID"
         var activeServiceNames = _context.Subscriptions
             .Include(s => s.Service)
             .Include(s => s.Account)
+            .Include(s => s.Payments)
             .Where(s => (s.Account.Name == currentUserName || s.Account.Email == currentUserName)
-                     && (s.EndDate == null || s.EndDate >= today))
+                     && s.IsActive
+                     && (s.EndDate == null || s.EndDate >= today)
+                     && s.Payments.Any(p => p.Status == "PAID"))
             .Select(s => s.Service.Name)
             .ToList();
 
-        // Ưu tiên hiển thị VIP / Premium nếu có bất kỳ gói VIP nào đang active
+        // Prioritize displaying VIP / Premium if any VIP plan is active and paid
         if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
             (name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || name.Contains("Premium", StringComparison.OrdinalIgnoreCase))))
         {
@@ -71,7 +74,7 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                         @if (User.Identity != null && User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("ADMIN")))
                         {
-                            <!-- 5 TAB DÀNH RIÊNG CHO ADMIN BACK-OFFICE -->
+                            <!-- 5 ADMIN BACK-OFFICE TABS -->
                             <li class="nav-item">
                                 <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="Dashboard">📊 Dashboard</a>
                             </li>
@@ -90,43 +93,9 @@
                         }
                         else
                         {
-                            <!-- MENU MẶC ĐỊNH DÀNH CHO USER / KHÁCH HÀNG -->
+                            <!-- DEFAULT USER / CUSTOMER MENU -->
                             <li class="nav-item">
                                 <a class="nav-link nav-link-custom" asp-controller="Home" asp-action="Index">HOME</a>
-                            </li>
-
-                            <!-- CATEGORIES DROPDOWN -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link nav-link-custom dropdown-toggle" asp-controller="Category" asp-action="Index" id="catDropdown" role="button" data-bs-toggle="dropdown">
-                                    CATEGORIES
-                                </a>
-                                <ul class="dropdown-menu border-0 shadow-sm rounded-3">
-                                    <li>
-                                        <a class="dropdown-item py-2" asp-controller="template" asp-action="Index">
-                                            <i class="bi bi-border-width me-2 text-default"></i>All
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2" asp-controller="theloai" asp-action="sinh-nhat">
-                                            <i class="bi bi-cake2 me-2 text-warning"></i>Birthday
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="wedding">
-                                            <i class="bi bi-heart me-2 text-danger"></i>Wedding
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="newyear">
-                                            <i class="bi bi-stars me-2 text-info"></i>New Year
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2" asp-controller="Card" asp-action="Category" asp-route-id="festivals">
-                                            <i class="bi bi-balloon me-2 text-success"></i>Festivals
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
 
                             <li class="nav-item">
@@ -147,14 +116,14 @@
                         {
                             @if (User.IsInRole("Admin") || User.IsInRole("ADMIN"))
                             {
-                                <!-- NÚT DÀNH RIÊNG CHO ADMIN (Chuyển về thẳng Dashboard Admin) -->
+                                <!-- ADMIN DIRECT DASHBOARD LINK -->
                                 <a class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold" asp-controller="Admin" asp-action="Dashboard">
-                                    <i class="bi bi-shield-lock-fill me-1"></i> Quản trị viên (@User.Identity.Name)
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Administrator (@User.Identity.Name)
                                 </a>
                             }
                             else
                             {
-                                <!-- NÚT DÀNH CHO USER THƯỜNG -->
+                                <!-- REGULAR USER PROFILE -->
                                 <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-inline-flex align-items-center" asp-controller="Account" asp-action="Profile">
                                     <i class="bi bi-person-circle me-1"></i> @User.Identity.Name @Html.Raw(userBadge)
                                 </a>
@@ -194,7 +163,7 @@
                     <h5 class="footer-heading d-flex align-items-center">
                         <i class="bi bi-envelope-heart me-2 text-primary"></i> E-Greeting
                     </h5>
-                    <p class="small">Nền tảng gửi thiệp điện tử trực tuyến giúp bạn truyền tải thông điệp yêu thương, lời chúc mừng sinh nhật, tiệc cưới và các lễ hội một cách cá nhân hóa và ý nghĩa nhất.</p>
+                    <p class="small">An online e-greeting platform helping you deliver heartfelt messages, birthday wishes, wedding congratulations, and holiday greetings in the most personalized and meaningful way.</p>
                     <div class="d-flex gap-2 mt-3">
                         <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
                         <a href="#" class="social-icon"><i class="bi bi-instagram"></i></a>
@@ -203,30 +172,19 @@
                 </div>
 
                 <div class="col-lg-2 col-md-6">
-                    <h5 class="footer-heading">Liên kết nhanh</h5>
+                    <h5 class="footer-heading">Quick Links</h5>
                     <ul class="list-unstyled small d-flex flex-column gap-2">
-                        <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Trang chủ</a></li>
-                        <li><a asp-controller="Subscription" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Gói Subscribe</a></li>
-                        <li><a asp-controller="Feedback" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Phản hồi</a></li>
-                        <li><a asp-controller="Account" asp-action="Login"><i class="bi bi-chevron-right me-1"></i> Đăng nhập</a></li>
+                        <li><a asp-controller="Home" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Home</a></li>
+                        <li><a asp-controller="Subscription" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Subscriptions</a></li>
+                        <li><a asp-controller="Feedback" asp-action="Index"><i class="bi bi-chevron-right me-1"></i> Feedback</a></li>
+                        <li><a asp-controller="Account" asp-action="Login"><i class="bi bi-chevron-right me-1"></i> Login</a></li>
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6">
-                    <h5 class="footer-heading">Danh mục thiệp</h5>
-                    <ul class="list-unstyled small d-flex flex-column gap-2">
-                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="birthday"><i class="bi bi-cake2 me-2"></i>Thiệp Sinh Nhật</a></li>
-                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="wedding"><i class="bi bi-heart me-2"></i>Thiệp Đám Cưới</a></li>
-                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="newyear"><i class="bi bi-stars me-2"></i>Thiệp Năm Mới</a></li>
-                        <li><a asp-controller="Card" asp-action="Category" asp-route-id="festivals"><i class="bi bi-balloon me-2"></i>Lễ Hội Khác</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="footer-heading">Dịch vụ gửi thiệp</h5>
-                    <p class="small">Đăng ký dịch vụ tự động để gửi thiệp hàng ngày đến danh sách người thân yêu của bạn.</p>
+                    <h5 class="footer-heading">Greeting Service</h5>
+                    <p class="small">Subscribe to our service to send automated scheduled greeting cards to your loved ones effortlessly.</p>
                     <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-light btn-sm rounded-pill w-100">
-                        <i class="bi bi-card-checklist me-1"></i> Đăng ký dịch vụ
+                        <i class="bi bi-card-checklist me-1"></i> Subscribe Now
                     </a>
                 </div>
             </div>
@@ -236,8 +194,8 @@
             <div class="container text-center text-md-between d-flex flex-column flex-md-row justify-content-between align-items-center small">
                 <p class="mb-0">&copy; 2026 <strong>E-Greeting Web Application</strong>. All rights reserved.</p>
                 <div class="mt-2 mt-md-0">
-                    <a asp-controller="Home" asp-action="Privacy" class="me-3">Chính sách bảo mật</a>
-                    <a href="#">Điều khoản sử dụng</a>
+                    <a asp-controller="Home" asp-action="Privacy" class="me-3">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
                 </div>
             </div>
         </div>

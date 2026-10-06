@@ -1,5 +1,5 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
-    // --- 1. KHAI BÁO BIẾN & LẤY ĐỐI TƯỢNG DOM ---
+    // --- 1. DECLARE VARIABLES & GET DOM ELEMENTS ---
     const cardArea = document.getElementById("card-preview-area");
     const selectFont = document.getElementById("select-font");
     const selectFontSize = document.getElementById("select-fontsize");
@@ -29,7 +29,7 @@
     let activeElement = document.querySelector(".draggable-text-box.active, .draggable-element.active") ||
         document.querySelector(".draggable-text-box, .draggable-element");
 
-    // --- 2. HÀM TRỢ GIÚP CHUYỂN RGB SANG HEX ---
+    // --- 2. HELPER FUNCTION: CONVERT RGB TO HEX ---
     function rgbToHex(rgbStr) {
         if (!rgbStr || rgbStr.startsWith('#')) return rgbStr || "#000000";
         const matches = rgbStr.match(/\d+/g);
@@ -40,7 +40,7 @@
         return `#${r}${g}${b}`;
     }
 
-    // --- 3. ĐỒNG BỘ BẢNG CÔNG CỤ THEO THÀNH PHẦN ĐANG CHỌN ---
+    // --- 3. SYNC TOOLBAR CONTROLS WITH SELECTED ELEMENT ---
     function syncControlsWithElement(element) {
         if (!element) return;
 
@@ -91,7 +91,7 @@
         }
     }
 
-    // --- 4. SỰ KIỆN SỬA NỘI DUNG VĂN BẢN TRỰC TIẾP ---
+    // --- 4. REAL-TIME TEXT EDITING ---
     if (inputActiveTextVal) {
         inputActiveTextVal.addEventListener("input", function () {
             if (activeElement && !activeElement.querySelector("img")) {
@@ -105,7 +105,7 @@
         });
     }
 
-    // --- 5. HÀM KÉO THẢ THÀNH PHẦN (DRAG & DROP) ---
+    // --- 5. DRAG AND DROP FUNCTIONALITY ---
     function makeDraggable(element) {
         let isDragging = false;
         let offsetX = 0, offsetY = 0;
@@ -177,7 +177,7 @@
 
     if (activeElement) syncControlsWithElement(activeElement);
 
-    // --- 6. TẢI ẢNH CÁ NHÂN VÀ NÉN TỰ ĐỘNG ---
+    // --- 6. UPLOAD PERSONAL IMAGE & AUTOMATIC COMPRESSION ---
     if (inputUploadImage) {
         inputUploadImage.addEventListener("change", function (e) {
             const file = e.target.files[0];
@@ -227,7 +227,7 @@
         });
     }
 
-    // --- 7. CÔNG CỤ ĐIỀU CHỈNH ẢNH & VĂN BẢN ---
+    // --- 7. IMAGE & TEXT ADJUSTMENT CONTROLS ---
     if (btnImgCircle) {
         btnImgCircle.addEventListener("click", function () {
             if (activeElement) {
@@ -294,7 +294,7 @@
             const newDiv = document.createElement("div");
             newDiv.className = "draggable-text-box position-absolute active p-2 rounded text-center";
             newDiv.style.cssText = "top: 30px; left: 30px; width: 300px; color: #000000; font-family: Arial; font-size: 20px; z-index: 18; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4);";
-            newDiv.innerHTML = `<span class="text-content" style="white-space: pre-wrap; display: block;">Văn bản mới</span>`;
+            newDiv.innerHTML = `<span class="text-content" style="white-space: pre-wrap; display: block;">New Text</span>`;
 
             cardArea.appendChild(newDiv);
             makeDraggable(newDiv);
@@ -366,7 +366,7 @@
         });
     }
 
-    // STICKER
+    // STICKERS
     document.querySelectorAll(".sticker-opt").forEach(sticker => {
         sticker.addEventListener("click", function () {
             const stickerDiv = document.createElement("div");
@@ -381,7 +381,7 @@
         });
     });
 
-    // NHẠC NỀN
+    // BACKGROUND MUSIC
     if (selectAudio && audioPlayer) {
         selectAudio.addEventListener("change", function () {
             if (this.value) {
@@ -395,7 +395,7 @@
         });
     }
 
-    // --- LẮNG NGHE SỰ KIỆN THAY ĐỔI Ô HẸN GIỜ ---
+    // --- LISTEN FOR SCHEDULED DATETIME INPUT CHANGES ---
     document.addEventListener("change", function (e) {
         if (e.target && (e.target.id === "input-scheduled-at" || e.target.id === "scheduledAt" || e.target.type === "datetime-local")) {
             updateSendButtonText();
@@ -412,7 +412,7 @@
 });
 
 // =========================================================================
-// 8. HÀM TÌM ĐÚNG INPUT HẸN GIỜ (CHỐNG LỖI LỆCH ID)
+// 8. FIND SCHEDULED TIME INPUT ELEMENT
 // =========================================================================
 function getScheduledInput() {
     return document.getElementById("scheduledAt") ||
@@ -423,7 +423,7 @@ function getScheduledInput() {
 }
 
 // =========================================================================
-// 9. HÀM TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI NÚT GỬI / HẸN GIỜ
+// 9. AUTOMATICALLY UPDATE BUTTON TEXT BASED ON SCHEDULE STATE
 // =========================================================================
 function updateSendButtonText() {
     const btnSend = document.getElementById("btnFinalSend") || document.getElementById("btnSendCard");
@@ -432,33 +432,33 @@ function updateSendButtonText() {
     if (!btnSend) return;
 
     if (scheduledInput && scheduledInput.value && scheduledInput.value.trim() !== "") {
-        btnSend.innerHTML = '<i class="bi bi-clock-history me-1"></i> Xác Nhận Hẹn Giờ';
+        btnSend.innerHTML = '<i class="bi bi-clock-history me-1"></i> Confirm Scheduled Delivery';
         btnSend.classList.remove('btn-primary');
         btnSend.classList.add('btn-warning');
     } else {
-        btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi';
+        btnSend.innerHTML = '<i class="bi bi-check-circle me-1"></i> Confirm & Send';
         btnSend.classList.remove('btn-warning');
         btnSend.classList.add('btn-primary');
     }
 }
 
 // =========================================================================
-// 10. HÀM LƯU VÀ GỬI THIỆP (SAVE & SEND CARD)
+// 10. SAVE AND SEND CARD FUNCTION
 // =========================================================================
 async function saveAndSendCard() {
     const btnSend = document.getElementById("btnFinalSend") || document.getElementById("btnSendCard");
     const scheduledInput = getScheduledInput();
 
-    // Lấy giá trị thời gian hẹn giờ
+    // Get scheduled value
     const scheduledValue = (scheduledInput && scheduledInput.value.trim() !== "") ? scheduledInput.value : null;
 
-    console.log("[DEBUG FRONTEND] Giá trị giờ hẹn gửi:", scheduledValue);
+    console.log("[DEBUG FRONTEND] Scheduled delivery value:", scheduledValue);
 
     if (btnSend) {
         btnSend.disabled = true;
         btnSend.innerHTML = scheduledValue
-            ? '<span class="spinner-border spinner-border-sm me-2"></span>Đang lên lịch...'
-            : '<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...';
+            ? '<span class="spinner-border spinner-border-sm me-2"></span>Scheduling...'
+            : '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
     }
 
     try {
@@ -466,19 +466,38 @@ async function saveAndSendCard() {
             document.getElementById("template-id")?.value ||
             document.getElementById("templateId")?.value || "0"
         );
-        const recipientEmail = (
-            document.getElementById("input-recipient-email")?.value ||
-            document.getElementById("recipientEmail")?.value || ""
-        ).trim();
+
+        // Collect all recipients from dynamic recipient rows
+        const recipientRows = document.querySelectorAll('.recipient-row');
+        const recipients = [];
+
+        recipientRows.forEach(row => {
+            const name = row.querySelector('.recipient-name')?.value.trim() || "";
+            const email = row.querySelector('.recipient-email')?.value.trim() || "";
+            if (email) {
+                recipients.push({ name: name, email: email });
+            }
+        });
+
+        // Fallback for single recipient forms
+        if (recipients.length === 0) {
+            const singleEmail = (
+                document.getElementById("input-recipient-email")?.value ||
+                document.getElementById("recipientEmail")?.value || ""
+            ).trim();
+            const singleName = (
+                document.getElementById("input-recipient-name")?.value ||
+                document.getElementById("recipientName")?.value || ""
+            ).trim();
+
+            if (singleEmail) {
+                recipients.push({ name: singleName, email: singleEmail });
+            }
+        }
 
         const subject = (
             document.getElementById("input-email-subject")?.value ||
             document.getElementById("emailSubject")?.value || ""
-        ).trim();
-
-        const recipientName = (
-            document.getElementById("input-recipient-name")?.value ||
-            document.getElementById("recipientName")?.value || ""
         ).trim();
 
         const location = (
@@ -496,12 +515,13 @@ async function saveAndSendCard() {
         const base64Image = document.getElementById("preview-card-img")?.src || "";
         const cardArea = document.getElementById("card-preview-area");
 
-        // Đóng gói JSON truyền lên Server
+        // Payload object
         const payload = {
             templateId: templateId,
-            recipientEmail: recipientEmail,
+            recipientEmail: recipients[0]?.email || "",
+            recipientName: recipients[0]?.name || "",
+            recipients: recipients,
             subject: subject,
-            recipientName: recipientName,
             location: location,
             eventTime: eventTime,
             scheduledAt: scheduledValue,
@@ -526,15 +546,15 @@ async function saveAndSendCard() {
             alert(result.message);
             window.location.href = result.redirectUrl || '/History';
         } else {
-            alert(result.message || "Có lỗi xảy ra khi lưu thiệp!");
+            alert(result.message || "An error occurred while saving the card!");
             if (btnSend) {
                 btnSend.disabled = false;
                 updateSendButtonText();
             }
         }
     } catch (error) {
-        console.error("Lỗi khi gửi thiệp:", error);
-        alert("Đã xảy ra lỗi kết nối máy chủ!");
+        console.error("Error sending card:", error);
+        alert("A server connection error occurred!");
         if (btnSend) {
             btnSend.disabled = false;
             updateSendButtonText();
