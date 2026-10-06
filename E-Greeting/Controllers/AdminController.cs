@@ -19,25 +19,25 @@ namespace E_Greeting.Controllers
             _context = context;
         }
 
-        // --- TAB 1: DASHBOARD TỔNG QUAN HỆ THỐNG & BÁO CÁO DOANH THU ---
+        // --- TAB 1: SYSTEM OVERVIEW DASHBOARD & REVENUE REPORTING ---
         [HttpGet("Admin/Dashboard")]
         [HttpGet("Admin")]
         public async Task<IActionResult> Dashboard()
         {
             var model = new DashboardViewModel();
 
-            // 1. Thống kê số liệu tổng quan
+            // 1. Overview Statistics
             model.TotalTemplates = await _context.Templates.CountAsync();
             model.TotalCategories = await _context.Categories.CountAsync();
             model.TotalUsers = await _context.Accounts.CountAsync(a => a.Role != "ADMIN" && a.Role != "Admin");
             model.TotalSentCards = await _context.SentCards.CountAsync();
 
-            // 2. Tính TỔNG DOANH THU tất cả các gói
+            // 2. Calculate TOTAL REVENUE from all packages
             model.TotalRevenue = await _context.Payments
                 .Where(p => p.Status == "PAID" || p.Status == "Success" || p.Status == "Completed")
                 .SumAsync(p => (decimal?)p.Amount) ?? 0;
 
-            // 3. Thống kê chi tiết từng Gói Dịch Vụ
+            // 3. Detailed Statistics for Each Service Package
             var allServices = await _context.Services.ToListAsync();
             var paidPaymentsList = await _context.Payments
                 .Include(p => p.Subscription)
@@ -56,7 +56,7 @@ namespace E_Greeting.Controllers
                 };
             }).ToList();
 
-            // 4. Lấy 5 giao dịch VIP mới nhất
+            // 4. Retrieve Top 5 Recent VIP Transactions
             var recentPaymentsList = await _context.Payments
                 .Include(p => p.Subscription)
                     .ThenInclude(s => s.Account)
@@ -69,14 +69,14 @@ namespace E_Greeting.Controllers
             model.RecentPayments = recentPaymentsList.Select(p => new RecentPaymentDto
             {
                 PaymentId = p.Id,
-                UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "Khách hàng VIP",
-                PackageName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Gói Trả Phí",
+                UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "VIP Customer",
+                PackageName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Paid Package",
                 Amount = p.Amount,
                 PaymentDate = ConvertToDateTime(p.PaymentDate),
                 Status = p.Status
             }).ToList();
 
-            // 5. Thống kê doanh thu 12 tháng năm hiện tại
+            // 5. Monthly Revenue Statistics for the Current Year
             int currentYear = DateTime.Now.Year;
 
             var monthlyData = paidPaymentsList

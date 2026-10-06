@@ -17,7 +17,7 @@ namespace E_Greeting.Controllers
             _context = context;
         }
 
-        // --- QUẢN LÝ DANH MỤC (CATEGORIES) ---
+        // --- CATEGORY MANAGEMENT ---
         [HttpGet("Admin/Categories")]
         public IActionResult Categories(string? searchName, int page = 1)
         {
@@ -34,7 +34,7 @@ namespace E_Greeting.Controllers
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
             var categories = query
-                .OrderByDescending(c => c.Id)
+                .OrderBy(c => c.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -53,7 +53,7 @@ namespace E_Greeting.Controllers
             {
                 _context.Categories.Add(category);
                 _context.SaveChanges();
-                TempData["SuccessMessage"] = "Thêm danh mục thành công!";
+                TempData["SuccessMessage"] = "Category added successfully!";
                 return RedirectToAction(nameof(Categories));
             }
             return RedirectToAction(nameof(Categories));
@@ -74,7 +74,7 @@ namespace E_Greeting.Controllers
             {
                 _context.Categories.Update(category);
                 _context.SaveChanges();
-                TempData["SuccessMessage"] = "Cập nhật danh mục thành công!";
+                TempData["SuccessMessage"] = "Category updated successfully!";
                 return RedirectToAction(nameof(Categories));
             }
             return View("~/Views/Admin/Edit.cshtml", category);
@@ -88,7 +88,7 @@ namespace E_Greeting.Controllers
             {
                 _context.Categories.Remove(category);
                 _context.SaveChanges();
-                TempData["SuccessMessage"] = "Xóa danh mục thành công!";
+                TempData["SuccessMessage"] = "Category deleted successfully!";
             }
             return RedirectToAction(nameof(Categories));
         }
