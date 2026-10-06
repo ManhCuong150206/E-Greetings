@@ -39,6 +39,7 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
+        ViewBag.ReturnUrl = returnUrl;
         if (!ModelState.IsValid)
             return View(model);
 

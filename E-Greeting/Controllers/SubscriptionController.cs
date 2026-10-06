@@ -77,10 +77,15 @@ public class SubscriptionController : Controller
         return View("~/Views/Subscription/Index.cshtml", plans);
     }
     [HttpPost]
-    [Authorize]
+    [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public IActionResult Subscribe(int planId)
     {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToAction("Login", "Account",
+                new { returnUrl = Url.Action("Index", "Subscription") });
+        }
         int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var today = DateOnly.FromDateTime(DateTime.Now);
 
