@@ -38,6 +38,11 @@
     }
 }
 
+<!-- TẢI GOOGLE FONTS ĐỂ HỖ TRỢ HIỂN THỊ TRONG ADMIN EDITOR -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aboreto&family=Amatic+SC:wght@400;700&family=Arimo:ital,wght@0,400..700;1,400..700&family=Bentham&family=Cinzel:wght@400..700&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Dancing+Script:wght@400..700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Great+Vibes&family=Instrument+Serif:ital@0;1&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Josefin+Slab:ital,wght@0,100..700;1,100..700&family=Kreon:wght@300..700&family=Lato:ital,wght@0,300;0,400;0,700;1,300&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lobster&family=Lora:ital,wght@0,400..700;1,400..700&family=Meow+Script&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Monsieur+La+Doulaise&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Mountains+of+Christmas:wght@400;700&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Oswald:wght@200..700&family=Pacifico&family=Parisienne&family=Patrick+Hand&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:ital,wght@0,100;0,400;0,700;1,400&family=Quicksand:wght@300..700&family=Rozha+One&family=Sail&family=Silkscreen:wght@400;700&family=Spicy+Rice&family=Tenor+Sans&display=swap" rel="stylesheet">
+
 <div class="container-fluid my-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3><i class="bi bi-pencil-square me-2 text-warning"></i> Trình Chỉnh Sửa Template #@(Model?.Id ?? 0)</h3>
@@ -133,13 +138,47 @@
                         <label class="form-label form-label-sm fw-bold">Định dạng văn bản:</label>
                         <div class="row g-2 mb-2">
                             <div class="col-7">
-                                <!-- ĐỒNG BỘ NGUYÊN DANH SÁCH FONT TỪ PERSONALIZE -->
+                                <!-- ĐỒNG BỘ NGUYÊN DANH SÁCH FONT VỚI PERSONALIZE -->
                                 <select id="tool-font" class="form-select form-select-sm">
-                                    <option value="Arial">Arial</option>
-                                    <option value="'Roboto', sans-serif">Roboto</option>
-                                    <option value="'Dancing Script', cursive">Dancing Script</option>
-                                    <option value="'Pacifico', cursive">Pacifico</option>
-                                    <option value="'Montserrat', sans-serif">Montserrat</option>
+                                    <optgroup label="Google Fonts &amp; Web Safe">
+                                        <option value="Arial">Arial</option>
+                                        <option value="'Aboreto', cursive">Aboreto</option>
+                                        <option value="'Amatic SC', cursive">Amatic SC</option>
+                                        <option value="'Arimo', sans-serif">Arimo</option>
+                                        <option value="'Bentham', serif">Bentham</option>
+                                        <option value="'Cinzel', serif">Cinzel</option>
+                                        <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+                                        <option value="'Dancing Script', cursive">Dancing Script</option>
+                                        <option value="'Fraunces', serif">Fraunces</option>
+                                        <option value="'Great Vibes', cursive">Great Vibes</option>
+                                        <option value="'Instrument Serif', serif">Instrument Serif</option>
+                                        <option value="'Josefin Sans', sans-serif">Josefin Sans</option>
+                                        <option value="'Josefin Slab', serif">Josefin Slab</option>
+                                        <option value="'Kreon', serif">Kreon</option>
+                                        <option value="'Lato', sans-serif">Lato</option>
+                                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                                        <option value="'Lobster', cursive">Lobster</option>
+                                        <option value="'Lora', serif">Lora</option>
+                                        <option value="'Meow Script', cursive">Meow Script</option>
+                                        <option value="'Merriweather', serif">Merriweather</option>
+                                        <option value="'Monsieur La Doulaise', cursive">Monsieur La Doulaise</option>
+                                        <option value="'Montserrat', sans-serif">Montserrat</option>
+                                        <option value="'Mountains of Christmas', cursive">Mountains of Christmas</option>
+                                        <option value="'Nunito', sans-serif">Nunito</option>
+                                        <option value="'Open Sans', sans-serif">Open Sans</option>
+                                        <option value="'Oswald', sans-serif">Oswald</option>
+                                        <option value="'Pacifico', cursive">Pacifico</option>
+                                        <option value="'Parisienne', cursive">Parisienne</option>
+                                        <option value="'Patrick Hand', cursive">Patrick Hand</option>
+                                        <option value="'Playfair Display', serif">Playfair Display</option>
+                                        <option value="'Poppins', sans-serif">Poppins</option>
+                                        <option value="'Quicksand', sans-serif">Quicksand</option>
+                                        <option value="'Rozha One', serif">Rozha One</option>
+                                        <option value="'Sail', cursive">Sail</option>
+                                        <option value="'Silkscreen', cursive">Silkscreen</option>
+                                        <option value="'Spicy Rice', cursive">Spicy Rice</option>
+                                        <option value="'Tenor Sans', sans-serif">Tenor Sans</option>
+                                    </optgroup>
                                 </select>
                             </div>
                             <div class="col-5">
@@ -151,6 +190,8 @@
                                     <option value="24px">24px</option>
                                     <option value="28px">28px</option>
                                     <option value="32px">32px</option>
+                                    <option value="36px">36px</option>
+                                    <option value="42px">42px</option>
                                 </select>
                             </div>
                         </div>
@@ -375,7 +416,6 @@
             }
         });
 
-        // SỬA NỘI DUNG VĂN BẢN MỚI THÀNH "Văn bản mới" VÀ MÀU ĐEN (#000000)
         document.getElementById('btn-add-text').addEventListener('click', function () {
             document.querySelectorAll('.draggable-text-box').forEach(item => {
                 item.classList.remove('active');
