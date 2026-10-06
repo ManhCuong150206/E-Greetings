@@ -13,7 +13,7 @@ public class SubscriptionModel
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
-    public string Duration { get; set; } = "tháng";
+    public string Duration { get; set; } = "month";
     public List<string> Features { get; set; } = new();
 }
 
@@ -45,12 +45,12 @@ public class SubscriptionController : Controller
     {
         var plans = _serviceService.GetAllPlans();
 
-        int currentRank = -1;          // -1 = chưa đăng nhập
+        int currentRank = -1;          // -1 = not logged in
         DateOnly? endDate = null;
 
         if (User.Identity?.IsAuthenticated == true)
         {
-            currentRank = 0;           // đã đăng nhập: mặc định Basic
+            currentRank = 0;           // logged in: Basic by default
 
             int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var today = DateOnly.FromDateTime(DateTime.Now);
@@ -89,7 +89,7 @@ public class SubscriptionController : Controller
         int accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var today = DateOnly.FromDateTime(DateTime.Now);
 
-        // Mặc định là Basic (0), lấy gói trả phí cao nhất đang hoạt động
+        // Basic (0) by default, get the highest active paid plan
         int currentRank = _context.Subscriptions
             .Where(s => s.AccountId == accountId
                      && s.IsActive
@@ -103,15 +103,15 @@ public class SubscriptionController : Controller
         if (planId <= currentRank)
         {
             TempData["ErrorMessage"] = planId == currentRank
-                ? "Bạn đang sử dụng gói này rồi!"
-                : "Bạn đã ở gói cao hơn, không thể đăng ký gói thấp hơn!";
+                ? "You are already using this plan!"
+                : "You are already on a higher plan, you cannot register for a lower plan!";
             return RedirectToAction("Index");
         }
 
         var service = _context.Services.Find(planId);
         if (service == null)
         {
-            TempData["ErrorMessage"] = "Gói dịch vụ không tồn tại.";
+            TempData["ErrorMessage"] = "The service plan does not exist.";
             return RedirectToAction("Index");
         }
 

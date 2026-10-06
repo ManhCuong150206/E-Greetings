@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Gửi Phản Hồi - E-Greeting";
+    ViewData["Title"] = "Send Feedback - E-Greeting";
 }
 
 <div class="row justify-content-center my-4">
@@ -9,8 +9,8 @@
                 <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex p-3 mb-2">
                     <i class="bi bi-chat-heart-fill fs-2"></i>
                 </div>
-                <h3 class="fw-bold text-dark">Ý Kiến Phản Hồi</h3>
-                <p class="text-muted small">Hãy chia sẻ cảm nhận hoặc đóng góp ý kiến để giúp E-Greeting ngày càng hoàn thiện hơn!</p>
+                <h3 class="fw-bold text-dark">Feedback</h3>
+                <p class="text-muted small">Share your thoughts or suggestions to help E-Greeting get better and better!</p>
             </div>
 
             @if (TempData["SuccessMessage"] != null)
@@ -32,15 +32,15 @@
             <form asp-controller="Feedback" asp-action="SendFeedback" method="post">
                 <div class="mb-3">
                     <label for="content" class="form-label fw-semibold">
-                        <i class="bi bi-pencil-square me-1 text-primary"></i> Nội dung phản hồi <span class="text-danger">*</span>
+                        <i class="bi bi-pencil-square me-1 text-primary"></i> Feedback content <span class="text-danger">*</span>
                     </label>
                     <textarea id="content" name="content" class="form-control rounded-3" rows="5"
-                              placeholder="Nhập ý kiến đóng góp của bạn tại đây..." required></textarea>
+                              placeholder="Enter your feedback here..." required></textarea>
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
                     <button type="submit" class="btn btn-primary rounded-pill fw-semibold py-2 shadow-sm">
-                        <i class="bi bi-send-fill me-2"></i> Gửi phản hồi
+                        <i class="bi bi-send-fill me-2"></i> Send feedback
                     </button>
                 </div>
             </form>

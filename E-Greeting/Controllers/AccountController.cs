@@ -107,7 +107,7 @@ public class AccountController : Controller
     }
 
     // ==========================================
-    // MỤC 4: QUẢN LÝ THÔNG TIN CÁ NHÂN & ĐỔI MẬT KHẨU
+    // SECTION 4: PERSONAL INFORMATION MANAGEMENT & PASSWORD CHANGE
     // ==========================================
 
     [Authorize]
@@ -135,7 +135,7 @@ public class AccountController : Controller
         _context.Accounts.Update(account);
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Cập nhật thông tin cá nhân thành công!";
+        TempData["SuccessMessage"] = "Personal information updated successfully!";
         return RedirectToAction("Profile");
     }
 
@@ -148,7 +148,7 @@ public class AccountController : Controller
 
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
         {
-            TempData["ErrorMessage"] = "Mật khẩu mới và Mật khẩu xác nhận không trùng khớp!";
+            TempData["ErrorMessage"] = "The new password and the confirmation password do not match!";
             return RedirectToAction("Profile");
         }
 
@@ -157,7 +157,7 @@ public class AccountController : Controller
 
         if (account.Password != currentPassword)
         {
-            TempData["ErrorMessage"] = "Mật khẩu hiện tại không đúng!";
+            TempData["ErrorMessage"] = "The current password is incorrect!";
             return RedirectToAction("Profile");
         }
 
@@ -165,12 +165,12 @@ public class AccountController : Controller
         _context.Accounts.Update(account);
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+        TempData["SuccessMessage"] = "Password changed successfully!";
         return RedirectToAction("Profile");
     }
 
     // ==========================================
-    // QUÊN MẬT KHẨU (OTP QUA GMAIL)
+    // FORGOT PASSWORD (OTP VIA GMAIL)
     // ==========================================
 
     [HttpGet]
@@ -184,11 +184,11 @@ public class AccountController : Controller
         var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
         if (account == null)
         {
-            TempData["ErrorMessage"] = "Tài khoản không tồn tại.";
+            TempData["ErrorMessage"] = "Account does not exist.";
             return RedirectToAction("ForgotPassword");
         }
 
-        // Tạo OTP 6 số, lưu 5 phút
+        // Generate a 6-digit OTP, store for 5 minutes
         var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         _cache.Set(OtpKey(email), new OtpEntry { Code = otp }, TimeSpan.FromMinutes(5));
 
@@ -198,12 +198,12 @@ public class AccountController : Controller
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine("Gửi OTP lỗi: " + ex.Message + " | INNER: " + ex.InnerException?.Message);
-            TempData["ErrorMessage"] = "Không gửi được email, vui lòng thử lại sau.";
+            System.Diagnostics.Debug.WriteLine("Failed to send OTP: " + ex.Message + " | INNER: " + ex.InnerException?.Message);
+            TempData["ErrorMessage"] = "Unable to send email, please try again later.";
             return RedirectToAction("ForgotPassword");
         }
 
-        TempData["SuccessMessage"] = "Mã OTP đã được gửi tới email của bạn (hiệu lực 5 phút).";
+        TempData["SuccessMessage"] = "The OTP has been sent to your email (valid for 5 minutes).";
         return RedirectToAction("ResetPassword", new { email });
     }
 
@@ -215,7 +215,7 @@ public class AccountController : Controller
         return View();
     }
 
-    // Bước 1: kiểm tra OTP
+    // Step 1: verify OTP
     [HttpPost]
     public IActionResult VerifyOtp(string email, string otp)
     {
@@ -231,7 +231,7 @@ public class AccountController : Controller
         return View("ResetPassword");
     }
 
-    // Bước 2: đổi mật khẩu (kiểm tra lại OTP để không ai nhảy cóc bước 1)
+    // Step 2: change password (re-verify the OTP so nobody can skip step 1)
     [HttpPost]
     public async Task<IActionResult> ResetPassword(string email, string otp, string newPassword, string confirmPassword)
     {
@@ -243,7 +243,7 @@ public class AccountController : Controller
 
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
         {
-            TempData["ErrorMessage"] = "Mật khẩu xác nhận không khớp!";
+            TempData["ErrorMessage"] = "The confirmation password does not match!";
             ViewBag.Email = email;
             ViewBag.Otp = otp;
             ViewBag.Verified = true;
@@ -253,15 +253,15 @@ public class AccountController : Controller
         var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
         if (account == null)
         {
-            TempData["ErrorMessage"] = "Tài khoản không tồn tại.";
+            TempData["ErrorMessage"] = "Account does not exist.";
             return RedirectToAction("ForgotPassword");
         }
 
         account.Password = newPassword;
         await _context.SaveChangesAsync();
-        _cache.Remove(OtpKey(email)); // OTP dùng một lần
+        _cache.Remove(OtpKey(email)); // OTP is single-use
 
-        TempData["SuccessMessage"] = "Đổi mật khẩu thành công, hãy đăng nhập.";
+        TempData["SuccessMessage"] = "Password changed successfully, please login.";
         return RedirectToAction("Login");
     }
 
@@ -272,19 +272,19 @@ public class AccountController : Controller
         error = "";
         if (!_cache.TryGetValue(OtpKey(email), out OtpEntry? entry) || entry == null)
         {
-            error = "OTP đã hết hạn, vui lòng gửi lại mã mới.";
+            error = "The OTP has expired, please request a new code.";
             return false;
         }
         if (entry.Attempts >= 5)
         {
             _cache.Remove(OtpKey(email));
-            error = "Bạn nhập sai quá 5 lần, vui lòng gửi lại mã mới.";
+            error = "You entered the wrong code more than 5 times, please request a new code.";
             return false;
         }
         if (entry.Code != otp)
         {
             entry.Attempts++;
-            error = "OTP không đúng.";
+            error = "Incorrect OTP.";
             return false;
         }
         return true;
@@ -297,15 +297,15 @@ public class AccountController : Controller
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(_config["OtpMail:SenderName"] ?? "E-Greeting", senderEmail));
         message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Mã OTP đặt lại mật khẩu - E-Greeting";
+        message.Subject = "Password reset OTP - E-Greeting";
         message.Body = new BodyBuilder
         {
             HtmlBody = $@"
             <div style='font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:25px;border:1px solid #e2e8f0;border-radius:12px;text-align:center'>
                 <h2 style='color:#0d6efd;margin:0 0 10px'>E-Greeting</h2>
-                <p style='color:#334155'>Mã OTP đặt lại mật khẩu của bạn là:</p>
+                <p style='color:#334155'>Your password reset OTP is:</p>
                 <div style='font-size:36px;font-weight:bold;letter-spacing:10px;color:#0d6efd;margin:20px 0'>{otp}</div>
-                <p style='color:#64748b;font-size:14px'>Mã có hiệu lực trong 5 phút. Không chia sẻ mã này cho bất kỳ ai.</p>
+                <p style='color:#64748b;font-size:14px'>This code is valid for 5 minutes. Do not share this code with anyone.</p>
             </div>"
         }.ToMessageBody();
 
