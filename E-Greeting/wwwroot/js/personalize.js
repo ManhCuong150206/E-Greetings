@@ -65,7 +65,7 @@
                 inputActiveTextVal.value = textSpan.innerText || textSpan.textContent || "";
             }
 
-            const currentTextWidth = parseInt(element.style.width) || element.offsetWidth || 300;
+            const currentTextWidth = parseInt(element.style.width) || element.offsetWidth || 273;
             if (sliderTextWidth) sliderTextWidth.value = currentTextWidth;
             if (valTextWidth) valTextWidth.innerText = currentTextWidth + "px";
 
@@ -116,7 +116,7 @@
 
             document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(el => {
                 el.classList.remove("active");
-                el.style.border = "none";
+                el.style.border = "1px dashed rgba(13,110,253,0.5)";
             });
 
             element.classList.add("active");
@@ -289,12 +289,18 @@
         });
     }
 
+    // --- XỬ LÝ NÚT "THÊM VĂN BẢN" KHUNG CHUẨN RỘNG RÃI (273px x 110px) ---
     if (btnAddText) {
         btnAddText.addEventListener("click", function () {
+            document.querySelectorAll(".draggable-text-box, .draggable-element").forEach(item => {
+                item.classList.remove("active");
+                item.style.border = "1px dashed rgba(13,110,253,0.5)";
+            });
+
             const newDiv = document.createElement("div");
-            newDiv.className = "draggable-text-box position-absolute active p-2 rounded text-center";
-            newDiv.style.cssText = "top: 30px; left: 30px; width: 300px; color: #000000; font-family: Arial; font-size: 20px; z-index: 18; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4);";
-            newDiv.innerHTML = `<span class="text-content" style="white-space: pre-wrap; display: block;">Văn bản mới</span>`;
+            newDiv.className = "draggable-text-box position-absolute active p-2 rounded text-center d-flex align-items-center justify-content-center";
+            newDiv.style.cssText = "top: 35%; left: 15%; width: 273px; min-height: 110px; color: #000000; font-family: Arial; font-size: 18px; font-weight: bold; font-style: normal; z-index: 18; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4); box-sizing: border-box;";
+            newDiv.innerHTML = `<span class="text-content" style="white-space: pre-wrap; display: block; width: 100%;">Văn bản mới</span>`;
 
             cardArea.appendChild(newDiv);
             makeDraggable(newDiv);
@@ -311,6 +317,7 @@
                 activeElement = cardArea.querySelector(".draggable-text-box, .draggable-element");
                 if (activeElement) {
                     activeElement.classList.add("active");
+                    activeElement.style.border = "2px dashed #0d6efd";
                     syncControlsWithElement(activeElement);
                 } else {
                     if (inputActiveTextVal) inputActiveTextVal.value = "";
