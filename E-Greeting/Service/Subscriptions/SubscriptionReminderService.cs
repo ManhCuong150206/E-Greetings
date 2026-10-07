@@ -30,7 +30,7 @@ namespace E_Greeting.Service.Subscriptions
             _configuration = configuration;
         }
 
-        // --- HÀM TỰ ĐỘNG BẮT DOMAIN DANG RUN TRONG TERMINAL NGROK ---
+        // --- HÀM TỰ ĐỘNG BẮT DOMAIN ĐANG RUN TRONG TERMINAL NGROK ---
         private async Task<string> GetActiveNgrokDomainAsync()
         {
             try
@@ -86,7 +86,8 @@ namespace E_Greeting.Service.Subscriptions
                     string domain = await GetActiveNgrokDomainAsync();
                     domain = domain.TrimEnd('/');
 
-                    string subscriptionUrl = $"{domain}/Subscription";
+                    // 2. GẮN ĐƯỜNG DẪN TRỎ THẲNG VÀO TRANG LOGIN KÈM PARAM returnUrl=%2FSubscription
+                    string subscriptionUrl = $"{domain}/Account/Login?returnUrl=%2FSubscription";
 
                     foreach (var sub in expiringSubs)
                     {

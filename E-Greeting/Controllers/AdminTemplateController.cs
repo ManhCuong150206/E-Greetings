@@ -24,7 +24,7 @@ namespace E_Greeting.Controllers
             _environment = environment;
         }
 
-        // --- QUẢN LÝ TEMPLATE THEO CATEGORY ---
+        // --- MANAGE TEMPLATES BY CATEGORY ---
         [HttpGet("Admin/Templates")]
         public IActionResult Templates(int categoryId, string? searchName, string? isFree, string? isActive, int page = 1)
         {
@@ -76,7 +76,7 @@ namespace E_Greeting.Controllers
         public async Task<IActionResult> ToggleTemplateStatusAjax(int id)
         {
             var template = await _context.Templates.FindAsync(id);
-            if (template == null) return Json(new { success = false, message = "Không tìm thấy Template!" });
+            if (template == null) return Json(new { success = false, message = "Template not found!" });
 
             template.IsActive = !template.IsActive;
             _context.Templates.Update(template);
@@ -104,7 +104,7 @@ namespace E_Greeting.Controllers
         {
             if (string.IsNullOrWhiteSpace(name) || imageFile == null)
             {
-                TempData["ErrorMessage"] = "Vui lòng nhập tên Template và Upload Ảnh Bìa Thô!";
+                TempData["ErrorMessage"] = "Please enter Template Name and upload Raw Cover Image!";
                 return RedirectToAction(nameof(CreateTemplate), new { categoryId });
             }
 
@@ -171,7 +171,7 @@ namespace E_Greeting.Controllers
             _context.Templates.Add(template);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Tạo mẫu Template mới thành công!";
+            TempData["SuccessMessage"] = "Created new Template successfully!";
             return RedirectToAction(nameof(Templates), new { categoryId });
         }
 
@@ -284,7 +284,7 @@ namespace E_Greeting.Controllers
             _context.Templates.Update(template);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Cập nhật mẫu Template thành công!";
+            TempData["SuccessMessage"] = "Updated Template successfully!";
             return RedirectToAction(nameof(Templates), new { categoryId = template.CategoryId });
         }
     }

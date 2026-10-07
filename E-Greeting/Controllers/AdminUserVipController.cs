@@ -19,9 +19,16 @@ namespace E_Greeting.Controllers
             _context = context;
         }
 
-        // --- QUẢN LÝ USERS & GÓI VIP / LỊCH SỬ GIAO DỊCH ---
+        // --- MANAGE USERS & VIP PACKAGES / TRANSACTION HISTORY ---
         [HttpGet("Admin/Users")]
-        public async Task<IActionResult> Users(string? searchUser = null, string? searchTx = null, int? serviceId = null, string? status = null, string tab = "users")
+        public async Task<IActionResult> Users(
+            string? searchUser = null,
+            string? searchTx = null,
+            int? serviceId = null,
+            string? status = null,
+            string tab = "users",
+            int pageUser = 1,
+            int pageTx = 1)
         {
             var model = new UserManagementViewModel
             {
@@ -32,10 +39,12 @@ namespace E_Greeting.Controllers
                 SelectedStatus = status
             };
 
-            // 1. Lấy danh sách Gói Dịch Vụ
+            int pageSize = 10; // Maximum 10 rows per page
+
+            // 1. Retrieve Services List
             model.Services = await _context.Services.ToListAsync();
 
-            // 2. Lấy danh sách Accounts (chỉ lấy Role != ADMIN)
+            // 2. Process Users Query (Exclude ADMIN role)
             var usersQuery = _context.Accounts
                 .Where(a => a.Role != "ADMIN" && a.Role != "Admin")
                 .AsQueryable();
@@ -45,9 +54,18 @@ namespace E_Greeting.Controllers
                 usersQuery = usersQuery.Where(u => u.Name.Contains(searchUser) || u.Email.Contains(searchUser));
             }
 
-            var rawUsers = await usersQuery.OrderByDescending(u => u.Id).ToListAsync();
+            int totalUsersCount = await usersQuery.CountAsync();
+            int totalUserPages = (int)Math.Ceiling((double)totalUsersCount / pageSize);
+            pageUser = Math.Max(1, Math.Min(pageUser, Math.Max(1, totalUserPages)));
 
-            // Lấy danh sách Subscriptions Active (Sắp xếp Id giảm dần để luôn lấy Gói MỚI NHẤT)
+            // Sort Ascending by Id (Real DB Id from smallest to largest)
+            var rawUsers = await usersQuery
+                .OrderBy(u => u.Id)
+                .Skip((pageUser - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Retrieve Active Subscriptions
             var subscriptions = await _context.Subscriptions
                 .Include(s => s.Service)
                 .Where(s => s.IsActive == true)
@@ -61,9 +79,7 @@ namespace E_Greeting.Controllers
                 .ToDictionaryAsync(g => g.AccountId, g => g.Count);
 
             model.Users = rawUsers.Select(u => {
-                // Ưu tiên lấy gói cước Active mới nhất của user
                 var activeSub = subscriptions.FirstOrDefault(s => s.AccountId == u.Id);
-
                 DateTime? endDate = activeSub != null ? ConvertToNullableDateTime((object)activeSub.EndDate) : null;
 
                 return new AccountUserDto
@@ -73,13 +89,16 @@ namespace E_Greeting.Controllers
                     Email = u.Email,
                     Role = u.Role,
                     Status = u.Status,
-                    CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Miễn phí",
+                    CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free",
                     VipEndDate = endDate,
                     SentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
                 };
             }).ToList();
 
-            // 3. Lấy danh sách Lịch Sử Giao Dịch (Payment)
+            ViewBag.CurrentPageUser = pageUser;
+            ViewBag.TotalPagesUser = totalUserPages;
+
+            // 3. Process Transaction History (Payment) Query
             var txQuery = _context.Payments
                 .Include(p => p.Subscription)
                     .ThenInclude(s => s.Account)
@@ -103,7 +122,16 @@ namespace E_Greeting.Controllers
                     (p.Subscription.Account.Name.Contains(searchTx) || p.Subscription.Account.Email.Contains(searchTx))) || p.Id.ToString().Contains(searchTx));
             }
 
-            var rawTxList = await txQuery.OrderByDescending(p => p.Id).ToListAsync();
+            int totalTxCount = await txQuery.CountAsync();
+            int totalTxPages = (int)Math.Ceiling((double)totalTxCount / pageSize);
+            pageTx = Math.Max(1, Math.Min(pageTx, Math.Max(1, totalTxPages)));
+
+            // Sort Ascending by Id (Real DB Id from smallest to largest)
+            var rawTxList = await txQuery
+                .OrderBy(p => p.Id)
+                .Skip((pageTx - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             model.Transactions = rawTxList.Select(p => {
                 DateTime? subStart = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.StartDate) : null;
@@ -117,20 +145,23 @@ namespace E_Greeting.Controllers
                     UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "N/A",
                     UserEmail = p.Subscription?.Account != null ? p.Subscription.Account.Email : "N/A",
                     ServiceId = p.Subscription?.ServiceId ?? 0,
-                    ServiceName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Gói Trả Phí",
+                    ServiceName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Paid Package",
                     Amount = p.Amount,
                     PaymentDate = ConvertToDateTime(p.PaymentDate),
                     VipStartDate = subStart,
                     VipEndDate = subEnd,
-                    PaymentMethod = p.PaymentMethod ?? "VNPAY/Thẻ",
+                    PaymentMethod = p.PaymentMethod ?? "VNPAY/Card",
                     Status = p.Status ?? ""
                 };
             }).ToList();
 
+            ViewBag.CurrentPageTx = pageTx;
+            ViewBag.TotalPagesTx = totalTxPages;
+
             return View("~/Views/Admin/Users.cshtml", model);
         }
 
-        // Action khóa/mở khóa tài khoản
+        // Lock / Unlock User Account Action
         [HttpPost("Admin/ToggleUserStatus")]
         public async Task<IActionResult> ToggleUserStatus(int id)
         {
@@ -140,12 +171,12 @@ namespace E_Greeting.Controllers
                 account.Status = !account.Status;
                 _context.Accounts.Update(account);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Đã {(account.Status ? "kích hoạt" : "khóa")} tài khoản {account.Name}!";
+                TempData["SuccessMessage"] = $"{(account.Status ? "Activated" : "Locked")} account {account.Name} successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Action chỉnh sửa thông tin User
+        // Edit User Information Action
         [HttpPost("Admin/EditUser")]
         public async Task<IActionResult> EditUser(int id, string name, string email)
         {
@@ -156,12 +187,12 @@ namespace E_Greeting.Controllers
                 account.Email = email;
                 _context.Accounts.Update(account);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Cập nhật thông tin tài khoản thành công!";
+                TempData["SuccessMessage"] = "Updated user information successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Action cập nhật Gói dịch vụ
+        // Edit Service Package Action
         [HttpPost("Admin/EditService")]
         public async Task<IActionResult> EditService(int id, string name, decimal price, string features)
         {
@@ -173,12 +204,12 @@ namespace E_Greeting.Controllers
                 service.Features = features;
                 _context.Services.Update(service);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Cập nhật thông tin gói VIP thành công!";
+                TempData["SuccessMessage"] = "Updated VIP service package successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
 
-        // Action duyệt thủ công trạng thái thanh toán (ĐÃ DỰA TRÊN LOGIC CHUẨN TẮT GÓI CŨ)
+        // Manual Payment Approval Action
         [HttpPost("Admin/ApprovePayment")]
         public async Task<IActionResult> ApprovePayment(int paymentId)
         {
@@ -195,7 +226,7 @@ namespace E_Greeting.Controllers
                 {
                     int accountId = payment.Subscription.AccountId;
 
-                    // 1. TẮT TẤT CẢ GÓI CŨ ĐANG ACTIVE CỦA USER NÀY (Chuyển IsActive = false)
+                    // Deactivate older active subscriptions for this user
                     var oldActiveSubs = await _context.Subscriptions
                         .Where(s => s.AccountId == accountId && s.IsActive == true && s.Id != payment.SubscriptionId)
                         .ToListAsync();
@@ -206,13 +237,13 @@ namespace E_Greeting.Controllers
                         _context.Subscriptions.Update(oldSub);
                     }
 
-                    // 2. BẬT GÓI MỚI NÀY LÊN (IsActive = true)
+                    // Activate current subscription
                     payment.Subscription.IsActive = true;
                     _context.Subscriptions.Update(payment.Subscription);
                 }
 
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Đã duyệt thanh toán thành công cho đơn #{paymentId}!";
+                TempData["SuccessMessage"] = $"Approved payment successfully for invoice #{paymentId}!";
             }
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
