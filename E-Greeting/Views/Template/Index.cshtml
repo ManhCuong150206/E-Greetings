@@ -25,19 +25,18 @@
 <a asp-controller="Template" asp-action="Index" asp-route-keyword="@Model.Filter.Keyword" asp-route-categoryId="@Model.Filter.CategoryId" asp-route-isFree="false" asp-route-page="1">Premium</a>
 
 <div class="col-lg-1 text-end mt-2">
-    <!-- Đã sửa lồng thẻ button trong thẻ a -->
     <a asp-controller="Template" asp-action="Index" id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="reset-all">
         Reset All
     </a>
 </div>
 
-<h2>Template</h2>
+<h2>Templates</h2>
 @if (Model.Templates != null && Model.Templates.Any())
 {
     foreach (var template in Model.Templates)
     {
         <div>
-            <img src="@template.ImagePath" width="120" />
+            <img src="@template.ImagePath" width="120" alt="@template.Name" />
             <h3>@template.Name</h3>
             @if (template.IsFree)
             {
