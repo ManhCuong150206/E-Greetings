@@ -612,29 +612,29 @@
             const currentCount = container.querySelectorAll('.recipient-row').length;
 
             if (currentCount >= MAX_RECIPIENTS) {
-                alert(`You can only add up to ${MAX_RECIPIENTS} recipients per card!`);
+                showNoticeModal("Recipient Limit", `You can only add up to ${MAX_RECIPIENTS} recipients per card!`, false);
                 return;
             }
 
             const newRow = document.createElement('div');
             newRow.className = 'recipient-row mb-3 p-3 border rounded bg-light position-relative';
             newRow.innerHTML = `
-                                <div class="row align-items-center g-2">
-                                    <div class="col-md-5">
-                                        <label class="form-label small fw-bold text-secondary mb-1">Recipient Name (*):</label>
-                                        <input type="text" class="form-control recipient-name" placeholder="e.g. Jane Smith" required />
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small fw-bold text-secondary mb-1">Recipient Email (*):</label>
-                                        <input type="email" class="form-control recipient-email" placeholder="jane@example.com" required />
-                                    </div>
-                                    <div class="col-md-1 text-center pt-md-3">
-                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" title="Remove recipient" onclick="removeRecipientRow(this)">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
+                                        <div class="row align-items-center g-2">
+                                            <div class="col-md-5">
+                                                <label class="form-label small fw-bold text-secondary mb-1">Recipient Name (*):</label>
+                                                <input type="text" class="form-control recipient-name" placeholder="e.g. Jane Smith" required />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-bold text-secondary mb-1">Recipient Email (*):</label>
+                                                <input type="email" class="form-control recipient-email" placeholder="jane@example.com" required />
+                                            </div>
+                                            <div class="col-md-1 text-center pt-md-3">
+                                                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" title="Remove recipient" onclick="removeRecipientRow(this)">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
 
             container.appendChild(newRow);
             updateCounter();
@@ -660,7 +660,7 @@
                 scheduledInput.setAttribute("readonly", "readonly");
                 scheduledInput.style.cursor = "pointer";
 
-                scheduleWrapper.addEventListener("click", function (e) {
+                scheduleWrapper.addEventListener("click", function(e) {
                     e.preventDefault();
                     scheduledInput.blur();
                     showVipModal("Scheduled email delivery is a VIP exclusive feature. You need an active Pro Or Premium VIP subscription to schedule automated card deliveries!");
@@ -728,21 +728,21 @@
 
                     // Validation
                     if (!subject) {
-                        alert("Please enter the Email Subject!");
+                        showNoticeModal("Validation Error", "Please enter the Email Subject!", false);
                         document.getElementById("input-email-subject")?.focus();
                         return;
                     }
                     if (hasEmptyRecipient || recipientsData.length === 0) {
-                        alert("Please fill in both Name and Email for all recipients!");
+                        showNoticeModal("Validation Error", "Please fill in both Name and Email for all recipients!", false);
                         return;
                     }
                     if (!location) {
-                        alert("Please enter the Event Location / Venue!");
+                        showNoticeModal("Validation Error", "Please enter the Event Location / Venue!", false);
                         document.getElementById("input-event-address")?.focus();
                         return;
                     }
                     if (!eventTime) {
-                        alert("Please select the Event Time!");
+                        showNoticeModal("Validation Error", "Please select the Event Time!", false);
                         document.getElementById("input-event-time")?.focus();
                         return;
                     }
@@ -839,7 +839,7 @@
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     }).catch(err => {
                         console.error("html2canvas error:", err);
-                        alert("Could not generate card preview image. Please try again!");
+                        showNoticeModal("Preview Error", "Could not generate card preview image. Please try again!", false);
                     }).finally(() => {
                         btnToPreview.disabled = false;
                         btnToPreview.innerHTML = originalBtnHtml;
@@ -891,7 +891,7 @@
                     } else if (typeof handleSaveAndSend === 'function') {
                         handleSaveAndSend();
                     } else {
-                        alert("System is saving and delivering your cards...");
+                        showNoticeModal("Notification", "System is saving and delivering your cards...", true);
                     }
                 });
             }

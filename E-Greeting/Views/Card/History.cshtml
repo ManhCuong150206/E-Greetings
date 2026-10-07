@@ -315,6 +315,42 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- PAGINATION CONTROL -->
+            @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 1)
+            {
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-top gap-2 bg-light">
+                    <span class="text-secondary small">
+                        Showing page <strong>@ViewBag.CurrentPage</strong> of <strong>@ViewBag.TotalPages</strong> (Total <strong>@ViewBag.TotalItems</strong> cards)
+                    </span>
+
+                    <nav aria-label="History pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Previous -->
+                            <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("History", "Card", new { page = ViewBag.CurrentPage - 1, tab = ViewBag.ActiveTab })" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("History", "Card", new { page = i, tab = ViewBag.ActiveTab })">@i</a>
+                                </li>
+                            }
+
+                            <!-- Next -->
+                            <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("History", "Card", new { page = ViewBag.CurrentPage + 1, tab = ViewBag.ActiveTab })" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -323,7 +359,7 @@
 @section Scripts {
     <script>
         document.querySelectorAll('.parse-json-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const rawData = this.getAttribute('data-raw');
                 const targetModal = document.querySelector(this.getAttribute('data-bs-target'));
 

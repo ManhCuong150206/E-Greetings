@@ -155,6 +155,20 @@
         </main>
     </div>
 
+    <!-- GLOBAL NOTICE MODAL -->
+    <div class="modal fade" id="noticeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4 border-0 shadow rounded-4">
+                <div class="modal-body p-2">
+                    <div id="noticeIcon" class="mb-3"></div>
+                    <h5 id="noticeTitle" class="fw-bold text-dark mb-2"></h5>
+                    <p id="noticeMessage" class="text-secondary small mb-4"></p>
+                    <button type="button" class="btn btn-primary px-4 py-2 rounded-pill fw-bold" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer class="footer-custom pt-5">
         <div class="container pb-4">
@@ -205,6 +219,41 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- GLOBAL NOTICE MODAL SCRIPT -->
+    <script>
+            function showNoticeModal(title, message, isSuccess = true, redirectUrl = null) {
+                const modalEl = document.getElementById('noticeModal');
+                if (!modalEl) {
+                    alert(message);
+                    if (redirectUrl) window.location.href = redirectUrl;
+                    return;
+                }
+
+                document.getElementById('noticeTitle').innerText = title || (isSuccess ? "Success" : "Notification");
+                document.getElementById('noticeMessage').innerText = message;
+
+                const iconEl = document.getElementById('noticeIcon');
+                if (isSuccess) {
+                    iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success display-4"></i>';
+                } else {
+                    iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>';
+                }
+
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+                if (redirectUrl) {
+                    const handleClose = function () {
+                        window.location.href = redirectUrl;
+                        modalEl.removeEventListener('hidden.bs.modal', handleClose);
+                    };
+                    modalEl.addEventListener('hidden.bs.modal', handleClose);
+                }
+
+                modalInstance.show();
+            }
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
