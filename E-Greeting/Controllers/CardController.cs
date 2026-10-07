@@ -47,6 +47,8 @@ public class ReplyRequest
 [Authorize]
 public class CardController : Controller
 {
+    private static readonly HttpClient _httpClient = new();
+
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
@@ -90,7 +92,6 @@ public class CardController : Controller
         if (req == null)
             return Json(new { success = false, message = "Invalid payload data submitted!" });
 
-        // 1. Get current logged-in AccountId
         int? accountId = GetCurrentUserId();
         Account? account = null;
         if (accountId.HasValue)
@@ -98,7 +99,6 @@ public class CardController : Controller
             account = await _context.Accounts.FirstOrDefaultAsync(a => a.Id == accountId.Value);
         }
 
-        // 2. Validate recipients list
         var targetRecipients = new List<RecipientDto>();
         if (req.Recipients != null && req.Recipients.Any())
         {
@@ -114,7 +114,6 @@ public class CardController : Controller
             return Json(new { success = false, message = "Please provide at least one recipient email address!" });
         }
 
-        // Check VIP permission for multiple recipients
         bool isVipUser = false;
         if (accountId.HasValue)
         {
@@ -126,12 +125,10 @@ public class CardController : Controller
             return Json(new { success = false, message = "Sending to multiple recipients is a VIP exclusive feature! Please upgrade your plan." });
         }
 
-        // 3. Process & Save Base64 Image
         string? finalImagePath = SaveBase64Image(req.CardImageBase64)
                                ?? SaveBase64Image(req.ImagePath)
                                ?? req.ImagePath;
 
-        // 4. Flexible DateTime Parsing for Delivery Schedule
         DateTime? scheduledTime = null;
 
         if (!string.IsNullOrWhiteSpace(req.ScheduledAtStr))
@@ -165,7 +162,6 @@ public class CardController : Controller
             scheduledTime = req.ScheduledAt.Value;
         }
 
-        // Normalize time to Local
         if (scheduledTime.HasValue)
         {
             if (scheduledTime.Value.Kind == DateTimeKind.Utc)
@@ -176,7 +172,6 @@ public class CardController : Controller
             scheduledTime = DateTime.SpecifyKind(scheduledTime.Value, DateTimeKind.Unspecified);
         }
 
-        // 5. Evaluate Scheduled Time Condition
         bool isScheduledForFuture = false;
         DateTime now = DateTime.Now;
 
@@ -194,7 +189,6 @@ public class CardController : Controller
             isScheduledForFuture = true;
         }
 
-        // 6. Create SentCard Entities for all recipients
         var createdCards = new List<SentCard>();
 
         foreach (var recipient in targetRecipients)
@@ -235,10 +229,9 @@ public class CardController : Controller
 
         await _context.SaveChangesAsync();
 
-        // 7. Send Emails Immediately if not scheduled
         if (!isScheduledForFuture)
         {
-            string domain = _configuration["AppSettings:Domain"] ?? $"{Request.Scheme}://{Request.Host}";
+            string domain = await GetActiveNgrokDomainAsync();
             string senderName = account?.Name ?? User.Identity?.Name ?? "E-Greeting System";
 
             foreach (var card in createdCards)
@@ -255,7 +248,6 @@ public class CardController : Controller
             }
         }
 
-        // 8. Return JSON Response
         return Json(new
         {
             success = true,
@@ -286,6 +278,7 @@ public class CardController : Controller
             ViewBag.CardHtmlContent = "<div class='p-4 text-center text-muted'>Card does not exist or has been removed.</div>";
             ViewBag.OpenAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             ViewBag.ConfigData = "{}";
+            ViewBag.IsEventPassed = false;
 
             return NotFound("Card does not exist or has been removed.");
         }
@@ -314,6 +307,9 @@ public class CardController : Controller
 
         string configData = card.Template?.ConfigData ?? "{}";
 
+        // Check if the event date and time has passed
+        bool isEventPassed = IsEventPassed(card);
+
         ViewBag.CardId = card.Id;
         ViewBag.SenderEmail = card.SenderEmail ?? card.Account?.Email;
         ViewBag.RecipientEmail = card.RecipientEmail;
@@ -324,6 +320,7 @@ public class CardController : Controller
         ViewBag.OpenAt = card.OpenAt?.ToString("yyyy-MM-dd HH:mm");
         ViewBag.RecipientReply = card.RecipientReply;
         ViewBag.ConfigData = configData;
+        ViewBag.IsEventPassed = isEventPassed;
 
         return View(card);
     }
@@ -331,14 +328,28 @@ public class CardController : Controller
     // GET: /History OR /Card/History
     [HttpGet]
     [Route("History")]
-    public async Task<IActionResult> History(string tab = "cards")
+    public async Task<IActionResult> History(string tab = "cards", int page = 1)
     {
         int? accountId = GetCurrentUserId();
+        int pageSize = 10; // Giới hạn 10 thiệp mỗi trang
 
-        var sentCards = await _context.SentCards
+        // 1. Tạo query truy vấn thiệp của người dùng
+        var queryCards = _context.SentCards
             .Include(c => c.Template)
             .Where(c => c.AccountId == accountId)
-            .OrderByDescending(c => c.SentAt ?? c.ScheduledAt)
+            .OrderByDescending(c => c.SentAt ?? c.ScheduledAt);
+
+        // 2. Tính toán tổng số lượng thiệp và số trang
+        int totalItems = await queryCards.CountAsync();
+        int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+        if (totalPages < 1) totalPages = 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+
+        // 3. Phân trang dữ liệu thiệp (Skip/Take)
+        var sentCards = await queryCards
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         var userSubscriptions = await _context.Subscriptions
@@ -349,6 +360,9 @@ public class CardController : Controller
              .ToListAsync();
 
         ViewBag.ActiveTab = tab;
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = totalPages;
+        ViewBag.TotalItems = totalItems;
 
         var viewModel = new UserHistoryViewModel
         {
@@ -375,6 +389,12 @@ public class CardController : Controller
             return Json(new { success = false, message = "Card information not found!" });
         }
 
+        // Lock reply feature if the event time has passed
+        if (IsEventPassed(card))
+        {
+            return Json(new { success = false, message = "The event date has passed. You can no longer update your reply!" });
+        }
+
         string rawStatus = request.AttendanceStatus ?? "";
         string formattedStatus = rawStatus switch
         {
@@ -384,20 +404,94 @@ public class CardController : Controller
             _ => rawStatus
         };
 
+        // Lấy lời nhắn cũ từ DB (nếu có) để không bị mất khi người dùng chỉ đổi trạng thái
+        string existingMessage = "";
+        if (!string.IsNullOrEmpty(card.RecipientReply))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(card.RecipientReply);
+                if (doc.RootElement.TryGetProperty("Text", out var textProp))
+                {
+                    existingMessage = textProp.GetString() ?? "";
+                }
+            }
+            catch { }
+        }
+
+        // Ưu tiên lời nhắn mới nếu người dùng có nhập; nếu bỏ trống thì giữ nguyên lời nhắn cũ
+        string finalMessage = !string.IsNullOrWhiteSpace(request.ReplyMessage)
+            ? request.ReplyMessage
+            : existingMessage;
+
         var replyData = new
         {
             Status = formattedStatus,
-            Text = request.ReplyMessage ?? ""
+            RawStatus = rawStatus, // Include raw status for easy pre-filling of radio buttons on Frontend
+            Text = finalMessage,
+            UpdatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
         };
 
+        // Overwrite with the latest response
         card.RecipientReply = JsonSerializer.Serialize(replyData);
         _context.SentCards.Update(card);
         await _context.SaveChangesAsync();
 
-        return Json(new { success = true, message = "Reply submitted successfully!" });
+        return Json(new { success = true, message = "Reply updated successfully!" });
     }
 
     // --- HELPER METHODS ---
+
+    /// <summary>
+    /// Checks whether the exact event date & time stored in the Message property has passed relative to current time.
+    /// </summary>
+    private bool IsEventPassed(SentCard card)
+    {
+        if (string.IsNullOrWhiteSpace(card.Message)) return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(card.Message);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("eventTime", out var eventTimeProp))
+            {
+                string? eventTimeStr = eventTimeProp.GetString();
+                if (!string.IsNullOrWhiteSpace(eventTimeStr) && DateTime.TryParse(eventTimeStr, out DateTime eventDate))
+                {
+                    // So sánh chính xác ngày và giờ/phút hiện tại với thời gian sự kiện
+                    return DateTime.Now > eventDate;
+                }
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    private async Task<string> GetActiveNgrokDomainAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetStringAsync("http://127.0.0.1:4040/api/tunnels");
+            using var doc = JsonDocument.Parse(response);
+            var tunnels = doc.RootElement.GetProperty("tunnels");
+
+            foreach (var tunnel in tunnels.EnumerateArray())
+            {
+                string publicUrl = tunnel.GetProperty("public_url").GetString() ?? "";
+                if (publicUrl.StartsWith("https://"))
+                {
+                    return publicUrl;
+                }
+            }
+        }
+        catch { }
+
+        return _configuration["Domain"]
+            ?? _configuration["AppSettings:Domain"]
+            ?? (Request != null ? $"{Request.Scheme}://{Request.Host}" : "https://localhost:7130");
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)

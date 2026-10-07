@@ -35,7 +35,10 @@ public class HomeController : Controller
                 .ToListAsync();
         }
 
+        // Pass dynamic categories list to ViewBag for filter dropdown
+        ViewBag.Categories = await _context.Categories.ToListAsync();
         ViewBag.WishlistCardIds = wishlistedCardIds;
+
         return View(templates);
     }
 

@@ -4,305 +4,353 @@
     ViewData["Title"] = "Activity & Transaction History";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container mt-4 mb-5">
+    <!-- RESPONSIVE HEADER SECTION -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
         <div>
             <h3 class="fw-bold text-primary mb-1">
                 <i class="bi bi-clock-history me-2"></i>Activity & Transaction History
             </h3>
             <small class="text-muted">Manage your sent greeting card history and registered VIP service plans</small>
         </div>
-        <div>
-            <a href="/Home/Index" class="btn btn-primary fw-semibold me-2">
+        <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
+            <a href="/Home/" class="btn btn-primary fw-semibold me-2">
                 <i class="bi bi-plus-circle me-1"></i>Create New Card
-            </a>
-            <a href="/Subscription" class="btn btn-warning text-dark fw-bold">
-                <i class="bi bi-star-fill me-1"></i>Upgrade to VIP
             </a>
         </div>
     </div>
 
-    <!-- SENT CARDS LIST TABLE -->
-    <div class="card shadow-sm rounded-3 mt-3">
+    <!-- SENT CARDS LIST TABLE (WITH RESPONSIVE CONTAINER) -->
+    <div class="card shadow-sm rounded-3 mt-3 overflow-hidden">
         <div class="card-body p-0">
-            <table class="table table-hover table-striped align-middle mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th width="80" class="text-center">Image</th>
-                        <th>Card & Recipient Info</th>
-                        <th>Sent Time / Status</th>
-                        <th class="text-center">Opened Status</th>
-                        <th>Recipient Reply</th>
-                        <th class="text-center" width="100">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model?.SentCards != null && Model.SentCards.Any())
-                    {
-                        foreach (var item in Model.SentCards)
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-dark text-nowrap">
+                        <tr>
+                            <th width="70" class="text-center">Image</th>
+                            <th>Card & Recipient Info</th>
+                            <th>Sent Time / Status</th>
+                            <th class="text-center">Opened Status</th>
+                            <th>Recipient Reply</th>
+                            <th class="text-center" width="100">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model?.SentCards != null && Model.SentCards.Any())
                         {
-                            // EXTRACT DATA VIA REFLECTION
-                            var props = item.GetType().GetProperties();
-                            string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
-                            string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
-                            string rawMessage = props.FirstOrDefault(p => p.Name.Equals("Message", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
-                            string imagePath = props.FirstOrDefault(p => p.Name.Equals("ImagePath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? item.Template?.ImagePath ?? "";
-                            string audioPath = props.FirstOrDefault(p => p.Name.Equals("AudioPath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
-                            string rawReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
-
-                            DateTime? sentAt = props.FirstOrDefault(p => p.Name.Equals("SentAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
-                            DateTime? scheduledAt = props.FirstOrDefault(p => p.Name.Equals("ScheduledAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
-                            DateTime? openAt = props.FirstOrDefault(p => p.Name.Equals("OpenAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
-
-                            bool isVip = item.Template != null && !item.Template.IsFree;
-
-                            // PARSE RECIPIENT REPLY JSON
-                            string replyStatus = "";
-                            string replyText = "";
-                            if (!string.IsNullOrWhiteSpace(rawReply))
+                            foreach (var item in Model.SentCards)
                             {
-                                try
+                                // EXTRACT DATA VIA REFLECTION
+                                var props = item.GetType().GetProperties();
+                                string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
+                                string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                                string rawMessage = props.FirstOrDefault(p => p.Name.Equals("Message", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                                string imagePath = props.FirstOrDefault(p => p.Name.Equals("ImagePath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? item.Template?.ImagePath ?? "";
+                                string audioPath = props.FirstOrDefault(p => p.Name.Equals("AudioPath", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+                                string rawReply = props.FirstOrDefault(p => p.Name.Equals("RecipientReply", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
+
+                                DateTime? sentAt = props.FirstOrDefault(p => p.Name.Equals("SentAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                                DateTime? scheduledAt = props.FirstOrDefault(p => p.Name.Equals("ScheduledAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+                                DateTime? openAt = props.FirstOrDefault(p => p.Name.Equals("OpenAt", StringComparison.OrdinalIgnoreCase))?.GetValue(item) as DateTime?;
+
+                                bool isVip = item.Template != null && !item.Template.IsFree;
+
+                                // PARSE RECIPIENT REPLY JSON
+                                string replyStatus = "";
+                                string replyText = "";
+                                if (!string.IsNullOrWhiteSpace(rawReply))
                                 {
-                                    using var replyDoc = System.Text.Json.JsonDocument.Parse(rawReply);
-                                    var root = replyDoc.RootElement;
-                                    if (root.TryGetProperty("Status", out var statusProp)) { replyStatus = statusProp.GetString() ?? ""; }
-                                    else if (root.TryGetProperty("status", out var statusProp2)) { replyStatus = statusProp2.GetString() ?? ""; }
-
-                                    if (root.TryGetProperty("Text", out var textProp)) { replyText = textProp.GetString() ?? ""; }
-                                    else if (root.TryGetProperty("text", out var textProp2)) { replyText = textProp2.GetString() ?? ""; }
-                                }
-                                catch
-                                {
-                                    replyStatus = rawReply;
-                                }
-                            }
-
-                            <tr>
-                                <!-- 1. CARD COVER COLUMN -->
-                                <td class="text-center p-2">
-                                    @if (!string.IsNullOrWhiteSpace(imagePath))
+                                    try
                                     {
-                                        <img src="@imagePath" class="rounded border shadow-sm" style="width: 55px; height: 55px; object-fit: cover;" alt="Card cover" />
-                                    }
-                                    else
-                                    {
-                                        <div class="bg-light rounded border d-flex align-items-center justify-content-center mx-auto" style="width: 55px; height: 55px;">
-                                            <i class="bi bi-image text-muted fs-4"></i>
-                                        </div>
-                                    }
-                                </td>
+                                        using var replyDoc = System.Text.Json.JsonDocument.Parse(rawReply);
+                                        var root = replyDoc.RootElement;
+                                        if (root.TryGetProperty("Status", out var statusProp)) { replyStatus = statusProp.GetString() ?? ""; }
+                                        else if (root.TryGetProperty("status", out var statusProp2)) { replyStatus = statusProp2.GetString() ?? ""; }
 
-                                <!-- 2. CARD & RECIPIENT INFO -->
-                                <td>
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") shadow-sm">
-                                            <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
-                                            @(item.Template?.Name ?? "Card Template")
-                                        </span>
-                                        @if (!string.IsNullOrWhiteSpace(subjectVal))
+                                        if (root.TryGetProperty("Text", out var textProp)) { replyText = textProp.GetString() ?? ""; }
+                                        else if (root.TryGetProperty("text", out var textProp2)) { replyText = textProp2.GetString() ?? ""; }
+                                    }
+                                    catch
+                                    {
+                                        replyStatus = rawReply;
+                                    }
+                                }
+
+                                <tr>
+                                    <!-- 1. CARD COVER COLUMN -->
+                                    <td class="text-center p-2">
+                                        @if (!string.IsNullOrWhiteSpace(imagePath))
                                         {
-                                            <span class="fw-bold text-dark">@subjectVal</span>
+                                            <img src="@imagePath" class="rounded border shadow-sm" style="width: 50px; height: 50px; object-fit: cover;" alt="Card cover" />
                                         }
-                                    </div>
-                                    <div class="text-muted small">
-                                        <i class="bi bi-envelope me-1"></i>@recipientEmail
-                                    </div>
-                                </td>
+                                        else
+                                        {
+                                            <div class="bg-light rounded border d-flex align-items-center justify-content-center mx-auto" style="width: 50px; height: 50px;">
+                                                <i class="bi bi-image text-muted fs-4"></i>
+                                            </div>
+                                        }
+                                    </td>
 
-                                <!-- 3. SENT TIME / SCHEDULED -->
-                                <td>
-                                    @if (sentAt.HasValue)
-                                    {
-                                        <div>
-                                            <span class="badge bg-success mb-1">
-                                                <i class="bi bi-check-circle-fill me-1"></i>Sent
+                                    <!-- 2. CARD & RECIPIENT INFO -->
+                                    <td style="min-width: 220px;">
+                                        <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                                            <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") shadow-sm text-nowrap">
+                                                <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
+                                                @(item.Template?.Name ?? "Card Template")
                                             </span>
+                                            @if (!string.IsNullOrWhiteSpace(subjectVal))
+                                            {
+                                                <span class="fw-bold text-dark text-break">@subjectVal</span>
+                                            }
                                         </div>
-                                        <small class="fw-semibold text-dark d-block">
-                                            <i class="bi bi-calendar-check me-1 text-muted"></i>@sentAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                        </small>
-                                    }
-                                    else if (scheduledAt.HasValue)
-                                    {
-                                        if (scheduledAt.Value > DateTime.Now)
+                                        <div class="text-muted small text-break">
+                                            <i class="bi bi-envelope me-1"></i>@recipientEmail
+                                        </div>
+                                    </td>
+
+                                    <!-- 3. SENT TIME / SCHEDULED -->
+                                    <td class="text-nowrap" style="min-width: 150px;">
+                                        @if (sentAt.HasValue)
                                         {
                                             <div>
-                                                <span class="badge text-white mb-1" style="background-color: #6f42c1;">
-                                                    <i class="bi bi-clock-history me-1"></i>Scheduled
+                                                <span class="badge bg-success mb-1">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Sent
                                                 </span>
                                             </div>
                                             <small class="fw-semibold text-dark d-block">
-                                                <i class="bi bi-calendar-event me-1 text-muted"></i>@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                                <i class="bi bi-calendar-check me-1 text-muted"></i>@sentAt.Value.ToString("dd/MM/yyyy HH:mm")
                                             </small>
+                                        }
+                                        else if (scheduledAt.HasValue)
+                                        {
+                                            if (scheduledAt.Value > DateTime.Now)
+                                            {
+                                                <div>
+                                                    <span class="badge text-white mb-1" style="background-color: #6f42c1;">
+                                                        <i class="bi bi-clock-history me-1"></i>Scheduled
+                                                    </span>
+                                                </div>
+                                                <small class="fw-semibold text-dark d-block">
+                                                    <i class="bi bi-calendar-event me-1 text-muted"></i>@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <div>
+                                                    <span class="badge bg-warning text-dark mb-1">
+                                                        <i class="bi bi-hourglass-split me-1"></i>Processing...
+                                                    </span>
+                                                </div>
+                                                <small class="text-muted d-block">In sending queue</small>
+                                            }
                                         }
                                         else
                                         {
                                             <div>
-                                                <span class="badge bg-warning text-dark mb-1">
-                                                    <i class="bi bi-hourglass-split me-1"></i>Processing...
+                                                <span class="badge bg-secondary opacity-75 mb-1">
+                                                    <i class="bi bi-dash-circle me-1"></i>Pending
                                                 </span>
                                             </div>
-                                            <small class="text-muted d-block">In sending queue</small>
+                                            <small class="text-muted d-block">Not initialized</small>
                                         }
-                                    }
-                                    else
-                                    {
-                                        <div>
-                                            <span class="badge bg-secondary opacity-75 mb-1">
-                                                <i class="bi bi-dash-circle me-1"></i>Pending
+                                    </td>
+
+                                    <!-- 4. OPENED STATUS -->
+                                    <td class="text-center text-nowrap" style="min-width: 140px;">
+                                        @if (openAt.HasValue)
+                                        {
+                                            <span class="badge bg-info text-dark border px-2 py-1">
+                                                <i class="bi bi-envelope-open me-1"></i>@openAt.Value.ToString("dd/MM/yyyy HH:mm")
                                             </span>
-                                        </div>
-                                        <small class="text-muted d-block">Not initialized</small>
-                                    }
-                                </td>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary opacity-75">Not opened</span>
+                                        }
+                                    </td>
 
-                                <!-- 4. OPENED STATUS -->
-                                <td class="text-center">
-                                    @if (openAt.HasValue)
-                                    {
-                                        <span class="badge bg-info text-dark border px-2 py-1">
-                                            <i class="bi bi-envelope-open me-1"></i>@openAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary opacity-75">Not opened</span>
-                                    }
-                                </td>
-
-                                <!-- 5. RECIPIENT REPLY -->
-                                <td>
-                                    @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
-                                    {
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            @if (!string.IsNullOrWhiteSpace(replyStatus))
-                                            {
-                                                if (replyStatus.Contains("Attending", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
+                                    <!-- 5. RECIPIENT REPLY -->
+                                    <td style="min-width: 180px;">
+                                        @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
+                                        {
+                                            <div class="d-flex flex-column align-items-start gap-1">
+                                                @if (!string.IsNullOrWhiteSpace(replyStatus))
                                                 {
-                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Attending</span>
-                                                }
-                                                else if (replyStatus.Contains("Maybe", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
-                                                {
-                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Maybe</span>
-                                                }
-                                                else if (replyStatus.Contains("Cannot", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
-                                                {
-                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Cannot attend</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-primary">@replyStatus</span>
-                                                }
-                                            }
-
-                                            @if (!string.IsNullOrWhiteSpace(replyText))
-                                            {
-                                                <div class="p-1 px-2 bg-light border rounded text-dark small w-100" style="max-width: 200px;">
-                                                    <i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyText"
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted fst-italic">No reply yet</span>
-                                    }
-                                </td>
-
-                                <!-- 6. VIEW DETAILS BUTTON (MODAL POPUP) -->
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalCard-@item.Id"
-                                            data-raw="@rawMessage"
-                                            data-email="@recipientEmail"
-                                            data-subject="@subjectVal"
-                                            data-img="@imagePath"
-                                            data-audio="@audioPath">
-                                        <i class="bi bi-eye me-1"></i> View
-                                    </button>
-
-                                    <!-- CARD DETAILS MODAL POPUP -->
-                                    <div class="modal fade" id="modalCard-@item.Id" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-lg modal-dialog-centered">
-                                            <div class="modal-content text-start">
-                                                <div class="modal-header bg-primary text-white py-2">
-                                                    <h5 class="modal-title fs-6 fw-bold">
-                                                        <i class="bi bi-file-earmark-text me-2"></i>Details for Card #@item.Id
-                                                    </h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body p-4">
-                                                    <!-- CARD COVER -->
-                                                    @if (!string.IsNullOrWhiteSpace(imagePath))
+                                                    if (replyStatus.Contains("Attending", StringComparison.OrdinalIgnoreCase) ||
+                                                        replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) ||
+                                                        (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
                                                     {
-                                                        <div class="text-center mb-3">
-                                                            <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Selected Card Cover Image:</label>
-                                                            <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Card cover" />
-                                                        </div>
+                                                        <span class="badge bg-success text-white px-2 py-1 fw-bold text-nowrap">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>Attending
+                                                        </span>
                                                     }
-
-                                                    <!-- BACKGROUND MUSIC -->
-                                                    @if (!string.IsNullOrWhiteSpace(audioPath))
+                                                    else if (replyStatus.Contains("Undecided", StringComparison.OrdinalIgnoreCase) ||
+                                                             replyStatus.Contains("Maybe", StringComparison.OrdinalIgnoreCase) ||
+                                                             replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
                                                     {
-                                                        <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
-                                                            <h6 class="fw-bold text-primary mb-2">
-                                                                <i class="bi bi-music-note-beamed me-1"></i>Background music included:
+                                                        <span class="badge text-white px-2 py-1 fw-bold text-nowrap" style="background-color: #f39c12;">
+                                                            <i class="bi bi-question-circle-fill me-1"></i>Undecided
+                                                        </span>
+                                                    }
+                                                    else if (replyStatus.Contains("Unable", StringComparison.OrdinalIgnoreCase) ||
+                                                             replyStatus.Contains("Cannot", StringComparison.OrdinalIgnoreCase) ||
+                                                             replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                    {
+                                                        <span class="badge bg-danger text-white px-2 py-1 fw-bold text-nowrap">
+                                                            <i class="bi bi-x-circle-fill me-1"></i>Unable to attend
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary text-white px-2 py-1 fw-bold text-nowrap">@replyStatus</span>
+                                                    }
+                                                }
+
+                                                @if (!string.IsNullOrWhiteSpace(replyText))
+                                                {
+                                                    <div class="p-1 px-2 bg-light border rounded text-dark small w-100 mt-1" style="max-width: 220px;">
+                                                        <i class="bi bi-chat-quote-fill text-primary me-1"></i>"@replyText"
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">No reply yet</span>
+                                        }
+                                    </td>
+
+                                    <!-- 6. VIEW DETAILS BUTTON (MODAL POPUP) -->
+                                    <td class="text-center text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalCard-@item.Id"
+                                                data-raw="@rawMessage"
+                                                data-email="@recipientEmail"
+                                                data-subject="@subjectVal"
+                                                data-img="@imagePath"
+                                                data-audio="@audioPath">
+                                            <i class="bi bi-eye me-1"></i> View
+                                        </button>
+
+                                        <!-- CARD DETAILS MODAL POPUP (RESPONSIVE) -->
+                                        <div class="modal fade" id="modalCard-@item.Id" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-sm-down">
+                                                <div class="modal-content text-start">
+                                                    <div class="modal-header bg-primary text-white py-2">
+                                                        <h5 class="modal-title fs-6 fw-bold">
+                                                            <i class="bi bi-file-earmark-text me-2"></i>Details for Card #@item.Id
+                                                        </h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body p-3 p-md-4">
+                                                        <!-- CARD COVER -->
+                                                        @if (!string.IsNullOrWhiteSpace(imagePath))
+                                                        {
+                                                            <div class="text-center mb-3">
+                                                                <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Selected Card Cover Image:</label>
+                                                                <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 220px; object-fit: contain;" alt="Card cover" />
+                                                            </div>
+                                                        }
+
+                                                        <!-- BACKGROUND MUSIC -->
+                                                        @if (!string.IsNullOrWhiteSpace(audioPath))
+                                                        {
+                                                            <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
+                                                                <h6 class="fw-bold text-primary mb-2">
+                                                                    <i class="bi bi-music-note-beamed me-1"></i>Background music included:
+                                                                </h6>
+                                                                <audio controls class="w-100">
+                                                                    <source src="@audioPath" type="audio/mpeg">
+                                                                    Your browser does not support the audio element.
+                                                                </audio>
+                                                            </div>
+                                                        }
+
+                                                        <!-- CARD CONTENT FORM DETAILS -->
+                                                        <div class="border rounded-3 p-3 bg-light shadow-sm">
+                                                            <h6 class="fw-bold text-primary mb-3">
+                                                                <i class="bi bi-journal-text me-1"></i>Detailed Card Information:
                                                             </h6>
-                                                            <audio controls class="w-100">
-                                                                <source src="@audioPath" type="audio/mpeg">
-                                                                Your browser does not support the audio element.
-                                                            </audio>
-                                                        </div>
-                                                    }
-
-                                                    <!-- CARD CONTENT FORM DETAILS -->
-                                                    <div class="border rounded-3 p-3 bg-light shadow-sm">
-                                                        <h6 class="fw-bold text-primary mb-3">
-                                                            <i class="bi bi-journal-text me-1"></i>Detailed Card Information:
-                                                        </h6>
-                                                        <div class="row g-3">
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Recipient Name (*):</label>
-                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-name" readonly />
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Event Time (*):</label>
-                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-time" readonly />
-                                                            </div>
-                                                            <div class="col-12">
-                                                                <label class="form-label fw-bold small text-dark">Event Address / Location (*):</label>
-                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-address" readonly />
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Recipient Email (*):</label>
-                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-email" value="@recipientEmail" readonly />
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Email Subject:</label>
-                                                                <input type="text" class="form-control form-control-sm bg-white modal-field-subject" value="@subjectVal" readonly />
+                                                            <div class="row g-3">
+                                                                <div class="col-12 col-md-6">
+                                                                    <label class="form-label fw-bold small text-dark">Recipient Name (*):</label>
+                                                                    <input type="text" class="form-control form-control-sm bg-white modal-field-name" readonly />
+                                                                </div>
+                                                                <div class="col-12 col-md-6">
+                                                                    <label class="form-label fw-bold small text-dark">Event Time (*):</label>
+                                                                    <input type="text" class="form-control form-control-sm bg-white modal-field-time" readonly />
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <label class="form-label fw-bold small text-dark">Event Address / Location (*):</label>
+                                                                    <input type="text" class="form-control form-control-sm bg-white modal-field-address" readonly />
+                                                                </div>
+                                                                <div class="col-12 col-md-6">
+                                                                    <label class="form-label fw-bold small text-dark">Recipient Email (*):</label>
+                                                                    <input type="text" class="form-control form-control-sm bg-white modal-field-email" value="@recipientEmail" readonly />
+                                                                </div>
+                                                                <div class="col-12 col-md-6">
+                                                                    <label class="form-label fw-bold small text-dark">Email Subject:</label>
+                                                                    <input type="text" class="form-control form-control-sm bg-white modal-field-subject" value="@subjectVal" readonly />
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="modal-footer py-2">
-                                                    <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Close</button>
+                                                    <div class="modal-footer py-2">
+                                                        <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Close</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </td>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">You haven't sent any cards yet.</td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">You haven't sent any cards yet.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION CONTROL -->
+            @if (ViewBag.TotalPages != null && ViewBag.TotalPages > 1)
+            {
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-top gap-2 bg-light">
+                    <span class="text-secondary small">
+                        Showing page <strong>@ViewBag.CurrentPage</strong> of <strong>@ViewBag.TotalPages</strong> (Total <strong>@ViewBag.TotalItems</strong> cards)
+                    </span>
+
+                    <nav aria-label="History pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Previous -->
+                            <li class="page-item @(ViewBag.CurrentPage <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("History", "Card", new { page = ViewBag.CurrentPage - 1, tab = ViewBag.ActiveTab })" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            <!-- Page Numbers -->
+                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("History", "Card", new { page = i, tab = ViewBag.ActiveTab })">@i</a>
+                                </li>
+                            }
+
+                            <!-- Next -->
+                            <li class="page-item @(ViewBag.CurrentPage >= ViewBag.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("History", "Card", new { page = ViewBag.CurrentPage + 1, tab = ViewBag.ActiveTab })" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -311,7 +359,7 @@
 @section Scripts {
     <script>
         document.querySelectorAll('.parse-json-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const rawData = this.getAttribute('data-raw');
                 const targetModal = document.querySelector(this.getAttribute('data-bs-target'));
 

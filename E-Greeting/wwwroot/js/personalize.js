@@ -550,10 +550,21 @@ async function saveAndSendCard() {
         const result = await response.json();
 
         if (result.success) {
-            alert(result.message);
-            window.location.href = result.redirectUrl || '/History';
+            const redirectTarget = result.redirectUrl || '/History';
+            if (typeof showNoticeModal === 'function') {
+                const modalTitle = payload.scheduledAt ? "Delivery Scheduled" : "Card Sent";
+                showNoticeModal(modalTitle, result.message, true, redirectTarget);
+            } else {
+                alert(result.message);
+                window.location.href = redirectTarget;
+            }
         } else {
-            alert(result.message || "An error occurred while saving the card!");
+            const errorMsg = result.message || "An error occurred while saving the card!";
+            if (typeof showNoticeModal === 'function') {
+                showNoticeModal("Error", errorMsg, false);
+            } else {
+                alert(errorMsg);
+            }
             if (btnSend) {
                 btnSend.disabled = false;
                 updateSendButtonText();
@@ -561,7 +572,11 @@ async function saveAndSendCard() {
         }
     } catch (error) {
         console.error("Error sending card:", error);
-        alert("A server connection error occurred!");
+        if (typeof showNoticeModal === 'function') {
+            showNoticeModal("System Error", "A server connection error occurred!", false);
+        } else {
+            alert("A server connection error occurred!");
+        }
         if (btnSend) {
             btnSend.disabled = false;
             updateSendButtonText();
