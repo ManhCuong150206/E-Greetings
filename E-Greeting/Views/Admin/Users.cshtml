@@ -3,20 +3,39 @@
     ViewData["Title"] = "Manage Users & VIP Packages";
 }
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 position-relative">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-primary mb-0">
             <i class="bi bi-people-fill me-2"></i>Manage User Accounts & VIP Packages
         </h3>
     </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+    <!-- TOAST NOTIFICATION CONTAINER (FLOATING IN THE CENTER) -->
+    <div class="toast-container position-fixed top-50 start-50 translate-middle p-3" style="z-index: 1090;">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div id="centerToastSuccess" class="toast align-items-center text-white bg-success border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+                <div class="d-flex">
+                    <div class="toast-body fs-6 py-3 px-4">
+                        <i class="bi bi-check-circle-fill me-2 fs-5 align-middle"></i>@TempData["SuccessMessage"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div id="centerToastError" class="toast align-items-center text-white bg-danger border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                <div class="d-flex">
+                    <div class="toast-body fs-6 py-3 px-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5 align-middle"></i>@TempData["ErrorMessage"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+    </div>
 
     <!-- MAIN TABS -->
     <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded border" id="userManagementTabs" role="tablist">
@@ -64,7 +83,7 @@
                                     <th>Current VIP Package</th>
                                     <th>Sent Cards</th>
                                     <th>Status</th>
-                                    <th class="text-end me-3" width="180">Actions</th>
+                                    <th class="text-end me-3" width="160">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -77,7 +96,7 @@
                                             <td class="fw-bold text-dark">@u.Name</td>
                                             <td>@u.Email</td>
                                             <td>
-                                                @if (u.CurrentVipPackage != "Free" && u.CurrentVipPackage != "Miễn phí")
+                                                @if (u.CurrentVipPackage != "Free" && u.CurrentVipPackage != "Miễn phí" && u.CurrentVipPackage != "Free Package")
                                                 {
                                                     <span class="badge bg-success">@u.CurrentVipPackage</span>
                                                 }
@@ -405,6 +424,19 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // SHOW FLOATING CENTER TOAST AUTOMATICALLY IF TEMP DATA EXISTS
+            const toastSuccessEl = document.getElementById('centerToastSuccess');
+            if (toastSuccessEl) {
+                const toastSuccess = new bootstrap.Toast(toastSuccessEl);
+                toastSuccess.show();
+            }
+
+            const toastErrorEl = document.getElementById('centerToastError');
+            if (toastErrorEl) {
+                const toastError = new bootstrap.Toast(toastErrorEl);
+                toastError.show();
+            }
+
             // 1. User Search Auto-Submit with Debounce
             const userSearchInput = document.getElementById('searchUserInput');
             const userSearchForm = document.getElementById('userSearchForm');

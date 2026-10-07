@@ -25,9 +25,9 @@
                         <th width="70" class="text-center">No.</th>
                         <th>Used Card Template</th>
                         <th>Recipient Email</th>
-                        <th>Sent Time / Schedule</th>
+                        <th>Sent Time / Status</th>
                         <th class="text-center">Opened Time</th>
-                        <th>Recipient RSVP Reply</th>
+                        <th>Recipient Reply</th>
                         <th class="text-center" width="130">Actions</th>
                     </tr>
                 </thead>
@@ -92,21 +92,54 @@
                                     </span>
                                 </td>
                                 <td class="fw-semibold text-primary">@recipientEmail</td>
+                                
+                                <!-- SENT TIME / STATUS COLUMN WITH UPDATED STATUS BADGES -->
                                 <td>
-                                    @if (scheduledAt.HasValue)
+                                    @if (sentAt.HasValue)
                                     {
-                                        <div><span class="badge text-white mb-1" style="background-color: #6f42c1;"><i class="bi bi-clock me-1"></i>Scheduled</span></div>
-                                        <small class="fw-semibold text-dark">@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                        <div>
+                                            <span class="badge bg-success mb-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Sent
+                                            </span>
+                                        </div>
+                                        <small class="fw-semibold text-dark d-block">
+                                            <i class="bi bi-calendar-check me-1 text-muted"></i>@sentAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
                                     }
-                                    else if (sentAt.HasValue)
+                                    else if (scheduledAt.HasValue)
                                     {
-                                        <span class="fw-semibold text-dark">@sentAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                        if (scheduledAt.Value > DateTime.Now)
+                                        {
+                                            <div>
+                                                <span class="badge text-white mb-1" style="background-color: #6f42c1;">
+                                                    <i class="bi bi-clock-history me-1"></i>Scheduled
+                                                </span>
+                                            </div>
+                                            <small class="fw-semibold text-dark d-block">
+                                                <i class="bi bi-calendar-event me-1 text-muted"></i>@scheduledAt.Value.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <div>
+                                                <span class="badge bg-warning text-dark mb-1">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Processing...
+                                                </span>
+                                            </div>
+                                            <small class="text-muted d-block">In sending queue</small>
+                                        }
                                     }
                                     else
                                     {
-                                        <span class="text-muted">Pending...</span>
+                                        <div>
+                                            <span class="badge bg-secondary opacity-75 mb-1">
+                                                <i class="bi bi-dash-circle me-1"></i>Pending
+                                            </span>
+                                        </div>
+                                        <small class="text-muted d-block">Not initialized</small>
                                     }
                                 </td>
+
                                 <td class="text-center">
                                     @if (openAt.HasValue)
                                     {
@@ -119,23 +152,25 @@
                                         <span class="badge bg-secondary opacity-75">Unopened</span>
                                     }
                                 </td>
+
+                                <!-- RECIPIENT REPLY COLUMN MATCHING USER VIEW EXACTLY -->
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
                                     {
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             @if (!string.IsNullOrWhiteSpace(replyStatus))
                                             {
-                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Attending", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
+                                                if (replyStatus.Contains("Attending", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
                                                 {
-                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Will Attend</span>
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Attending</span>
                                                 }
-                                                else if (replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Maybe", StringComparison.OrdinalIgnoreCase))
+                                                else if (replyStatus.Contains("Maybe", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Undecided", StringComparison.OrdinalIgnoreCase))
                                                 {
                                                     <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Undecided</span>
                                                 }
-                                                else if (replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Decline", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Cannot", StringComparison.OrdinalIgnoreCase))
+                                                else if (replyStatus.Contains("Cannot", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Decline", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Unable to attend", StringComparison.OrdinalIgnoreCase))
                                                 {
-                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Cannot Attend</span>
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Unable to attend</span>
                                                 }
                                                 else
                                                 {
@@ -156,8 +191,10 @@
                                         <span class="text-muted fst-italic">No reply yet</span>
                                     }
                                 </td>
+
+                                <!-- ACTION BUTTON MATCHING USER VIEW HOVER & STYLING -->
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-primary fw-semibold rounded-pill parse-json-btn"
+                                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modalCard-@item.Id"
                                             data-raw="@rawMessage"
