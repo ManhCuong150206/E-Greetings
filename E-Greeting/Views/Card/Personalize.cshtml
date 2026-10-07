@@ -147,12 +147,10 @@
                                         <input type="email" class="form-control recipient-email" placeholder="john@example.com" required />
                                     </div>
                                     <div class="col-md-1 text-center pt-md-3">
-                                        @if (isVip)
-                                        {
-                                            <button type="button" class="btn btn-primary rounded-circle shadow-sm" title="Add recipient (+)" onclick="addRecipientRow()">
-                                                <i class="bi bi-plus-lg"></i>
-                                            </button>
-                                        }
+                                        <!-- Nút + luôn hiện cho tất cả người dùng -->
+                                        <button type="button" class="btn btn-primary rounded-circle shadow-sm" title="Add recipient (+)" onclick="addRecipientRow()">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -181,20 +179,20 @@
                         <div class="col-md-6">
                             <label class="form-label fw-bold d-flex align-items-center justify-content-between">
                                 <span>Schedule Email Delivery:</span>
-                                @if (!isVip)
-                                {
-                                    <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>VIP Feature</span>
-                                }
+                                <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>VIP Feature</span>
                             </label>
+
+                            <!-- Wrapper bao quanh để bắt sự kiện click cho tài khoản thường -->
+                            <div id="scheduleInputWrapper" class="position-relative">
+                                <input type="datetime-local" id="scheduledAt" name="ScheduledAt" class="form-control" placeholder="Leave blank to send immediately" />
+                            </div>
 
                             @if (isVip)
                             {
-                                <input type="datetime-local" id="scheduledAt" name="ScheduledAt" class="form-control" placeholder="Leave blank to send immediately" />
                                 <small class="text-muted fs-7">Leave empty to send immediately upon confirmation.</small>
                             }
                             else
                             {
-                                <input type="datetime-local" class="form-control bg-light" disabled title="Available for VIP accounts only" />
                                 <small class="text-muted fs-7">
                                     <a asp-controller="Subscription" asp-action="Index" class="fw-bold text-primary">Upgrade to VIP</a> to enable scheduled delivery.
                                 </small>
@@ -394,7 +392,7 @@
                             <span class="small fw-bold text-secondary d-block mb-2">Customize Selected Image:</span>
                             <div class="d-flex gap-1 mb-2">
                                 <button type="button" id="btn-img-circle" class="btn btn-sm btn-outline-primary w-50">⭕ Khung tròn</button>
-                                <button type="button" id="btn-send-back" class="btn btn-sm btn-outline-secondary w-25">⬇️️ Dưới</button>
+                                <button type="button" id="btn-send-back" class="btn btn-sm btn-outline-secondary w-25">⬇ Dưới</button>
                                 <button type="button" id="btn-bring-front" class="btn btn-sm btn-outline-secondary w-25">⬆️ Trên</button>
                             </div>
                             <div class="mb-2">
@@ -430,8 +428,22 @@
                         <label for="select-audio" class="form-label form-label-sm fw-bold">Background Music:</label>
                         <select id="select-audio" class="form-select form-select-sm mb-2">
                             <option value="">-- No Music --</option>
-                            <option value="/audio/music1.mp3">Birthday Music 1</option>
-                            <option value="/audio/music2.mp3">Birthday Music 2</option>
+                            <option value="/audio/Birthday 1.mp3">Birthday 1</option>
+                            <option value="/audio/Birthday 2.mp3">Birthday 2</option>
+                            <option value="/audio/BBQ 1.mp3">BBQ 1</option>
+                            <option value="/audio/BBQ 2.mp3">BBQ 2</option>
+                            <option value="/audio/Christmas 1.mp3">Christmas 1</option>
+                            <option value="/audio/Christmas 2.mp3">Christmas 2</option>
+                            <option value="/audio/Halloween 1.mp3">Halloween 1</option>
+                            <option value="/audio/Halloween 2.mp3">Halloween 2</option>
+                            <option value="/audio/New Year 1.mp3">New year 1</option>
+                            <option value="/audio/New Year 2.mp3">New year 2</option>
+                            <option value="/audio/New Year 3.mp3">New year 3</option>
+                            <option value="/audio/Birthday 2.mp3">Birthday 2</option>
+                            <option value="/audio/Party 1.mp3">Party 1</option>
+                            <option value="/audio/Party 2.mp3">Party 2</option>
+                            <option value="/audio/Wedding 1.mp3">Wedding 1</option>
+                            <option value="/audio/Wedding 2.mp3">Wedding 2</option>
                         </select>
                         <audio id="audio-player" controls class="w-100 d-none" style="height: 32px;"></audio>
                     </div>
@@ -536,6 +548,37 @@
     </div>
 </div>
 
+<div class="modal fade" id="vipRequiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center p-4" style="border-radius: 20px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-body p-2">
+                <!-- Icon Ngôi sao vàng -->
+                <div class="mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="65" height="65" fill="#FFC107" class="bi bi-star-fill" viewBox="0 0 16 16">
+                        <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
+                    </svg>
+                </div>
+
+                <!-- Title & Content -->
+                <h4 class="fw-bold text-dark mb-3">Pro Or Premium VIP Account Required</h4>
+                <p id="vipModalMessage" class="text-secondary fs-6 mb-4" style="line-height: 1.5;">
+                    This feature requires an active Pro Or Premium VIP subscription to use!
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill fw-semibold" data-bs-dismiss="modal" style="min-width: 110px;">
+                        Cancel
+                    </button>
+                    <a asp-controller="Subscription" asp-action="Index" class="btn btn-warning text-dark px-4 py-2 rounded-pill fw-bold" style="background-color: #FFC107; border: none; min-width: 150px;">
+                        Upgrade to VIP
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -545,10 +588,23 @@
         const MAX_RECIPIENTS = 10;
         const isVipUser = @((isVip).ToString().ToLower());
 
+        // Hàm mở VIP Modal chung
+        function showVipModal(message) {
+            const vipModalEl = document.getElementById('vipRequiredModal');
+            if (vipModalEl) {
+                if (message) {
+                    document.getElementById('vipModalMessage').innerText = message;
+                }
+                const vipModal = bootstrap.Modal.getOrCreateInstance(vipModalEl);
+                vipModal.show();
+            }
+        }
+
         // Dynamic Add / Remove Recipient Row Logic
         function addRecipientRow() {
+            // Khi chưa có VIP -> Hiển thị Modal yêu cầu nâng cấp VIP
             if (!isVipUser) {
-                alert("Sending to multiple recipients is exclusively for VIP members!");
+                showVipModal("Sending to multiple recipients is a VIP exclusive feature. You need an active Pro or Premium VIP subscription to send cards to up to 10 recipients!");
                 return;
             }
 
@@ -595,6 +651,22 @@
         }
 
         document.addEventListener("DOMContentLoaded", function() {
+
+            // --- XỬ LÝ CHỌN LỊCH GỬI (SCHEDULE DELIVERY) DÀNH CHO TÀI KHOẢN KHÔNG VIP ---
+            const scheduledInput = document.getElementById("scheduledAt");
+            const scheduleWrapper = document.getElementById("scheduleInputWrapper");
+
+            if (!isVipUser && scheduledInput && scheduleWrapper) {
+                scheduledInput.setAttribute("readonly", "readonly");
+                scheduledInput.style.cursor = "pointer";
+
+                scheduleWrapper.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    scheduledInput.blur();
+                    showVipModal("Scheduled email delivery is a VIP exclusive feature. You need an active Pro Or Premium VIP subscription to schedule automated card deliveries!");
+                });
+            }
+
             // Auto-add second recipient if navigated with ?isBulk=true
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('isBulk') === 'true' && isVipUser) {

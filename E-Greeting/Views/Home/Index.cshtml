@@ -1,4 +1,5 @@
-﻿@model IEnumerable<E_Greeting.Models.Template>
+﻿@using System.Globalization
+@model IEnumerable<E_Greeting.Models.Template>
 
 @{
     ViewData["Title"] = "Home - E-Greeting";
@@ -43,10 +44,18 @@
             <div class="col-lg-3 col-md-3">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">All Categories</option>
-                    <option value="1">Birthday</option>
-                    <option value="2">Wedding</option>
-                    <option value="3">Anniversary</option>
-                    <option value="4">Festivals</option>
+                    @if (ViewBag.Categories != null)
+                    {
+                        var textInfo = CultureInfo.CurrentCulture.TextInfo;
+                        foreach (var category in ViewBag.Categories)
+                        {
+                            string formattedName = !string.IsNullOrEmpty(category.Name)
+                                ? textInfo.ToTitleCase(category.Name.ToLower())
+                                : category.Name;
+
+                            <option value="@category.Id">@formattedName</option>
+                        }
+                    }
                 </select>
             </div>
 
@@ -117,7 +126,7 @@
                             <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
 
                             <a href="/template/details/@card.Id" class="btn btn-outline-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
-                                🔍 View Details
+                                View Details
                             </a>
                         </div>
                     </div>
