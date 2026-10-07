@@ -24,11 +24,11 @@ public class EmailSchedulerService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi xảy ra trong EmailSchedulerService");
+                _logger.LogError(ex, "An error occurred inside EmailSchedulerService");
             }
 
-            // Quét CSDL mỗi 10 giây
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            // Scan database every 60 seconds
+            await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
     }
 
@@ -41,7 +41,7 @@ public class EmailSchedulerService : BackgroundService
 
         DateTime now = DateTime.Now;
 
-        // CHỈ LẤY THIỆP: Chưa gửi (SentAt == null) + CÓ hẹn giờ (ScheduledAt != null) + ĐÃ ĐẾN GIỜ (ScheduledAt <= now)
+        // FETCH CARDS: Not sent yet (SentAt == null) + Scheduled (ScheduledAt != null) + Due time reached (ScheduledAt <= now)
         var pendingCards = await context.SentCards
             .Include(c => c.Account)
             .Where(c => c.SentAt == null
@@ -51,24 +51,26 @@ public class EmailSchedulerService : BackgroundService
 
         if (!pendingCards.Any()) return;
 
-        string domain = configuration["AppSettings:Domain"] ?? "https://localhost:7130";
+        // Get configured domain & automatically remove any trailing slashes
+        string rawDomain = configuration["AppSettings:Domain"] ?? "https://maritime-ripcord-crummiest.ngrok-free.dev";
+        string domain = rawDomain.TrimEnd('/');
 
         foreach (var card in pendingCards)
         {
             try
             {
                 string cardViewUrl = $"{domain}/Card/ViewCard/{card.Id}";
-                string senderName = card.Account?.Name ?? "Hệ thống E-Greeting";
+                string senderName = card.Account?.Name ?? "E-Greeting System";
 
                 await emailService.SendCardEmailAsync(card.RecipientEmail, card.Subject, cardViewUrl, senderName);
 
-                // Gửi xong mới cập nhật SentAt
+                // Update SentAt timestamp upon successful email delivery
                 card.SentAt = DateTime.Now;
                 context.SentCards.Update(card);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Lỗi gửi email cho Card ID: {card.Id}");
+                _logger.LogError(ex, $"Error sending scheduled email for Card ID: {card.Id}");
             }
         }
 

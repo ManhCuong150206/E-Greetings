@@ -1,23 +1,23 @@
 ﻿@model E_Greeting.Models.DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard Quản Trị Hệ Thống";
+    ViewData["Title"] = "System Administration Dashboard";
 }
 
-<!-- Thư viện Chart.js vẽ biểu đồ -->
+<!-- Chart.js Library for Rendering Graphics -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid py-4">
-    <h3 class="fw-bold mb-4 text-primary">
-        <i class="bi bi-speedometer2 me-2"></i>Dashboard Quản Trị Hệ Thống
-    </h3>
+    <h2 class="fw-bold mb-4 text-primary">
+        <i class="bi bi-speedometer2 me-2"></i>System Administration Dashboard
+    </h2>
 
-    <!-- KHỐI 1: CÁC THẺ THỐNG KÊ TỔNG QUAN -->
+    <!-- BLOCK 1: OVERVIEW STATISTIC CARDS -->
     <div class="row g-3 mb-4">
-        <!-- Tổng Doanh Thu Tất Cả Các Gói -->
+        <!-- Total Revenue from All Packages -->
         <div class="col-md-4 col-xl-2-4">
             <div class="card bg-primary text-white shadow-sm rounded-3 border-0">
                 <div class="card-body p-3">
-                    <div class="text-white-50 small fw-bold text-uppercase">TỔNG DOANH THU CÁC GÓI</div>
+                    <div class="text-white-50 small fw-bold text-uppercase">TOTAL PACKAGES REVENUE</div>
                     <h4 class="fw-bold mb-0 mt-1">@Model.TotalRevenue.ToString("N0") VNĐ</h4>
                 </div>
             </div>
@@ -26,7 +26,7 @@
         <div class="col-md-4 col-xl-2-4">
             <div class="card bg-success text-white shadow-sm rounded-3 border-0">
                 <div class="card-body p-3">
-                    <div class="text-white-50 small fw-bold text-uppercase">THIỆP ĐÃ GỬI</div>
+                    <div class="text-white-50 small fw-bold text-uppercase">SENT CARDS</div>
                     <h4 class="fw-bold mb-0 mt-1">@Model.TotalSentCards</h4>
                 </div>
             </div>
@@ -35,7 +35,7 @@
         <div class="col-md-4 col-xl-2-4">
             <div class="card bg-info text-white shadow-sm rounded-3 border-0">
                 <div class="card-body p-3">
-                    <div class="text-white-50 small fw-bold text-uppercase">THÀNH VIÊN (USERS)</div>
+                    <div class="text-white-50 small fw-bold text-uppercase">USERS</div>
                     <h4 class="fw-bold mb-0 mt-1">@Model.TotalUsers</h4>
                 </div>
             </div>
@@ -44,7 +44,7 @@
         <div class="col-md-6 col-xl-2-4">
             <div class="card bg-warning text-white shadow-sm rounded-3 border-0">
                 <div class="card-body p-3">
-                    <div class="text-white-50 small fw-bold text-uppercase">TỔNG TEMPLATE</div>
+                    <div class="text-white-50 small fw-bold text-uppercase">TOTAL TEMPLATES</div>
                     <h4 class="fw-bold mb-0 mt-1">@Model.TotalTemplates</h4>
                 </div>
             </div>
@@ -53,42 +53,41 @@
         <div class="col-md-6 col-xl-2-4">
             <div class="card bg-secondary text-white shadow-sm rounded-3 border-0">
                 <div class="card-body p-3">
-                    <div class="text-white-50 small fw-bold text-uppercase">DANH MỤC THIỆP</div>
+                    <div class="text-white-50 small fw-bold text-uppercase">CARD CATEGORIES</div>
                     <h4 class="fw-bold mb-0 mt-1">@Model.TotalCategories</h4>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- KHỐI 2: THỐNG KÊ CHI TIẾT TỪNG GÓI DỊCH VỤ (SERVICE) -->
+    <!-- BLOCK 2: DETAILED SERVICE PACKAGE STATISTICS -->
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white py-3">
             <h6 class="fw-bold text-dark mb-0">
-                <i class="bi bi-box-seam me-2 text-primary"></i>Chi Tiết Doanh Thu & Lượt Đăng Ký Theo Gói Dịch Vụ
+                <i class="bi bi-box-seam me-2 text-primary"></i>Revenue & Subscription Details by Service Package
             </h6>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 @if (Model.ServiceStats != null && Model.ServiceStats.Any())
                 {
-                    int stt = 1;
                     @foreach (var s in Model.ServiceStats)
                     {
                         <div class="col-md-6">
-                            <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="fw-bold text-dark mb-1">@(stt++). @s.ServiceName</h5>
-                                    <div class="text-muted small">Giá niêm yết: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
+                            <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-start h-100">
+                                <div style="max-width: 65%;">
+                                    <span class="badge bg-primary mb-2 fs-6">@s.ServiceId. @s.ServiceName</span>
+                                    <div class="text-muted small">Listed price: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-muted small fw-semibold">Tổng doanh thu gói:</div>
+                                    <div class="text-muted small fw-semibold">Package total revenue:</div>
                                     <div class="fw-bold fs-5 text-success">@s.TotalRevenue.ToString("N0") VNĐ</div>
                                     <div class="small text-secondary mb-2">
-                                        <i class="bi bi-people me-1"></i><strong>@s.TotalSubscribers</strong> lượt mua thành công
+                                        <i class="bi bi-people me-1"></i><strong>@s.TotalSubscribers</strong> successful purchases
                                     </div>
-                                    <!-- Dẫn thẳng sang Tab 3 tự lọc theo ServiceId & Status=PAID -->
-                                    <a href="/Admin/Users?tab=payments&serviceId=@s.ServiceId&status=PAID" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 12px;">
-                                        Xem danh sách mua <i class="bi bi-arrow-right-short"></i>
+                                    <!-- Direct Link to Tab 3 Auto-filtered by ServiceId & Status=PAID -->
+                                    <a href="/Admin/Users?tab=payments&serviceId=@s.ServiceId&status=PAID" class="btn btn-sm btn-outline-primary py-1 px-2 fw-semibold" style="font-size: 12px;">
+                                        View buyers list <i class="bi bi-arrow-right-short"></i>
                                     </a>
                                 </div>
                             </div>
@@ -97,21 +96,21 @@
                 }
                 else
                 {
-                    <div class="col-12 text-center text-muted py-2">Không tìm thấy thông tin gói dịch vụ.</div>
+                    <div class="col-12 text-center text-muted py-2">No service package information found.</div>
                 }
             </div>
         </div>
     </div>
 
-    <!-- KHỐI 3: BIỂU ĐỒ DOANH THU & BẢNG GIAO DỊCH GẦN ĐÂY -->
+    <!-- BLOCK 3: REVENUE CHART & RECENT TRANSACTIONS TABLE -->
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white py-3">
-                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Doanh Thu Tổng Các Gói Theo Tháng (@DateTime.Now.Year)</h6>
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Total Monthly Revenue Across Packages (@DateTime.Now.Year)</h6>
                 </div>
                 <div class="card-body">
-                    <!-- Element chứa data JSON cho Chart.js -->
+                    <!-- Element Holding JSON Data for Chart.js -->
                     <div id="revenueChartDataContainer" data-revenue="@System.Text.Json.JsonSerializer.Serialize(Model.MonthlyRevenue)"></div>
                     <canvas id="revenueChart" style="max-height: 300px;"></canvas>
                 </div>
@@ -121,18 +120,18 @@
         <div class="col-lg-5">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Giao Dịch Gần Đây</h6>
-                    <a href="/Admin/Users?tab=payments" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Recent Transactions</h6>
+                    <a href="/Admin/Users?tab=payments" class="btn btn-sm btn-outline-primary">View all</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 small">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Người dùng</th>
-                                    <th>Gói VIP</th>
-                                    <th>Số tiền</th>
-                                    <th>Ngày</th>
+                                    <th>User</th>
+                                    <th>VIP Package</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -151,7 +150,7 @@
                                 else
                                 {
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">Chưa có giao dịch nào phát sinh.</td>
+                                        <td colspan="4" class="text-center text-muted py-3">No transactions recorded yet.</td>
                                     </tr>
                                 }
                             </tbody>
@@ -163,9 +162,9 @@
     </div>
 </div>
 
-<!-- SCRIPT VẼ BIỂU ĐỒ BẰNG CHART.JS (An toàn tuyệt đối cho Visual Studio Intellisense) -->
+<!-- CHART RENDERING SCRIPT USING CHART.JS -->
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function  () {
         const container = document.getElementById('revenueChartDataContainer');
         const rawData = container ? container.getAttribute('data-revenue') : '[]';
         const monthlyRevenueData = JSON.parse(rawData);
@@ -177,9 +176,9 @@
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Thg 1', 'Thg 2', 'Thg 3', 'Thg 4', 'Thg 5', 'Thg 6', 'Thg 7', 'Thg 8', 'Thg 9', 'Thg 10', 'Thg 11', 'Thg 12'],
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                 datasets: [{
-                    label: 'Doanh thu (VNĐ)',
+                    label: 'Revenue (VNĐ)',
                     data: monthlyRevenueData,
                     backgroundColor: 'rgba(13, 110, 253, 0.75)',
                     borderColor: '#0d6efd',
@@ -194,8 +193,8 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('vi-VN') + ' đ';
+                            callback: function  (value) {
+                                return value.toLocaleString('en-US') + ' đ';
                             }
                         }
                     }

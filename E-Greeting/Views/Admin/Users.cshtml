@@ -1,110 +1,118 @@
 ﻿@model E_Greeting.Models.UserManagementViewModel
 @{
-    ViewData["Title"] = "Quản Lý Users & Gói VIP";
+    ViewData["Title"] = "Manage Users & VIP Packages";
 }
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-primary mb-0">
-            <i class="bi bi-people-fill me-2"></i>Quản Lý Tài Khoản Users & Gói VIP
+            <i class="bi bi-people-fill me-2"></i>Manage User Accounts & VIP Packages
         </h3>
     </div>
 
-    <!-- CÁC TAB CHÍNH -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- MAIN TABS -->
     <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded border" id="userManagementTabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link fw-bold @(Model.ActiveTab == "users" ? "active" : "")" href="/Admin/Users?tab=users">
-                <i class="bi bi-person-badge me-2"></i>1. Danh Sách Tài Khoản Users
+                <i class="bi bi-person-badge me-2"></i>1. User Accounts List
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link fw-bold @(Model.ActiveTab == "payments" ? "active" : "")" href="/Admin/Users?tab=payments">
-                <i class="bi bi-card-checklist me-2"></i>2. Gói VIP & Lịch Sử Thanh Toán
+                <i class="bi bi-card-checklist me-2"></i>2. VIP Packages & Payment History
             </a>
         </li>
     </ul>
 
     <div class="tab-content">
-        <!-- SUB-TAB 1: DANH SÁCH USER -->
+        <!-- SUB-TAB 1: USERS LIST -->
         @if (Model.ActiveTab == "users")
         {
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
-                    <form method="get" action="/Admin/Users" class="row g-2 align-items-center">
+                    <form id="userSearchForm" method="get" action="/Admin/Users" class="row g-2 align-items-center">
                         <input type="hidden" name="tab" value="users" />
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                                <input type="text" name="searchUser" class="form-control" placeholder="Tìm theo tên hoặc email..." value="@Model.SearchUser">
+                                <span class="input-group-text bg-light"><i class="bi bi-search text-primary"></i></span>
+                                <input type="text" id="searchUserInput" name="searchUser" class="form-control" placeholder="Search by name or email..." value="@Model.SearchUser">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-filter me-1"></i>Tìm kiếm</button>
-                            <a href="/Admin/Users?tab=users" class="btn btn-outline-secondary">Đặt lại</a>
+                        <div class="col-md-1">
+                            <a href="/Admin/Users?tab=users" class="btn btn-outline-secondary w-100" title="Reset search">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
                         </div>
                     </form>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover table-striped align-middle mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>STT</th>
-                                    <th>Tên User</th>
+                                    <th width="80">No.</th>
+                                    <th>User Name</th>
                                     <th>Email</th>
-                                    <th>Gói VIP Hiện Tại</th>
-                                    <th>Thiệp Đã Gửi</th>
-                                    <th>Trạng Thái</th>
-                                    <th class="text-end me-3">Thao Tác</th>
+                                    <th>Current VIP Package</th>
+                                    <th>Sent Cards</th>
+                                    <th>Status</th>
+                                    <th class="text-end me-3" width="180">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if (Model.Users != null && Model.Users.Any())
                                 {
-                                    int index = 1;
                                     @foreach (var u in Model.Users)
                                     {
                                         <tr>
-                                            <td>@(index++)</td>
+                                            <td class="fw-bold">@u.Id</td>
                                             <td class="fw-bold text-dark">@u.Name</td>
                                             <td>@u.Email</td>
                                             <td>
-                                                @if (u.CurrentVipPackage != "Miễn phí")
+                                                @if (u.CurrentVipPackage != "Free" && u.CurrentVipPackage != "Miễn phí")
                                                 {
                                                     <span class="badge bg-success">@u.CurrentVipPackage</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-secondary">Gói Free</span>
+                                                    <span class="badge bg-secondary">Free Package</span>
                                                 }
                                             </td>
-                                            <td><span class="fw-bold">@u.SentCardsCount</span> bài</td>
+                                            <td><span class="fw-bold">@u.SentCardsCount</span> cards</td>
                                             <td>
                                                 @if (u.Status)
                                                 {
-                                                    <span class="badge bg-success-subtle text-success border border-success">Hoạt động</span>
+                                                    <span class="badge bg-success-subtle text-success border border-success">Active</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-subtle text-danger border border-danger">Đã khóa</span>
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger">Locked</span>
                                                 }
                                             </td>
                                             <td class="text-end">
                                                 <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editUserModal_@u.Id">
-                                                    <i class="bi bi-pencil"></i> Sửa
+                                                    <i class="bi bi-pencil"></i> Edit
                                                 </button>
                                                 <form method="post" action="/Admin/ToggleUserStatus" class="d-inline">
                                                     <input type="hidden" name="id" value="@u.Id" />
                                                     @if (u.Status)
                                                     {
-                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn khóa tài khoản này?')">
-                                                            <i class="bi bi-lock"></i> Khóa
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to lock this account?')">
+                                                            <i class="bi bi-lock"></i> Lock
                                                         </button>
                                                     }
                                                     else
                                                     {
                                                         <button type="submit" class="btn btn-sm btn-outline-success">
-                                                            <i class="bi bi-unlock"></i> Mở khóa
+                                                            <i class="bi bi-unlock"></i> Unlock
                                                         </button>
                                                     }
                                                 </form>
@@ -114,41 +122,58 @@
                                 }
                                 else
                                 {
-                                    <tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy tài khoản nào.</td></tr>
+                                    <tr><td colspan="7" class="text-center py-4 text-muted">No accounts found.</td></tr>
                                 }
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- USERS PAGINATION -->
+                @if (ViewBag.TotalPagesUser > 1)
+                {
+                    <div class="card-footer bg-white d-flex justify-content-center py-2">
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                @for (int i = 1; i <= ViewBag.TotalPagesUser; i++)
+                                {
+                                    <li class="page-item @(i == ViewBag.CurrentPageUser ? "active" : "")">
+                                        <a class="page-link" href="/Admin/Users?tab=users&searchUser=@Model.SearchUser&pageUser=@i">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    </div>
+                }
             </div>
 
-            <!-- MODALS DÀNH CHO USER (ĐẶT NGOÀI TABLE DỂ TRÁNH LỖI HTML) -->
+            <!-- MODALS FOR USER EDIT -->
             @if (Model.Users != null && Model.Users.Any())
             {
                 @foreach (var u in Model.Users)
                 {
-                    <div class="modal fade" id="editUserModal_@u.Id" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
+                    <div class="modal fade text-start" id="editUserModal_@u.Id" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content shadow">
                                 <form method="post" action="/Admin/EditUser">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title fw-bold">Chỉnh Sửa Thông Tin User</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit User Information</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
                                         <input type="hidden" name="id" value="@u.Id" />
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Họ và Tên</label>
+                                            <label class="form-label fw-semibold">Full Name</label>
                                             <input type="text" name="name" class="form-control" value="@u.Name" required />
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Email</label>
+                                            <label class="form-label fw-semibold">Email Address</label>
                                             <input type="email" name="email" class="form-control" value="@u.Email" required />
                                         </div>
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                                        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary fw-semibold">Save Changes</button>
                                     </div>
                                 </form>
                             </div>
@@ -158,61 +183,60 @@
             }
         }
 
-        <!-- SUB-TAB 2: GÓI VIP & LỊCH SỬ THANH TOÁN -->
+        <!-- SUB-TAB 2: VIP PACKAGES & PAYMENT HISTORY -->
         @if (Model.ActiveTab == "payments")
         {
-            <!-- KHỐI 1: QUẢN LÝ GÓI DỊCH VỤ -->
+            <!-- BLOCK 1: SERVICE PACKAGES MANAGEMENT -->
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white py-3">
-                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>Danh Sách Gói Dịch Vụ VIP (Services)</h6>
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>VIP Services List (Services)</h6>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         @foreach (var s in Model.Services)
                         {
                             <div class="col-md-6">
-                                <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="badge bg-primary mb-1">ID #@s.Id</span>
-                                        <h5 class="fw-bold text-dark mb-1">@s.Name</h5>
-                                        <div class="text-muted small mb-1">Giá: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
-                                        <div class="text-secondary small">Tính năng: @s.Features</div>
+                                <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-start h-100">
+                                    <div style="max-width: 70%;">
+                                        <span class="badge bg-primary mb-2 fs-6">@s.Id. @s.Name</span>
+                                        <div class="text-muted small mb-1">Price: <strong class="text-danger">@s.Price.ToString("N0") VNĐ</strong></div>
+                                        <div class="text-secondary small lh-base">Features: @s.Features</div>
                                     </div>
                                     <div>
-                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editServiceModal_@s.Id">
-                                            <i class="bi bi-pencil"></i> Sửa gói
+                                        <button class="btn btn-sm btn-outline-primary fw-semibold" data-bs-toggle="modal" data-bs-target="#editServiceModal_@s.Id">
+                                            <i class="bi bi-pencil me-1"></i> Edit Package
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Modal Edit Service -->
-                            <div class="modal fade" id="editServiceModal_@s.Id" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
+                            <div class="modal fade text-start" id="editServiceModal_@s.Id" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content shadow">
                                         <form method="post" action="/Admin/EditService">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title fw-bold">Chỉnh Sửa Gói Dịch Vụ VIP</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit VIP Service Package</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <input type="hidden" name="id" value="@s.Id" />
                                                 <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Tên Gói</label>
+                                                    <label class="form-label fw-semibold">Package Name</label>
                                                     <input type="text" name="name" class="form-control" value="@s.Name" required />
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Giá Tiền (VNĐ)</label>
+                                                    <label class="form-label fw-semibold">Price (VNĐ)</label>
                                                     <input type="number" name="price" class="form-control" value="@s.Price" step="1000" required />
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Tính Năng Của Gói</label>
+                                                    <label class="form-label fw-semibold">Package Features</label>
                                                     <textarea name="features" class="form-control" rows="3">@s.Features</textarea>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                                <button type="submit" class="btn btn-primary">Lưu gói</button>
+                                                <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary fw-semibold">Save Package</button>
                                             </div>
                                         </form>
                                     </div>
@@ -223,17 +247,17 @@
                 </div>
             </div>
 
-            <!-- KHỐI 2: LỊCH SỬ GIAO DỊCH VÀ BỘ LỌC TỰ ĐỘNG -->
+            <!-- BLOCK 2: TRANSACTION HISTORY & AUTO-FILTER -->
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
-                    <form method="get" action="/Admin/Users" class="row g-2 align-items-center">
+                    <form id="txSearchForm" method="get" action="/Admin/Users" class="row g-2 align-items-center">
                         <input type="hidden" name="tab" value="payments" />
-                        <div class="col-md-4">
-                            <input type="text" name="searchTx" class="form-control" placeholder="Tìm theo tên user, email, mã HĐ..." value="@Model.SearchTransaction">
+                        <div class="col-md-5">
+                            <input type="text" id="searchTxInput" name="searchTx" class="form-control" placeholder="Search by name, email, invoice ID..." value="@Model.SearchTransaction">
                         </div>
                         <div class="col-md-3">
-                            <select name="serviceId" class="form-select">
-                                <option value="">-- Tất cả gói VIP --</option>
+                            <select name="serviceId" class="form-select auto-submit-tx">
+                                <option value="">-- All VIP Packages --</option>
                                 @foreach (var s in Model.Services)
                                 {
                                     <option value="@s.Id" selected="@(Model.SelectedServiceId == s.Id)">@s.Name</option>
@@ -241,32 +265,33 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <select name="status" class="form-select">
-                                <option value="">-- Tất cả trạng thái --</option>
-                                <option value="PAID" selected="@(Model.SelectedStatus == "PAID")">PAID (Đã thanh toán)</option>
-                                <option value="UNPAID" selected="@(Model.SelectedStatus == "UNPAID")">UNPAID (Chờ thanh toán)</option>
-                                <option value="EXPIRED" selected="@(Model.SelectedStatus == "EXPIRED")">EXPIRED (Hết hạn)</option>
+                            <select name="status" class="form-select auto-submit-tx">
+                                <option value="">-- All Statuses --</option>
+                                <option value="PAID" selected="@(Model.SelectedStatus == "PAID")">PAID</option>
+                                <option value="UNPAID" selected="@(Model.SelectedStatus == "UNPAID")">UNPAID</option>
+                                <option value="EXPIRED" selected="@(Model.SelectedStatus == "EXPIRED")">EXPIRED</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex gap-1">
-                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Lọc</button>
-                            <a href="/Admin/Users?tab=payments" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+                        <div class="col-md-1">
+                            <a href="/Admin/Users?tab=payments" class="btn btn-outline-secondary w-100" title="Reset filter">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
                         </div>
                     </form>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover table-striped align-middle mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>Mã HĐ</th>
-                                    <th>Người Mua</th>
-                                    <th>Gói Đăng Ký</th>
-                                    <th>Số Tiền</th>
-                                    <th>Ngày Tạo HĐ</th>
-                                    <th>Thời Hạn Gói</th>
-                                    <th>Trạng Thái</th>
-                                    <th class="text-end me-2">Thao Tác</th>
+                                    <th width="80">No.</th>
+                                    <th>Buyer</th>
+                                    <th>Subscribed Package</th>
+                                    <th>Amount</th>
+                                    <th>Invoice Date</th>
+                                    <th>VIP Expiry Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end me-2" width="160">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -275,7 +300,7 @@
                                     @foreach (var t in Model.Transactions)
                                     {
                                         <tr>
-                                            <td><strong class="text-primary">#@t.PaymentId</strong></td>
+                                            <td class="fw-bold">@t.PaymentId</td>
                                             <td>
                                                 <div class="fw-bold">@t.UserName</div>
                                                 <div class="small text-muted">@t.UserEmail</div>
@@ -295,13 +320,13 @@
                                                         if (t.VipEndDate.Value >= DateTime.Now.Date)
                                                         {
                                                             <span class="badge bg-success-subtle text-success border border-success mt-1" style="font-size: 10px;">
-                                                                <i class="bi bi-clock-check me-1"></i>Còn hạn
+                                                                <i class="bi bi-clock-check me-1"></i>Active
                                                             </span>
                                                         }
                                                         else
                                                         {
                                                             <span class="badge bg-secondary-subtle text-secondary border border-secondary mt-1" style="font-size: 10px;">
-                                                                <i class="bi bi-clock-history me-1"></i>Đã hết hạn
+                                                                <i class="bi bi-clock-history me-1"></i>Expired
                                                             </span>
                                                         }
                                                     }
@@ -334,14 +359,14 @@
                                                 {
                                                     <form method="post" action="/Admin/ApprovePayment" class="d-inline">
                                                         <input type="hidden" name="paymentId" value="@t.PaymentId" />
-                                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Xác nhận duyệt thủ công đơn hàng này thành PAID?')">
-                                                            <i class="bi bi-check-lg"></i> Duyệt PAID
+                                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Confirm manual approval of this transaction to PAID?')">
+                                                            <i class="bi bi-check-lg"></i> Approve PAID
                                                         </button>
                                                     </form>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-light text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Hoàn tất</span>
+                                                    <span class="badge bg-light text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Completed</span>
                                                 }
                                             </td>
                                         </tr>
@@ -349,13 +374,68 @@
                                 }
                                 else
                                 {
-                                    <tr><td colspan="8" class="text-center py-4 text-muted">Chưa có giao dịch nào phù hợp.</td></tr>
+                                    <tr><td colspan="8" class="text-center py-4 text-muted">No transactions found.</td></tr>
                                 }
                             </tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- PAYMENTS PAGINATION -->
+                @if (ViewBag.TotalPagesTx > 1)
+                {
+                    <div class="card-footer bg-white d-flex justify-content-center py-2">
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                @for (int i = 1; i <= ViewBag.TotalPagesTx; i++)
+                                {
+                                    <li class="page-item @(i == ViewBag.CurrentPageTx ? "active" : "")">
+                                        <a class="page-link" href="/Admin/Users?tab=payments&searchTx=@Model.SearchTransaction&serviceId=@Model.SelectedServiceId&status=@Model.SelectedStatus&pageTx=@i">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    </div>
+                }
             </div>
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. User Search Auto-Submit with Debounce
+            const userSearchInput = document.getElementById('searchUserInput');
+            const userSearchForm = document.getElementById('userSearchForm');
+            if (userSearchInput && userSearchForm) {
+                let userTimer;
+                userSearchInput.addEventListener('input', function () {
+                    clearTimeout(userTimer);
+                    userTimer = setTimeout(() => {
+                        userSearchForm.submit();
+                    }, 400);
+                });
+            }
+
+            // 2. Transaction Search & Dropdowns Auto-Submit
+            const txSearchInput = document.getElementById('searchTxInput');
+            const txSearchForm = document.getElementById('txSearchForm');
+            if (txSearchInput && txSearchForm) {
+                let txTimer;
+                txSearchInput.addEventListener('input', function () {
+                    clearTimeout(txTimer);
+                    txTimer = setTimeout(() => {
+                        txSearchForm.submit();
+                    }, 400);
+                });
+
+                document.querySelectorAll('.auto-submit-tx').forEach(selectEl => {
+                    selectEl.addEventListener('change', function () {
+                        txSearchForm.submit();
+                    });
+                });
+            }
+        });
+    </script>
+}

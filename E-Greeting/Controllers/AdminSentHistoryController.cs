@@ -18,12 +18,12 @@ namespace E_Greeting.Controllers
             _context = context;
         }
 
-        // CẤP 1: DANH SÁCH USERS ĐÃ TỪNG GỬI THIỆP
+        // LEVEL 1: LIST OF USERS WHO HAVE SENT CARDS
         [HttpGet("Admin/SentLogs")]
         [HttpGet("AdminSentHistory/SentLogs")]
         public async Task<IActionResult> SentLogs(string? search, int page = 1)
         {
-            int pageSize = 10;
+            int pageSize = 10; // Maximum 10 rows per page
 
             var query = _context.Accounts
                 .Where(a => _context.SentCards.Any(s => s.AccountId == a.Id))
@@ -38,8 +38,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
+            // Sort Ascending by Real DB Id
             var usersList = await query
-                .OrderByDescending(a => a.Id)
+                .OrderBy(a => a.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -58,14 +59,14 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/SentLogs.cshtml", usersList);
         }
 
-        // CẤP 2: DANH SÁCH THIỆP ĐÃ GỬI CỦA USER
+        // LEVEL 2: DETAILED SENT CARDS LIST FOR A SPECIFIC USER
         [HttpGet("Admin/UserSentCards/{accountId}")]
         public async Task<IActionResult> UserSentCards(int accountId, int page = 1)
         {
             var account = await _context.Accounts.FindAsync(accountId);
             if (account == null) return NotFound();
 
-            int pageSize = 10;
+            int pageSize = 10; // Maximum 10 rows per page
             var query = _context.SentCards
                 .Include(s => s.Template)
                 .Where(s => s.AccountId == accountId)
@@ -75,8 +76,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
+            // Sort Ascending by Real DB Id
             var cards = await query
-                .OrderByDescending(s => s.Id)
+                .OrderBy(s => s.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

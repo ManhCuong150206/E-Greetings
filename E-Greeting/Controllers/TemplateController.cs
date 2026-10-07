@@ -34,7 +34,7 @@ namespace E_Greeting.Controllers
             return View(templates);
         }
 
-        // ACTION CHO TRANG CHI TIẾT THIỆP (VIEW DETAIL)
+        // ACTION FOR E-CARD DETAILS PAGE
         [HttpGet("details/{id?}")]
         public async Task<IActionResult> Details(int id)
         {
@@ -43,7 +43,7 @@ namespace E_Greeting.Controllers
             var template = await _templateService.GetTemplateById(id);
             if (template == null) return NotFound();
 
-            // 1. Kiểm tra tài khoản hiện tại có phải VIP hay không & đã Wishlist thiệp này chưa
+            // 1. Check whether current account is VIP & has wishlisted this card
             bool isWishlisted = false;
             bool isUserVip = false;
 
@@ -57,7 +57,7 @@ namespace E_Greeting.Controllers
                     // Check Wishlist
                     isWishlisted = await _context.Wishlists.AnyAsync(w => w.AccountId == account.Id && w.TemplateId == id);
 
-                    // Check VIP Subscription active (Xử lý so sánh DateOnly/DateTime an toàn)
+                    // Check VIP Subscription active status (Safe DateOnly comparison)
                     var today = DateOnly.FromDateTime(DateTime.Now);
                     isUserVip = await _context.Subscriptions.AnyAsync(s =>
                         s.AccountId == account.Id &&
@@ -69,7 +69,7 @@ namespace E_Greeting.Controllers
             ViewBag.IsWishlisted = isWishlisted;
             ViewBag.IsUserVip = isUserVip;
 
-            // 2. Lấy danh sách thiệp liên quan
+            // 2. Fetch related card templates list
             var filter = new TemplateFilter
             {
                 CategoryId = template.CategoryId,

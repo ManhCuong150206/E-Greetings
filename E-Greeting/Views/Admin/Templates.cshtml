@@ -1,18 +1,18 @@
 ﻿@model IEnumerable<E_Greeting.Models.Template>
 
 @{
-    ViewData["Title"] = "Danh sách Template - " + ViewBag.CategoryName;
+    ViewData["Title"] = "Template List - " + ViewBag.CategoryName;
 }
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4><i class="bi bi-images text-primary"></i> Quản lý Template thuộc Danh mục: <span class="text-primary">@ViewBag.CategoryName</span></h4>
+        <h4><i class="bi bi-images text-primary"></i> Templates in Category: <span class="text-primary">@ViewBag.CategoryName</span></h4>
         <div>
             <a asp-controller="AdminCategory" asp-action="Categories" class="btn btn-outline-secondary me-2 rounded-pill">
-                <i class="bi bi-arrow-left"></i> Quay lại Category
+                <i class="bi bi-arrow-left"></i> Back to Categories
             </a>
             <a asp-controller="AdminTemplate" asp-action="CreateTemplate" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-success rounded-pill fw-semibold">
-                <i class="bi bi-plus-lg me-1"></i> Thêm Template Mới (Canvas Editor)
+                <i class="bi bi-plus-lg me-1"></i> Add New Template
             </a>
         </div>
     </div>
@@ -25,43 +25,40 @@
         </div>
     }
 
-    <!-- FORM LỌC ĐA NĂNG (SEARCH & FILTER) -->
+    <!-- MULTI-FILTER FORM WITH AUTO-SUBMIT ON INPUT & CHANGE -->
     <div class="card shadow-sm p-3 mb-3 bg-light rounded-3">
-        <form asp-controller="AdminTemplate" asp-action="Templates" method="get" class="row g-2 align-items-center">
+        <form id="filterForm" asp-controller="AdminTemplate" asp-action="Templates" method="get" class="row g-2 align-items-center">
             <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
 
-            <div class="col-md-4">
-                <input type="text" name="searchName" value="@ViewBag.SearchName" class="form-control form-control-sm" placeholder="Tìm theo tên template..." />
+            <div class="col-md-5">
+                <input type="text" name="searchName" value="@ViewBag.SearchName" class="form-control form-control-sm auto-submit-input" placeholder="Type template name to search..." />
             </div>
 
             <div class="col-md-3">
-                <select name="isFree" class="form-select form-select-sm">
-                    <option value="">-- Tất cả gói (Free & VIP) --</option>
-                    <option value="true" selected="@(ViewBag.IsFree == "true")">Chỉ Miễn Phí (Free)</option>
-                    <option value="false" selected="@(ViewBag.IsFree == "false")">Chỉ Trả Phí (VIP)</option>
+                <select name="isFree" class="form-select form-select-sm auto-submit-select">
+                    <option value="">-- All Packages (Free & VIP) --</option>
+                    <option value="true" selected="@(ViewBag.IsFree == "true")">Free Only</option>
+                    <option value="false" selected="@(ViewBag.IsFree == "false")">Paid Only (VIP)</option>
                 </select>
             </div>
 
             <div class="col-md-3">
-                <select name="isActive" class="form-select form-select-sm">
-                    <option value="">-- Tất cả trạng thái --</option>
-                    <option value="true" selected="@(ViewBag.IsActive == "true")">Đang Hiển Thị</option>
-                    <option value="false" selected="@(ViewBag.IsActive == "false")">Đã Ẩn</option>
+                <select name="isActive" class="form-select form-select-sm auto-submit-select">
+                    <option value="">-- All Statuses --</option>
+                    <option value="true" selected="@(ViewBag.IsActive == "true")">Active</option>
+                    <option value="false" selected="@(ViewBag.IsActive == "false")">Hidden</option>
                 </select>
             </div>
 
-            <div class="col-md-2 d-flex gap-1">
-                <button type="submit" class="btn btn-sm btn-primary flex-fill fw-semibold">
-                    <i class="bi bi-filter me-1"></i> Lọc
-                </button>
-                <a asp-controller="AdminTemplate" asp-action="Templates" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-sm btn-outline-secondary" title="Xóa bộ lọc">
+            <div class="col-md-1 d-flex">
+                <a asp-controller="AdminTemplate" asp-action="Templates" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-sm btn-outline-secondary w-100" title="Reset all filters">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- DANH SÁCH TEMPLATES -->
+    <!-- TEMPLATES LIST -->
     <div class="row g-3">
         @if (Model != null && Model.Any())
         {
@@ -88,27 +85,27 @@
                             <div class="position-relative">
                                 <img src="@displayThumb" class="card-img-top" style="height: 200px; object-fit: cover;" alt="@item.Name">
                                 <span class="position-absolute top-0 end-0 badge m-2 status-badge-@item.Id @(item.IsActive ? "bg-success" : "bg-secondary")">
-                                    @(item.IsActive ? "Đang Hiển Thị" : "Đã Ẩn")
+                                    @(item.IsActive ? "Active" : "Hidden")
                                 </span>
                             </div>
                             <div class="card-body">
                                 <h6 class="card-title fw-bold text-truncate">@item.Name</h6>
                                 <span class="badge @(item.IsFree ? "bg-info text-dark" : "bg-warning text-dark")">
-                                    @(item.IsFree ? "Miễn Phí (Free)" : "Trả Phí (VIP)")
+                                    @(item.IsFree ? "Free Package" : "Paid (VIP)")
                                 </span>
                             </div>
                         </div>
 
-                        <!-- FOOTER VỚI CÔNG TẮC SWITCH AJAX TOGGLE -->
+                        <!-- FOOTER WITH AJAX TOGGLE SWITCH -->
                         <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center p-2">
                             <a asp-controller="AdminTemplate" asp-action="EditTemplate" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning fw-semibold">
-                                <i class="bi bi-pencil-square"></i> Sửa
+                                <i class="bi bi-pencil-square"></i> Edit
                             </a>
 
-                            <div class="form-check form-switch m-0" title="Gạt công tắc để Bật/Tắt hiển thị">
+                            <div class="form-check form-switch m-0" title="Toggle visibility">
                                 <input class="form-check-input switch-toggle-status" type="checkbox" role="switch" data-id="@item.Id" @(item.IsActive ? "checked" : "") style="cursor: pointer;">
                                 <label class="form-check-small fw-semibold small text-muted ms-1 switch-label-@item.Id">
-                                    @(item.IsActive ? "Hiện" : "Ẩn")
+                                    @(item.IsActive ? "Show" : "Hide")
                                 </label>
                             </div>
                         </div>
@@ -120,12 +117,12 @@
         {
             <div class="col-12 text-center py-5 text-muted">
                 <i class="bi bi-folder-x fs-1"></i>
-                <p class="mt-2">Không tìm thấy mẫu thiệp nào phù hợp với bộ lọc.</p>
+                <p class="mt-2">No templates match the selected filter criteria.</p>
             </div>
         }
     </div>
 
-    <!-- PHÂN TRANG TEMPLATE -->
+    <!-- TEMPLATES PAGINATION -->
     @if (ViewBag.TotalPages > 1)
     {
         <div class="d-flex justify-content-center mt-4">
@@ -150,41 +147,69 @@
 
 @section Scripts {
     <script>
-        document.querySelectorAll('.switch-toggle-status').forEach(el => {
-            el.addEventListener('change', function() {
-                const templateId = this.getAttribute('data-id');
-                const isChecked = this.checked;
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterForm = document.getElementById('filterForm');
 
-                fetch('/Admin/ToggleTemplateStatusAjax?id=' + templateId, {
-                    method: 'POST'
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            const badge = document.querySelector('.status-badge-' + templateId);
-                            const label = document.querySelector('.switch-label-' + templateId);
-                            const card = document.getElementById('card-template-' + templateId);
+            // 1. Auto-submit immediately when dropdown selection changes
+            document.querySelectorAll('.auto-submit-select').forEach(selectEl => {
+                selectEl.addEventListener('change', function () {
+                    filterForm.submit();
+                });
+            });
 
-                            if (data.isActive) {
-                                badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-success';
-                                badge.innerText = 'Đang Hiển Thị';
-                                label.innerText = 'Hiện';
-                                card.classList.remove('opacity-75', 'bg-light');
-                            } else {
-                                badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-secondary';
-                                badge.innerText = 'Đã Ẩn';
-                                label.innerText = 'Ẩn';
-                                card.classList.add('opacity-75', 'bg-light');
-                            }
-                        } else {
-                            alert('Lỗi: ' + data.message);
-                            this.checked = !isChecked;
-                        }
+            // 2. Auto-submit with Debounce (delay 400ms) when user types in search input
+            let debounceTimer;
+            const searchInput = document.querySelector('.auto-submit-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        filterForm.submit();
+                    }, 400);
+                });
+
+                // Keep cursor at the end of text when page reloads after search
+                const len = searchInput.value.length;
+                searchInput.setSelectionRange(len, len);
+            }
+
+            // 3. Ajax toggle visibility status
+            document.querySelectorAll('.switch-toggle-status').forEach(el => {
+                el.addEventListener('change', function() {
+                    const templateId = this.getAttribute('data-id');
+                    const isChecked = this.checked;
+
+                    fetch('/Admin/ToggleTemplateStatusAjax?id=' + templateId, {
+                        method: 'POST'
                     })
-                    .catch(() => {
-                        alert('Không thể kết nối đến Server!');
-                        this.checked = !isChecked;
-                    });
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                const badge = document.querySelector('.status-badge-' + templateId);
+                                const label = document.querySelector('.switch-label-' + templateId);
+                                const card = document.getElementById('card-template-' + templateId);
+
+                                if (data.isActive) {
+                                    badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-success';
+                                    badge.innerText = 'Active';
+                                    label.innerText = 'Show';
+                                    card.classList.remove('opacity-75', 'bg-light');
+                                } else {
+                                    badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-secondary';
+                                    badge.innerText = 'Hidden';
+                                    label.innerText = 'Hide';
+                                    card.classList.add('opacity-75', 'bg-light');
+                                }
+                            } else {
+                                alert('Error: ' + data.message);
+                                this.checked = !isChecked;
+                            }
+                        })
+                        .catch(() => {
+                            alert('Unable to connect to the server!');
+                            this.checked = !isChecked;
+                        });
+                });
             });
         });
     </script>
