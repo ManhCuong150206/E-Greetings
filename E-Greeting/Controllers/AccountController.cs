@@ -32,6 +32,8 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         ViewBag.ReturnUrl = returnUrl;
         return View();
     }
@@ -39,6 +41,8 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         ViewBag.ReturnUrl = returnUrl;
         if (!ModelState.IsValid)
             return View(model);
@@ -86,11 +90,16 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Register() => View();
-
+    public IActionResult Register()
+    {
+        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
+    }
     [HttpPost]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
+
         if (!ModelState.IsValid)
             return View(model);
 
@@ -174,11 +183,17 @@ public class AccountController : Controller
     // ==========================================
 
     [HttpGet]
-    public IActionResult ForgotPassword() => View();
+    public IActionResult ForgotPassword()
+    {
+        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
+    }
+
 
     [HttpPost]
     public async Task<IActionResult> ForgotPassword(string email)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         email = (email ?? "").Trim();
 
         var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == email);
@@ -210,6 +225,8 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult ResetPassword(string email)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         ViewBag.Email = email;
         ViewBag.Verified = false;
         return View();
@@ -219,6 +236,8 @@ public class AccountController : Controller
     [HttpPost]
     public IActionResult VerifyOtp(string email, string otp)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         if (!CheckOtp(email, otp, out var error))
         {
             TempData["ErrorMessage"] = error;
@@ -235,6 +254,8 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> ResetPassword(string email, string otp, string newPassword, string confirmPassword)
     {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
         if (!CheckOtp(email, otp, out var error))
         {
             TempData["ErrorMessage"] = error;
@@ -303,7 +324,7 @@ public class AccountController : Controller
             HtmlBody = $@"
             <div style='font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:25px;border:1px solid #e2e8f0;border-radius:12px;text-align:center'>
                 <h2 style='color:#0d6efd;margin:0 0 10px'>E-Greeting</h2>
-                <p style='color:#334155'>Your password reset OTP is:</p>
+                <p style='color:#334155'>Your password reset OTP     is:</p>
                 <div style='font-size:36px;font-weight:bold;letter-spacing:10px;color:#0d6efd;margin:20px 0'>{otp}</div>
                 <p style='color:#64748b;font-size:14px'>This code is valid for 5 minutes. Do not share this code with anyone.</p>
             </div>"
