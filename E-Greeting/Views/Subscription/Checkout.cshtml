@@ -1,7 +1,7 @@
 ﻿@model E_Greeting.Models.Payment
 
 @{
-    ViewData["Title"] = "Thanh toán - E-Greeting";
+    ViewData["Title"] = "Payment - E-Greeting";
     bool expired = ViewBag.Expired ?? false;
     long expiresAtMs = ViewBag.ExpiresAtUnixMs != null ? (long)ViewBag.ExpiresAtUnixMs : 0L;
 }
@@ -12,41 +12,41 @@
         {
             <div class="text-center py-5">
                 <i class="bi bi-clock-history text-danger" style="font-size: 3rem;"></i>
-                <h4 class="fw-bold mt-3">Mã QR đã hết hạn</h4>
-                <p class="text-muted">Đơn thanh toán chỉ có hiệu lực trong 2 phút. Vui lòng đăng ký lại.</p>
+                <h4 class="fw-bold mt-3">The QR code has expired</h4>
+                <p class="text-muted">The payment order is only valid for 2 minutes. Please register again.</p>
                 <a asp-controller="Subscription" asp-action="Index" class="btn btn-primary rounded-pill px-4 mt-2">
-                    Quay lại chọn gói
+                    Back to plan selection
                 </a>
             </div>
         }
         else
         {
-            <h3 class="fw-bold text-center mb-1">Thanh toán gói @(Model.Subscription.Service?.Name)</h3>
-            <p class="text-center text-muted mb-1">Quét mã QR bằng app ngân hàng để thanh toán</p>
+            <h3 class="fw-bold text-center mb-1">Pay for plan @(Model.Subscription.Service?.Name)</h3>
+            <p class="text-center text-muted mb-1">Scan the QR code with your banking app to pay</p>
             <p class="text-center mb-4">
-                Còn lại: <span id="countdown" class="fw-bold text-danger">02:00</span>
+                Time left: <span id="countdown" class="fw-bold text-danger">02:00</span>
             </p>
 
             <div class="row g-4 align-items-center">
                 <div class="col-md-6 text-center">
-                    <img src="@ViewBag.QrUrl" alt="QR thanh toán" class="img-fluid rounded-3 border" />
+                    <img src="@ViewBag.QrUrl" alt="Payment QR" class="img-fluid rounded-3 border" />
                 </div>
                 <div class="col-md-6">
                     <table class="table table-borderless mb-0">
-                        <tr><td class="text-muted">Ngân hàng</td><td class="fw-semibold">@ViewBag.BankShortName</td></tr>
-                        <tr><td class="text-muted">Số tài khoản</td><td class="fw-semibold">@ViewBag.BankAccount</td></tr>
-                        <tr><td class="text-muted">Số tiền</td><td class="fw-bold text-primary">@Model.Amount.ToString("N0") VNĐ</td></tr>
-                        <tr><td class="text-muted">Nội dung</td><td class="fw-bold text-danger">@ViewBag.Code</td></tr>
+                        <tr><td class="text-muted">Bank</td><td class="fw-semibold">@ViewBag.BankShortName</td></tr>
+                        <tr><td class="text-muted">Account number</td><td class="fw-semibold">@ViewBag.BankAccount</td></tr>
+                        <tr><td class="text-muted">Amount</td><td class="fw-bold text-primary">@Model.Amount.ToString("N0") VNĐ</td></tr>
+                        <tr><td class="text-muted">Transfer content</td><td class="fw-bold text-danger">@ViewBag.Code</td></tr>
                     </table>
                     <div class="alert alert-warning small mt-3 mb-0">
-                        Nhập <b>đúng nội dung chuyển khoản</b> để hệ thống tự xác nhận.
+                        Enter the <b>exact transfer content</b> so the system can confirm automatically.
                     </div>
                 </div>
             </div>
 
             <div id="statusBox" class="text-center mt-4">
                 <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-                <span class="text-muted">Đang chờ thanh toán...</span>
+                <span class="text-muted">Waiting for payment...</span>
             </div>
         }
 
@@ -72,10 +72,10 @@
             document.querySelector('.card').innerHTML = `
                         <div class="text-center py-5">
                             <i class="bi bi-clock-history text-danger" style="font-size: 3rem;"></i>
-                            <h4 class="fw-bold mt-3">Mã QR đã hết hạn</h4>
-                            <p class="text-muted">Đơn thanh toán chỉ có hiệu lực trong 2 phút. Vui lòng đăng ký lại.</p>
+                            <h4 class="fw-bold mt-3">The QR code has expired</h4>
+                            <p class="text-muted">The payment order is only valid for 2 minutes. Please register again.</p>
                             <a href="@Url.Action("Index", "Subscription")" class="btn btn-primary rounded-pill px-4 mt-2">
-                                Quay lại chọn gói
+                                Back to plan selection
                             </a>
                         </div>`;
         }
@@ -102,7 +102,7 @@
                     if (data.status === 'PAID') {
                         stopAll();
                         document.getElementById('statusBox').innerHTML =
-                            '<span class="text-success fw-bold">Thanh toán thành công! Đang chuyển trang...</span>';
+                            '<span class="text-success fw-bold">Payment successful! Redirecting...</span>';
                         setTimeout(() => window.location.href = successUrl, 1000);
                     } else if (data.status === 'EXPIRED') {
                         showExpiredUI();

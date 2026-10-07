@@ -76,25 +76,36 @@
                                     string content = item.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
                                     string top = item.TryGetProperty("top", out var t) ? t.GetString() ?? "35%" : "35%";
                                     string left = item.TryGetProperty("left", out var l) ? l.GetString() ?? "15%" : "15%";
+
+                                    string width = "273px";
+                                    if (item.TryGetProperty("width", out var wProp))
+                                    {
+                                        string wStr = wProp.GetString() ?? "";
+                                        if (!string.IsNullOrEmpty(wStr))
+                                        {
+                                            width = wStr.EndsWith("px") ? wStr : wStr + "px";
+                                        }
+                                    }
+
                                     string font = item.TryGetProperty("fontFamily", out var f) ? f.GetString() ?? "Arial" : "Arial";
                                     string size = item.TryGetProperty("fontSize", out var s) ? s.GetString() ?? "18px" : "18px";
                                     string color = item.TryGetProperty("color", out var cl) ? cl.GetString() ?? "#000000" : "#000000";
                                     string weight = item.TryGetProperty("fontWeight", out var w) ? w.GetString() ?? "normal" : "normal";
                                     string style = item.TryGetProperty("fontStyle", out var st) ? st.GetString() ?? "normal" : "normal";
 
-                                    <div class="draggable-text-box @(isFirst ? "active" : "") position-absolute p-2 rounded text-center"
-                                         style="top: @top; left: @left; color: @color; font-family: @font; font-size: @size; font-weight: @weight; font-style: @style; cursor: move; border: @(isFirst ? "2px dashed #0d6efd" : "1px dashed rgba(13,110,253,0.5)"); background: rgba(255,255,255,0.4);"
+                                    <div class="draggable-text-box @(isFirst ? "active" : "") position-absolute p-2 rounded text-center d-flex align-items-center justify-content-center"
+                                         style="top: @top; left: @left; width: @width; min-height: 110px; color: @color; font-family: @font; font-size: @size; font-weight: @weight; font-style: @style; cursor: move; border: @(isFirst ? "2px dashed #0d6efd" : "1px dashed rgba(13,110,253,0.5)"); background: rgba(255,255,255,0.4); box-sizing: border-box;"
                                          data-top="@top" data-left="@left">
-                                        <span class="text-content" style="white-space: pre-wrap; display: block;">@content</span>
+                                        <span class="text-content" style="white-space: pre-wrap; display: block; width: 100%;">@content</span>
                                     </div>
                                     isFirst = false;
                                 }
                             }
                             else
                             {
-                                <div class="draggable-text-box active position-absolute p-2 rounded text-center"
-                                     style="top: 35%; left: 15%; width: 70%; color: #000000; font-family: Arial; font-size: 20px; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4);">
-                                    <span class="text-content" style="white-space: pre-wrap; display: block;">Chúc Mừng Bằng Cả Trái Tim</span>
+                                <div class="draggable-text-box active position-absolute p-2 rounded text-center d-flex align-items-center justify-content-center"
+                                     style="top: 35%; left: 15%; width: 273px; min-height: 110px; color: #000000; font-family: Arial; font-size: 18px; font-weight: bold; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4); box-sizing: border-box;">
+                                    <span class="text-content" style="white-space: pre-wrap; display: block; width: 100%;">Chúc Mừng Bằng Cả Trái Tim</span>
                                 </div>
                             }
                         </div>
@@ -191,14 +202,22 @@
                             </div>
                             <div class="col-5">
                                 <select id="select-fontsize" class="form-select form-select-sm">
+                                    <option value="8px">8px</option>
+                                    <option value="9px">9px</option>
+                                    <option value="10px">10px</option>
+                                    <option value="11px">11px</option>
+                                    <option value="12px">12px</option>
                                     <option value="14px">14px</option>
                                     <option value="16px">16px</option>
-                                    <option value="18px">18px</option>
-                                    <option value="20px" selected>20px</option>
+                                    <option value="18px" selected>18px</option>
+                                    <option value="20px">20px</option>
                                     <option value="24px">24px</option>
                                     <option value="28px">28px</option>
                                     <option value="32px">32px</option>
                                     <option value="36px">36px</option>
+                                    <option value="42px">42px</option>
+                                    <option value="48px">48px</option>
+                                    <option value="54px">54px</option>
                                 </select>
                             </div>
                         </div>
@@ -213,9 +232,9 @@
                         <div class="mt-2">
                             <div class="d-flex justify-content-between">
                                 <label for="slider-text-width" class="form-label form-label-sm mb-0">Độ rộng khung chữ:</label>
-                                <span id="val-text-width" class="small text-muted">300px</span>
+                                <span id="val-text-width" class="small text-muted">273px</span>
                             </div>
-                            <input type="range" id="slider-text-width" class="form-range form-range-sm" min="100" max="580" value="300">
+                            <input type="range" id="slider-text-width" class="form-range form-range-sm" min="100" max="580" value="273">
                         </div>
                     </div>
 
@@ -229,7 +248,7 @@
                             <span class="small fw-bold text-secondary d-block mb-2">Tùy chỉnh ảnh đang chọn:</span>
                             <div class="d-flex gap-1 mb-2">
                                 <button type="button" id="btn-img-circle" class="btn btn-sm btn-outline-primary w-50">⭕ Khung tròn</button>
-                                <button type="button" id="btn-send-back" class="btn btn-sm btn-outline-secondary w-25">⬇️ Dưới</button>
+                                <button type="button" id="btn-send-back" class="btn btn-sm btn-outline-secondary w-25">⬇️️ Dưới</button>
                                 <button type="button" id="btn-bring-front" class="btn btn-sm btn-outline-secondary w-25">⬆️ Trên</button>
                             </div>
                             <div class="mb-2">
@@ -334,12 +353,10 @@
                 </div>
 
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2 pb-4">
-                    <!-- Nút Quay Lại chuyển về Section Edit -->
                     <button type="button" id="btnBackToEdit" class="btn btn-secondary rounded-pill px-4">
                         <i class="bi bi-arrow-left me-1"></i> Quay lại
                     </button>
 
-                    <!-- Nút Mở Pop-up Modal Xác Nhận (Nhãn nút sẽ được thay đổi linh hoạt bởi JS) -->
                     <button type="button" id="btnOpenConfirmModal" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
                         <i class="bi bi-check-circle me-1"></i> Đồng Ý & Gửi
                     </button>

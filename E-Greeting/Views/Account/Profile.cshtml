@@ -1,12 +1,12 @@
 ﻿@model E_Greeting.Models.Account
 @{
-    ViewData["Title"] = "Quản lý Hồ Sơ Cá Nhân";
+    ViewData["Title"] = "Personal Profile Management";
 }
 
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <h3 class="mb-4 text-primary"><i class="bi bi-person-circle"></i> Hồ Sơ Cá Nhân</h3>
+            <h3 class="mb-4 text-primary"><i class="bi bi-person-circle"></i> Personal Profile</h3>
 
             @if (TempData["SuccessMessage"] != null)
             {
@@ -17,42 +17,42 @@
                 <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
             }
 
-            <!-- FORM 1: SỬA HỌ TÊN -->
+            <!-- FORM 1: EDIT FULL NAME -->
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white font-weight-bold">Thông tin tài khoản</div>
+                <div class="card-header bg-white font-weight-bold">Account Information</div>
                 <div class="card-body">
                     <form asp-action="UpdateProfile" method="post">
                         <div class="form-group mb-3">
-                            <label class="form-label">Email (Không thể sửa)</label>
+                            <label class="form-label">Email (Cannot be edited)</label>
                             <input value="@Model.Email" class="form-control" readonly />
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">Họ và tên</label>
+                            <label class="form-label">Full name</label>
                             <input type="text" name="name" value="@Model.Name" class="form-control" required />
                         </div>
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu Thay Đổi</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Changes</button>
                     </form>
                 </div>
             </div>
 
-            <!-- FORM 2: ĐỔI MẬT KHẨU -->
+            <!-- FORM 2: CHANGE PASSWORD -->
             <div class="card shadow-sm">
-                <div class="card-header bg-white font-weight-bold text-danger">Đổi Mật Khẩu</div>
+                <div class="card-header bg-white font-weight-bold text-danger">Change Password</div>
                 <div class="card-body">
                     <form asp-action="ChangePassword" method="post">
                         <div class="form-group mb-3">
-                            <label class="form-label">Mật khẩu hiện tại</label>
+                            <label class="form-label">Current password</label>
                             <input type="password" name="currentPassword" class="form-control" required />
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">Mật khẩu mới</label>
+                            <label class="form-label">New password</label>
                             <input type="password" name="newPassword" class="form-control" required />
                         </div>
                         <div class="form-group mb-3">
-                            <label class="form-label">Xác nhận mật khẩu mới</label>
+                            <label class="form-label">Confirm new password</label>
                             <input type="password" name="confirmPassword" class="form-control" required />
                         </div>
-                        <button type="submit" class="btn btn-danger"><i class="bi bi-key"></i> Đổi Mật Khẩu</button>
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-key"></i> Change Password</button>
                     </form>
                 </div>
             </div>
