@@ -27,7 +27,6 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\uploads\img_sentcards\" />
-    <Folder Include="wwwroot\uploads\templates\" />
   </ItemGroup>
 
 </Project>
