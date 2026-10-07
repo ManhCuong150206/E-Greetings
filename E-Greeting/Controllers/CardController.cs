@@ -47,6 +47,8 @@ public class ReplyRequest
 [Authorize]
 public class CardController : Controller
 {
+    private static readonly HttpClient _httpClient = new();
+
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
@@ -238,7 +240,8 @@ public class CardController : Controller
         // 7. Send Emails Immediately if not scheduled
         if (!isScheduledForFuture)
         {
-            string domain = _configuration["AppSettings:Domain"] ?? $"{Request.Scheme}://{Request.Host}";
+            // Dynamically retrieve Ngrok active domain or configuration fallback
+            string domain = await GetActiveNgrokDomainAsync();
             string senderName = account?.Name ?? User.Identity?.Name ?? "E-Greeting System";
 
             foreach (var card in createdCards)
@@ -398,6 +401,40 @@ public class CardController : Controller
     }
 
     // --- HELPER METHODS ---
+
+    /// <summary>
+    /// Fetches the currently active public HTTPS tunnel URL from local Ngrok API.
+    /// Falls back to configured Domain settings or local host if Ngrok is inactive.
+    /// </summary>
+    private async Task<string> GetActiveNgrokDomainAsync()
+    {
+        try
+        {
+            // Send internal request to active Ngrok API running locally
+            var response = await _httpClient.GetStringAsync("http://127.0.0.1:4040/api/tunnels");
+            using var doc = JsonDocument.Parse(response);
+            var tunnels = doc.RootElement.GetProperty("tunnels");
+
+            foreach (var tunnel in tunnels.EnumerateArray())
+            {
+                string publicUrl = tunnel.GetProperty("public_url").GetString() ?? "";
+                if (publicUrl.StartsWith("https://"))
+                {
+                    return publicUrl;
+                }
+            }
+        }
+        catch
+        {
+            // Ngrok is not running or endpoint is unreachable
+        }
+
+        // Fallback hierarchy: Domain -> AppSettings:Domain -> Current Request Host -> Default Localhost
+        return _configuration["Domain"]
+            ?? _configuration["AppSettings:Domain"]
+            ?? (Request != null ? $"{Request.Scheme}://{Request.Host}" : "https://localhost:7130");
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
