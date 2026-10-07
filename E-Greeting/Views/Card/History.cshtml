@@ -1,39 +1,39 @@
 ﻿@model E_Greeting.Models.UserHistoryViewModel
 
 @{
-    ViewData["Title"] = "Lịch Sử Hoạt Động & Giao Dịch";
+    ViewData["Title"] = "Activity & Transaction History";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h3 class="fw-bold text-primary mb-1">
-                <i class="bi bi-clock-history me-2"></i>Lịch Sử Hoạt Động & Giao Dịch
+                <i class="bi bi-clock-history me-2"></i>Activity & Transaction History
             </h3>
-            <small class="text-muted">Quản lý lịch sử gửi thiệp chúc mừng và thông tin các gói dịch vụ VIP đã đăng ký</small>
+            <small class="text-muted">Manage your sent greeting card history and registered VIP service plans</small>
         </div>
         <div>
             <a href="/Home/Index" class="btn btn-primary fw-semibold me-2">
-                <i class="bi bi-plus-circle me-1"></i>Tạo Thiệp Mới
+                <i class="bi bi-plus-circle me-1"></i>Create New Card
             </a>
             <a href="/Subscription" class="btn btn-warning text-dark fw-bold">
-                <i class="bi bi-star-fill me-1"></i>Nâng Cấp VIP
+                <i class="bi bi-star-fill me-1"></i>Upgrade to VIP
             </a>
         </div>
     </div>
 
-    <!-- BẢNG DANH SÁCH THIỆP ĐÃ GỬI -->
+    <!-- SENT CARDS LIST TABLE -->
     <div class="card shadow-sm rounded-3 mt-3">
         <div class="card-body p-0">
             <table class="table table-hover table-striped align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th width="80" class="text-center">Ảnh</th>
-                        <th>Thông Tin Thiệp & Người Nhận</th>
-                        <th>Thời Gian Gửi / Trạng Thái</th>
-                        <th class="text-center">Trạng Thái Mở</th>
-                        <th>Phản Hồi Từ Người Nhận</th>
-                        <th class="text-center" width="100">Thao Tác</th>
+                        <th width="80" class="text-center">Image</th>
+                        <th>Card & Recipient Info</th>
+                        <th>Sent Time / Status</th>
+                        <th class="text-center">Opened Status</th>
+                        <th>Recipient Reply</th>
+                        <th class="text-center" width="100">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -41,7 +41,7 @@
                     {
                         foreach (var item in Model.SentCards)
                         {
-                            // BÓC TÁCH DỮ LIỆU BẰNG REFLECTION
+                            // EXTRACT DATA VIA REFLECTION
                             var props = item.GetType().GetProperties();
                             string recipientEmail = props.FirstOrDefault(p => p.Name.Equals("RecipientEmail", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "N/A";
                             string subjectVal = props.FirstOrDefault(p => p.Name.Equals("Subject", StringComparison.OrdinalIgnoreCase))?.GetValue(item)?.ToString() ?? "";
@@ -56,7 +56,7 @@
 
                             bool isVip = item.Template != null && !item.Template.IsFree;
 
-                            // PARSE JSON PHẢN HỒI NGƯỜI NHẬN
+                            // PARSE RECIPIENT REPLY JSON
                             string replyStatus = "";
                             string replyText = "";
                             if (!string.IsNullOrWhiteSpace(rawReply))
@@ -78,11 +78,11 @@
                             }
 
                             <tr>
-                                <!-- 1. CỘT ẢNH BÌA THIỆP -->
+                                <!-- 1. CARD COVER COLUMN -->
                                 <td class="text-center p-2">
                                     @if (!string.IsNullOrWhiteSpace(imagePath))
                                     {
-                                        <img src="@imagePath" class="rounded border shadow-sm" style="width: 55px; height: 55px; object-fit: cover;" alt="Bìa thiệp" />
+                                        <img src="@imagePath" class="rounded border shadow-sm" style="width: 55px; height: 55px; object-fit: cover;" alt="Card cover" />
                                     }
                                     else
                                     {
@@ -92,12 +92,12 @@
                                     }
                                 </td>
 
-                                <!-- 2. THÔNG TIN THIỆP & NGƯỜI NHẬN -->
+                                <!-- 2. CARD & RECIPIENT INFO -->
                                 <td>
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <span class="badge @(isVip ? "bg-warning text-dark" : "bg-info text-dark") shadow-sm">
                                             <i class="bi @(isVip ? "bi-star-fill" : "bi-card-image") me-1"></i>
-                                            @(item.Template?.Name ?? "Mẫu Thiệp")
+                                            @(item.Template?.Name ?? "Card Template")
                                         </span>
                                         @if (!string.IsNullOrWhiteSpace(subjectVal))
                                         {
@@ -109,13 +109,13 @@
                                     </div>
                                 </td>
 
-                                <!-- 3. THỜI GIAN GỬI / HẸN GIỜ (CẬP NHẬT) -->
+                                <!-- 3. SENT TIME / SCHEDULED -->
                                 <td>
                                     @if (sentAt.HasValue)
                                     {
                                         <div>
                                             <span class="badge bg-success mb-1">
-                                                <i class="bi bi-check-circle-fill me-1"></i>Đã gửi
+                                                <i class="bi bi-check-circle-fill me-1"></i>Sent
                                             </span>
                                         </div>
                                         <small class="fw-semibold text-dark d-block">
@@ -128,7 +128,7 @@
                                         {
                                             <div>
                                                 <span class="badge text-white mb-1" style="background-color: #6f42c1;">
-                                                    <i class="bi bi-clock-history me-1"></i>Đã hẹn giờ
+                                                    <i class="bi bi-clock-history me-1"></i>Scheduled
                                                 </span>
                                             </div>
                                             <small class="fw-semibold text-dark d-block">
@@ -139,24 +139,24 @@
                                         {
                                             <div>
                                                 <span class="badge bg-warning text-dark mb-1">
-                                                    <i class="bi bi-hourglass-split me-1"></i>Đang xử lý...
+                                                    <i class="bi bi-hourglass-split me-1"></i>Processing...
                                                 </span>
                                             </div>
-                                            <small class="text-muted d-block">Đang trong hàng chờ gửi</small>
+                                            <small class="text-muted d-block">In sending queue</small>
                                         }
                                     }
                                     else
                                     {
                                         <div>
                                             <span class="badge bg-secondary opacity-75 mb-1">
-                                                <i class="bi bi-dash-circle me-1"></i>Chờ gửi
+                                                <i class="bi bi-dash-circle me-1"></i>Pending
                                             </span>
                                         </div>
-                                        <small class="text-muted d-block">Chưa khởi tạo</small>
+                                        <small class="text-muted d-block">Not initialized</small>
                                     }
                                 </td>
 
-                                <!-- 4. TRẠNG THÁI MỞ -->
+                                <!-- 4. OPENED STATUS -->
                                 <td class="text-center">
                                     @if (openAt.HasValue)
                                     {
@@ -166,28 +166,28 @@
                                     }
                                     else
                                     {
-                                        <span class="badge bg-secondary opacity-75">Chưa mở</span>
+                                        <span class="badge bg-secondary opacity-75">Not opened</span>
                                     }
                                 </td>
 
-                                <!-- 5. PHẢN HỒI TỪ NGƯỜI NHẬN -->
+                                <!-- 5. RECIPIENT REPLY -->
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(replyStatus) || !string.IsNullOrWhiteSpace(replyText))
                                     {
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             @if (!string.IsNullOrWhiteSpace(replyStatus))
                                             {
-                                                if (replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
+                                                if (replyStatus.Contains("Attending", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Sẽ tham dự", StringComparison.OrdinalIgnoreCase) || (replyStatus.Contains("tham dự", StringComparison.OrdinalIgnoreCase) && !replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase)))
                                                 {
-                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Sẽ tham dự</span>
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Attending</span>
                                                 }
-                                                else if (replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
+                                                else if (replyStatus.Contains("Maybe", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Phân vân", StringComparison.OrdinalIgnoreCase))
                                                 {
-                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Phân vân</span>
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-question-circle-fill me-1"></i>Maybe</span>
                                                 }
-                                                else if (replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
+                                                else if (replyStatus.Contains("Cannot", StringComparison.OrdinalIgnoreCase) || replyStatus.Contains("Không", StringComparison.OrdinalIgnoreCase))
                                                 {
-                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Không thể tham dự</span>
+                                                    <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i>Cannot attend</span>
                                                 }
                                                 else
                                                 {
@@ -205,11 +205,11 @@
                                     }
                                     else
                                     {
-                                        <span class="text-muted fst-italic">Chưa phản hồi</span>
+                                        <span class="text-muted fst-italic">No reply yet</span>
                                     }
                                 </td>
 
-                                <!-- 6. NÚT XEM CHI TIẾT (MODAL POPUP) -->
+                                <!-- 6. VIEW DETAILS BUTTON (MODAL POPUP) -->
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-primary fw-semibold rounded-pill parse-json-btn"
                                             data-bs-toggle="modal"
@@ -219,74 +219,74 @@
                                             data-subject="@subjectVal"
                                             data-img="@imagePath"
                                             data-audio="@audioPath">
-                                        <i class="bi bi-eye me-1"></i> Xem
+                                        <i class="bi bi-eye me-1"></i> View
                                     </button>
 
-                                    <!-- MODAL POPUP CHI TIẾT THIỆP -->
+                                    <!-- CARD DETAILS MODAL POPUP -->
                                     <div class="modal fade" id="modalCard-@item.Id" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-lg modal-dialog-centered">
                                             <div class="modal-content text-start">
                                                 <div class="modal-header bg-primary text-white py-2">
                                                     <h5 class="modal-title fs-6 fw-bold">
-                                                        <i class="bi bi-file-earmark-text me-2"></i>Chi Tiết Thông Tin Đi Kèm Thiệp #@item.Id
+                                                        <i class="bi bi-file-earmark-text me-2"></i>Details for Card #@item.Id
                                                     </h5>
                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <div class="modal-body p-4">
-                                                    <!-- BÌA THIỆP -->
+                                                    <!-- CARD COVER -->
                                                     @if (!string.IsNullOrWhiteSpace(imagePath))
                                                     {
                                                         <div class="text-center mb-3">
-                                                            <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Ảnh Bìa Thiệp Đã Chọn:</label>
-                                                            <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Ảnh bìa thiệp" />
+                                                            <label class="fw-bold text-muted d-block mb-2"><i class="bi bi-image me-1"></i>Selected Card Cover Image:</label>
+                                                            <img src="@imagePath" class="img-fluid rounded shadow-sm border" style="max-height: 250px; object-fit: contain;" alt="Card cover" />
                                                         </div>
                                                     }
 
-                                                    <!-- NHẠC NỀN -->
+                                                    <!-- BACKGROUND MUSIC -->
                                                     @if (!string.IsNullOrWhiteSpace(audioPath))
                                                     {
                                                         <div class="card p-3 mb-3 border-0 bg-light rounded-3 shadow-sm">
                                                             <h6 class="fw-bold text-primary mb-2">
-                                                                <i class="bi bi-music-note-beamed me-1"></i>Nhạc nền kèm theo thiệp:
+                                                                <i class="bi bi-music-note-beamed me-1"></i>Background music included:
                                                             </h6>
                                                             <audio controls class="w-100">
                                                                 <source src="@audioPath" type="audio/mpeg">
-                                                                Trình duyệt của bạn không hỗ trợ thẻ audio.
+                                                                Your browser does not support the audio element.
                                                             </audio>
                                                         </div>
                                                     }
 
-                                                    <!-- FORM CHI TIẾT RUỘT THIỆP -->
+                                                    <!-- CARD CONTENT FORM DETAILS -->
                                                     <div class="border rounded-3 p-3 bg-light shadow-sm">
                                                         <h6 class="fw-bold text-primary mb-3">
-                                                            <i class="bi bi-journal-text me-1"></i>Thông Tin Chi Tiết Đi Kèm Thiệp:
+                                                            <i class="bi bi-journal-text me-1"></i>Detailed Card Information:
                                                         </h6>
                                                         <div class="row g-3">
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Tên Người Nhận (*):</label>
+                                                                <label class="form-label fw-bold small text-dark">Recipient Name (*):</label>
                                                                 <input type="text" class="form-control form-control-sm bg-white modal-field-name" readonly />
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Thời Gian Diễn Ra (*):</label>
+                                                                <label class="form-label fw-bold small text-dark">Event Time (*):</label>
                                                                 <input type="text" class="form-control form-control-sm bg-white modal-field-time" readonly />
                                                             </div>
                                                             <div class="col-12">
-                                                                <label class="form-label fw-bold small text-dark">Địa Chỉ / Địa Điểm Tổ Chức (*):</label>
+                                                                <label class="form-label fw-bold small text-dark">Event Address / Location (*):</label>
                                                                 <input type="text" class="form-control form-control-sm bg-white modal-field-address" readonly />
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Email Người Nhận (*):</label>
+                                                                <label class="form-label fw-bold small text-dark">Recipient Email (*):</label>
                                                                 <input type="text" class="form-control form-control-sm bg-white modal-field-email" value="@recipientEmail" readonly />
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-bold small text-dark">Tiêu Đề Email:</label>
+                                                                <label class="form-label fw-bold small text-dark">Email Subject:</label>
                                                                 <input type="text" class="form-control form-control-sm bg-white modal-field-subject" value="@subjectVal" readonly />
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer py-2">
-                                                    <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Đóng</button>
+                                                    <button type="button" class="btn btn-sm btn-secondary fw-semibold" data-bs-dismiss="modal">Close</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -298,7 +298,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Bạn chưa gửi thiệp nào.</td>
+                            <td colspan="6" class="text-center py-4 text-muted">You haven't sent any cards yet.</td>
                         </tr>
                     }
                 </tbody>
@@ -307,7 +307,7 @@
     </div>
 </div>
 
-<!-- SCRIPT PARSE JSON KHI NHẤN NÚT XEM -->
+<!-- SCRIPT TO PARSE JSON WHEN VIEW BUTTON IS CLICKED -->
 @section Scripts {
     <script>
         document.querySelectorAll('.parse-json-btn').forEach(btn => {
@@ -329,7 +329,7 @@
 
                         let timeVal = jsonObj.eventTime || jsonObj.Time || jsonObj.time;
                         if (timeVal) {
-                            try { rTime = new Date(timeVal).toLocaleString('vi-VN'); } catch (e) { rTime = timeVal; }
+                            try { rTime = new Date(timeVal).toLocaleString('en-US'); } catch (e) { rTime = timeVal; }
                         }
                     } catch (e) {
                         rName = rawData;

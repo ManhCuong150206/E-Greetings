@@ -4,85 +4,81 @@ using E_Greeting.Service.Templates;
 using E_Greeting.ViewModels.Templates;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace E_Greeting.Controllers
+namespace E_Greeting.Controllers;
+
+[Route("template")]
+public class TemplateController : Controller
 {
-    [Route("template")]
-    public class TemplateController : Controller
+    private readonly ITemplateService _templateService;
+    private readonly ICategoryService _cateService;
+    private readonly AppDbContext _context;
+
+    public TemplateController(ITemplateService templateService, ICategoryService cateService, AppDbContext context)
     {
-        private readonly ITemplateService _templateService;
-        private readonly ICategoryService _cateService;
-        private readonly AppDbContext _context;
+        _templateService = templateService;
+        _cateService = cateService;
+        _context = context;
+    }
 
-        public TemplateController(ITemplateService templateService, ICategoryService cateService, AppDbContext context)
+    [Route("")]
+    [HttpGet("all-templates")]
+    public async Task<IActionResult> Index(TemplateFilter filter)
+    {
+        var templates = await _templateService.GetTemplates(filter);
+        var cate = await _cateService.GetCategories();
+        ViewBag.Category = cate.ToList();
+        return View(templates);
+    }
+
+    // ACTION FOR CARD DETAILS PAGE (VIEW DETAIL)
+    [HttpGet("details/{id?}")]
+    public async Task<IActionResult> Details(int id)
+    {
+        if (id <= 0) return NotFound();
+
+        var template = await _templateService.GetTemplateById(id);
+        if (template == null) return NotFound();
+
+        // 1. Check if current account is VIP & has wishlisted this card
+        bool isWishlisted = false;
+        bool isUserVip = false;
+
+        if (User.Identity != null && User.Identity.IsAuthenticated)
         {
-            _templateService = templateService;
-            _cateService = cateService;
-            _context = context;
-        }
+            string currentUserName = User.Identity.Name ?? "";
+            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Name == currentUserName || a.Email == currentUserName);
 
-        [Route("")]
-        [HttpGet("all-templates")]
-        public async Task<IActionResult> Index(TemplateFilter filter)
-        {
-            var templates = await _templateService.GetTemplates(filter);
-            var cate = await _cateService.GetCategories();
-            ViewBag.Category = cate.ToList();
-            return View(templates);
-        }
-
-        // ACTION CHO TRANG CHI TIẾT THIỆP (VIEW DETAIL)
-        [HttpGet("details/{id?}")]
-        public async Task<IActionResult> Details(int id)
-        {
-            if (id <= 0) return NotFound();
-
-            var template = await _templateService.GetTemplateById(id);
-            if (template == null) return NotFound();
-
-            // 1. Kiểm tra tài khoản hiện tại có phải VIP hay không & đã Wishlist thiệp này chưa
-            bool isWishlisted = false;
-            bool isUserVip = false;
-
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (account != null)
             {
-                string currentUserName = User.Identity.Name ?? "";
-                var account = await _context.Accounts.FirstOrDefaultAsync(a => a.Name == currentUserName || a.Email == currentUserName);
+                // Check Wishlist
+                isWishlisted = await _context.Wishlists.AnyAsync(w => w.AccountId == account.Id && w.TemplateId == id);
 
-                if (account != null)
-                {
-                    // Check Wishlist
-                    isWishlisted = await _context.Wishlists.AnyAsync(w => w.AccountId == account.Id && w.TemplateId == id);
-
-                    // Check VIP Subscription active (Xử lý so sánh DateOnly/DateTime an toàn)
-                    var today = DateOnly.FromDateTime(DateTime.Now);
-                    isUserVip = await _context.Subscriptions.AnyAsync(s =>
-                        s.AccountId == account.Id &&
-                        s.IsActive &&
-                        s.EndDate >= today);
-                }
+                // Check active VIP Subscription (Safe DateOnly/DateTime comparison)
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                isUserVip = await _context.Subscriptions.AnyAsync(s =>
+                    s.AccountId == account.Id &&
+                    s.IsActive &&
+                    s.EndDate >= today);
             }
-
-            ViewBag.IsWishlisted = isWishlisted;
-            ViewBag.IsUserVip = isUserVip;
-
-            // 2. Lấy danh sách thiệp liên quan
-            var filter = new TemplateFilter
-            {
-                CategoryId = template.CategoryId,
-                PageSize = 4
-            };
-            var relatedTemplates = await _templateService.GetTemplates(filter);
-
-            ViewBag.RelatedTemplates = relatedTemplates.Templates
-                .Where(t => t.Id != id)
-                .Take(4)
-                .ToList();
-
-            return View(template);
         }
+
+        ViewBag.IsWishlisted = isWishlisted;
+        ViewBag.IsUserVip = isUserVip;
+
+        // 2. Get list of related card templates
+        var filter = new TemplateFilter
+        {
+            CategoryId = template.CategoryId,
+            PageSize = 4
+        };
+        var relatedTemplates = await _templateService.GetTemplates(filter);
+
+        ViewBag.RelatedTemplates = relatedTemplates.Templates
+            .Where(t => t.Id != id)
+            .Take(4)
+            .ToList();
+
+        return View(template);
     }
 }

@@ -6,29 +6,26 @@ public class AccountService : IAccountService
 {
     private readonly AppDbContext _context;
 
-    public AccountService(AppDbContext context)
-    {
-        _context = context;
-    }
+    public AccountService(AppDbContext context) => _context = context;
 
     public async Task<(Account account, LoginResult result)> LoginAsync(string email, string password)
     {
-        // Bước 1: Tìm theo Email trước, CHƯA quan tâm password
+        // Step 1: Find account by Email first, ignore password for now
         var account = await _context.Accounts
             .FirstOrDefaultAsync(a => a.Email == email);
 
         if (account == null)
             return (null, LoginResult.EmailNotFound);
 
-        // Bước 2: Email đúng rồi, giờ mới so Password
+        // Step 2: Email matches, now verify Password
         if (account.Password != password)
             return (null, LoginResult.WrongPassword);
 
-        // Bước 3: Email và Password đều đúng, giờ mới kiểm tra khóa
+        // Step 3: Both Email and Password are correct, now check account status (lock/active)
         if (!account.Status)
             return (null, LoginResult.AccountLocked);
 
-        // Qua hết cả 3 bước
+        // Passed all 3 verification steps
         return (account, LoginResult.Success);
     }
 
@@ -39,10 +36,9 @@ public class AccountService : IAccountService
 
         if (existingAccount != null)
         {
-            // Đã tìm thấy tài khoản dùng email này rồi → không cho đăng ký nữa
+            // Found existing account with this email -> disallow registration
             return (null, RegisterResult.EmailExists);
         }
-
 
         var newAccount = new Account
         {
@@ -53,8 +49,8 @@ public class AccountService : IAccountService
             Status = true
         };
 
-        _context.Accounts.Add(newAccount);       // bỏ vào "giỏ hàng", chưa vào DB
-        await _context.SaveChangesAsync();       // ghi thật xuống DB
+        _context.Accounts.Add(newAccount);       // Stage new entity
+        await _context.SaveChangesAsync();       // Commit changes to Database
 
         return (newAccount, RegisterResult.Success);
     }

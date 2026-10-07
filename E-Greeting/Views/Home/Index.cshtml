@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<E_Greeting.Models.Template>
 
 @{
-    ViewData["Title"] = "Trang Chủ - E-Greeting";
+    ViewData["Title"] = "Home - E-Greeting";
     var wishlistIds = ViewBag.WishlistCardIds as List<int> ?? new List<int>();
 }
 
@@ -10,16 +10,16 @@
     <div class="row align-items-center position-relative z-1">
         <div class="col-lg-7 text-center text-lg-start">
             <span class="badge bg-light text-primary fw-bold px-3 py-2 rounded-pill mb-3">
-                <i class="bi bi-sparkles me-1"></i> Nền Tảng Gửi Thiệp Số 1
+                <i class="bi bi-sparkles me-1"></i> #1 E-Card Platform
             </span>
-            <h1 class="display-5 fw-bold mb-3">Trao Lời Chúc Mừng, Kết Nối Yêu Thương</h1>
-            <p class="lead mb-4 opacity-90">Tự tay thiết kế thiệp điện tử độc đáo chỉ trong 3 phút với hàng trăm mẫu thiệp Sinh Nhật, Đám Cưới và Lễ Hội hoàn toàn miễn phí.</p>
+            <h1 class="display-5 fw-bold mb-3">Send Wishes, Connect Hearts</h1>
+            <p class="lead mb-4 opacity-90">Design your own unique e-cards in just 3 minutes with hundreds of free templates for Birthdays, Weddings, and Festivals.</p>
             <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
                 <a href="#cardCatalog" class="btn btn-light btn-lg rounded-pill fw-bold text-primary px-4 shadow-sm">
-                    Khám Phá Ngay <i class="bi bi-arrow-down-short ms-1"></i>
+                    Explore Now <i class="bi bi-arrow-down-short ms-1"></i>
                 </a>
                 <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-light btn-lg rounded-pill fw-semibold px-4">
-                    Gói Tự Động <i class="bi bi-star-fill ms-1 text-warning"></i>
+                    Automated Plans <i class="bi bi-star-fill ms-1 text-warning"></i>
                 </a>
             </div>
         </div>
@@ -36,36 +36,36 @@
             <div class="col-lg-4 col-md-4">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Tìm tên thiệp..." />
+                    <input type="text" id="searchInput" class="form-control bg-light border-0" placeholder="Search card title..." />
                 </div>
             </div>
 
             <div class="col-lg-3 col-md-3">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
-                    <option value="all">Tất cả chủ đề</option>
-                    <option value="1">Sinh nhật (Birthday)</option>
-                    <option value="2">Đám cưới (Wedding)</option>
-                    <option value="3">Kỷ niệm (Anniversary)</option>
-                    <option value="4">Lễ hội (Festivals)</option>
+                    <option value="all">All Categories</option>
+                    <option value="1">Birthday</option>
+                    <option value="2">Wedding</option>
+                    <option value="3">Anniversary</option>
+                    <option value="4">Festivals</option>
                 </select>
             </div>
 
             <div class="col-lg-3 col-md-3">
                 <select id="typeFilter" class="form-select bg-light border-0 fw-medium">
-                    <option value="all">Tất cả loại thiệp</option>
-                    <option value="free">Miễn phí</option>
-                    <option value="paid">Trả phí (VIP)</option>
+                    <option value="all">All Card Types</option>
+                    <option value="free">Free</option>
+                    <option value="paid">Paid (VIP)</option>
                 </select>
             </div>
 
             <div class="col-lg-1 col-md-1">
-                <button id="btnWishlistFilter" class="btn btn-outline-danger w-100 rounded-3 shadow-sm d-flex align-items-center justify-content-center" title="Xem thiệp đã thả tim">
+                <button id="btnWishlistFilter" class="btn btn-outline-danger w-100 rounded-3 shadow-sm d-flex align-items-center justify-content-center" title="View wishlist cards">
                     <i class="bi bi-heart-fill"></i>
                 </button>
             </div>
 
             <div class="col-lg-1 col-md-1 text-end">
-                <button id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="Đặt lại bộ lọc">
+                <button id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="Reset filters">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </button>
             </div>
@@ -73,7 +73,7 @@
     </div>
 </section>
 
-<!-- 3. DANH SÁCH THIỆP TỪ DATABASE -->
+<!-- 3. CARD CATALOG FROM DATABASE -->
 <section class="mb-5">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="cardGrid">
         @if (Model != null && Model.Any())
@@ -95,12 +95,12 @@
                         <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-2 z-3 btn-toggle-wishlist"
                                 data-id="@card.Id"
                                 style="width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;"
-                                title="Thêm vào yêu thích">
+                                title="Add to wishlist">
                             <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart text-secondary") fs-6"></i>
                         </button>
 
                         <span class="position-absolute top-0 end-0 m-2 badge z-2 @(card.IsFree ? "bg-success" : "bg-warning text-dark")">
-                            @(card.IsFree ? "Miễn phí" : "Trả phí")
+                            @(card.IsFree ? "Free" : "Paid")
                         </span>
 
                         <div class="card-img-container bg-light d-flex align-items-center justify-content-center p-2"
@@ -116,9 +116,8 @@
                         <div class="card-body d-flex flex-column p-3">
                             <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
 
-                            <!-- ĐỔI THÀNH NÚT XEM CHI TIẾT SANG TRANG DETAIL -->
                             <a href="/template/details/@card.Id" class="btn btn-outline-primary rounded-pill w-100 fw-bold mt-auto shadow-sm">
-                                🔍 Xem Chi Tiết
+                                🔍 View Details
                             </a>
                         </div>
                     </div>
@@ -130,12 +129,12 @@
 
     <div id="noResults" class="text-center py-5 @(Model != null && Model.Any() ? "d-none" : "")">
         <i class="bi bi-search-heart text-muted display-1"></i>
-        <h5 class="mt-3 text-secondary">Không tìm thấy mẫu thiệp phù hợp</h5>
-        <p class="text-muted small">Hãy thử chọn bộ lọc khác hoặc bỏ lọc yêu thích.</p>
+        <h5 class="mt-3 text-secondary">No matching card templates found</h5>
+        <p class="text-muted small">Try selecting a different filter or clear your wishlist filter.</p>
     </div>
 </section>
 
-<!-- 4. PHÂN TRANG -->
+<!-- 4. PAGINATION -->
 <section class="d-flex justify-content-center my-4">
     <nav aria-label="Page navigation">
         <ul class="pagination pagination-md shadow-sm rounded-pill overflow-hidden" id="paginationList"></ul>
@@ -219,18 +218,18 @@
                 }
 
                 let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                                    </li>`;
+                                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                                            </li>`;
 
                 for (let i = 1; i <= totalPages; i++) {
                     html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                        <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
-                                    </li>`;
+                                                <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
+                                            </li>`;
                 }
 
                 html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                    <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                                </li>`;
+                                            <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                                        </li>`;
 
                 paginationList.innerHTML = html;
 
@@ -274,8 +273,8 @@
                             }
                         })
                         .catch(err => {
-                            console.error("Lỗi Wishlist:", err);
-                            alert("Vui lòng đăng nhập để thực hiện tính năng này!");
+                            console.error("Wishlist Error:", err);
+                            alert("Please log in to use this feature!");
                         });
                 });
             });

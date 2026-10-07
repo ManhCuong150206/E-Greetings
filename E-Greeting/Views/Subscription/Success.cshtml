@@ -7,14 +7,14 @@
 <div class="container my-5" style="max-width: 560px;">
     <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
         <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-        <h3 class="fw-bold mt-3">Registration successful!</h3>
+        <h3 class="fw-bold mt-3">Registration Successful!</h3>
         <p class="text-muted">
             The <b>@Model.Subscription.Service?.Name</b> plan has been activated,
             valid until <b>@Model.Subscription.EndDate?.ToString("dd/MM/yyyy")</b>.
         </p>
         <div class="d-flex gap-2 justify-content-center mt-3">
-            <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">View plans</a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-4">Back to home</a>
+            <a asp-controller="Subscription" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">View Plans</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-4">Back to Home</a>
         </div>
     </div>
 </div>
