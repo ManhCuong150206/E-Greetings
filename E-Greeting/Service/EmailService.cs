@@ -20,9 +20,9 @@ public class EmailService : IEmailService
         var message = new MailMessage();
         message.From = new MailAddress(senderEmail!, displayName);
         message.To.Add(new MailAddress(toEmail));
-        message.Subject = string.IsNullOrWhiteSpace(subject) ? "💌 Bạn nhận được một tấm thiệp chúc mừng!" : subject;
+        message.Subject = string.IsNullOrWhiteSpace(subject) ? "💌 You've received a greeting card!" : subject;
 
-        // Giao diện HTML của Email gửi đến người nhận
+        // English HTML Email Template
         message.Body = $@"
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;'>
                     <div style='text-align: center; padding-bottom: 15px; border-bottom: 2px solid #f1f5f9;'>
@@ -30,25 +30,25 @@ public class EmailService : IEmailService
                     </div>
                     
                     <div style='padding: 20px 0;'>
-                        <p style='font-size: 16px; color: #334155;'>Xin chào,</p>
+                        <p style='font-size: 16px; color: #334155;'>Hello,</p>
                         <p style='font-size: 16px; color: #334155; line-height: 1.6;'>
-                            <strong>{senderName}</strong> vừa tạo và gửi tặng bạn một tấm thiệp chúc mừng đặc biệt kèm nhạc nền và hiệu ứng đẹp mắt!
+                            <strong>{senderName}</strong> has created and sent you a special greeting card complete with background music and custom effects!
                         </p>
                         
                         <div style='text-align: center; margin: 35px 0;'>
                             <a href='{cardViewUrl}' target='_blank' style='background-color: #e11d48; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); display: inline-block;'>
-                                💌 MỞ XEM THIỆP NGAY
+                                💌 OPEN YOUR CARD NOW
                             </a>
                         </div>
 
                         <p style='font-size: 13px; color: #64748b; text-align: center;'>
-                            Nếu nút trên không hoạt động, bạn có thể copy link sau dán vào trình duyệt:<br>
+                            If the button above does not work, copy and paste the link below into your browser:<br>
                             <a href='{cardViewUrl}' style='color: #2563eb;'>{cardViewUrl}</a>
                         </p>
                     </div>
 
                     <div style='border-top: 1px solid #f1f5f9; padding-top: 15px; text-align: center; font-size: 12px; color: #94a3b8;'>
-                        <p style='margin: 0;'>Đây là email tự động từ hệ thống E-Greeting. Vui lòng không trả lời trực tiếp email này.</p>
+                        <p style='margin: 0;'>This is an automated email from the E-Greeting System. Please do not reply directly to this email.</p>
                     </div>
                 </div>";
         message.IsBodyHtml = true;
