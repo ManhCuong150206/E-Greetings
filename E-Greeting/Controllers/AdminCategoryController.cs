@@ -33,8 +33,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
+            // SORT DESCENDING BY ID (NEWEST FIRST)
             var categories = query
-                .OrderBy(c => c.Id)
+                .OrderByDescending(c => c.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
