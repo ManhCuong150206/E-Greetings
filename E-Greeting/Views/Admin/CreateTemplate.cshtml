@@ -2,6 +2,11 @@
     ViewData["Title"] = "Thêm Template Mới - Admin Editor";
 }
 
+<!-- TẢI GOOGLE FONTS ĐỂ HỖ TRỢ HIỂN THỊ TRONG ADMIN EDITOR -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aboreto&family=Amatic+SC:wght@400;700&family=Arimo:ital,wght@0,400..700;1,400..700&family=Bentham&family=Cinzel:wght@400..700&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Dancing+Script:wght@400..700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Great+Vibes&family=Instrument+Serif:ital@0;1&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Josefin+Slab:ital,wght@0,100..700;1,100..700&family=Kreon:wght@300..700&family=Lato:ital,wght@0,300;0,400;0,700;1,300&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lobster&family=Lora:ital,wght@0,400..700;1,400..700&family=Meow+Script&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Monsieur+La+Doulaise&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Mountains+of+Christmas:wght@400;700&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Oswald:wght@200..700&family=Pacifico&family=Parisienne&family=Patrick+Hand&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:ital,wght@0,100;0,400;0,700;1,400&family=Quicksand:wght@300..700&family=Rozha+One&family=Sail&family=Silkscreen:wght@400;700&family=Spicy+Rice&family=Tenor+Sans&display=swap" rel="stylesheet">
+
 <div class="container-fluid my-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3><i class="bi bi-magic me-2 text-primary"></i> Trình Thiết Kế Mẫu Template (Admin Preset)</h3>
@@ -23,37 +28,130 @@
         <input type="hidden" name="configData" id="input-config-data" />
 
         <div class="row">
-            <!-- BÊN TRÁI: LIVE CANVAS KÉO THẢ EDITOR -->
+            <!-- BÊN TRÁI: KHUNG TRẮNG CANVAS 600x420 -->
             <div class="col-md-7">
-                <div class="card shadow-sm p-3 bg-light text-center">
-                    <h6 class="fw-bold text-muted mb-2"><i class="bi bi-aspect-ratio me-1"></i> Vùng Thiết Kế Ảnh Bìa Thô & Text Mẫu (Canvas)</h6>
-                    
-                    <!-- Khung Canvas Cố Định Tỉ Lệ / Kích Thước An Toàn -->
-                    <div id="admin-canvas-area" 
-                         class="position-relative overflow-hidden rounded mx-auto border bg-dark shadow-sm d-flex align-items-center justify-content-center"
-                         style="width: 100%; max-width: 520px; height: 390px; user-select: none;">
-                        
-                        <!-- Ảnh Bìa Thô Xem Trước (Dùng object-fit: contain để hiển thị trọn vẹn 100% ảnh) -->
-                        <img id="preview-background" 
-                             src="data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22500%22%20height%3D%22380%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23212529%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3ECh%C6%B0a%20Upload%20%20%20nh%20B%C3%ACa%20Th%C3%B4%3C%2Ftext%3E%3C%2Fsvg%3E" 
-                             class="mw-100 mh-100" 
-                             style="object-fit: contain; max-width: 100%; max-height: 100%; pointer-events: none;" 
-                             alt="Background Canvas" />
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-card-image me-1"></i> Khung Thiết Kế Ảnh Bìa</span>
+                        <span class="badge bg-light text-primary">Admin Create</span>
+                    </div>
+                    <div class="card-body p-3 d-flex justify-content-center bg-dark bg-opacity-10 overflow-auto">
+                        <div id="card-preview-area"
+                             class="position-relative shadow border rounded bg-white overflow-hidden"
+                             style="width: 100%; max-width: 600px; height: 420px; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22600%22%20height%3D%22420%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20fill%3D%22%236c757d%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3ECh%C6%B0a%20Upload%20%20%20nh%20B%C3%ACa%20Th%C3%B4%3C%2Ftext%3E%3C%2Fsvg%3E'); background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none;">
 
-                        <!-- Element Khung Chữ Mặc Định -->
-                        <div class="draggable-item active-element position-absolute p-2 rounded text-center"
-                             style="top: 35%; left: 15%; width: 70%; color: #ffffff; font-family: 'Arial'; font-size: 20px; font-weight: normal; font-style: normal; background: rgba(0,0,0,0.5); cursor: move; border: 2px dashed #0d6efd;"
-                             data-top="35%" data-left="15%">
-                            <span class="text-val">Lời Chúc Mẫu Dành Cho User</span>
+                            <div class="draggable-text-box active position-absolute p-2 rounded text-center d-flex align-items-center justify-content-center"
+                                 style="top: 75%; left: 15%; width: 273px; min-height: 110px; color: #000000; font-family: Arial; font-size: 18px; font-weight: bold; font-style: normal; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4); box-sizing: border-box;">
+                                <span class="text-content" style="white-space: pre-wrap; display: block; width: 100%;">Lời Chúc Mẫu Dành Cho User</span>
+                            </div>
                         </div>
                     </div>
-                    <small class="text-muted d-block mt-2"><i class="bi bi-info-circle me-1"></i>Ảnh bìa dù lớn hay nhỏ sẽ luôn được tự động co giãn vừa vặn trong khung.</small>
                 </div>
             </div>
 
-            <!-- BÊN PHẢI: BẢNG THÔNG TIN & THUỘC TÍNH TEMPLATE -->
+            <!-- BÊN PHẢI: BẢNG CÔNG CỤ -->
             <div class="col-md-5">
                 <div class="card shadow-sm p-4">
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-tools me-1"></i> Công Cụ Đặt Text Mẫu Cho User
+                    </h6>
+
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" id="btn-add-text" class="btn btn-sm btn-outline-primary w-50">
+                            <i class="bi bi-plus-circle me-1"></i> Thêm Khung Chữ
+                        </button>
+                        <button type="button" id="btn-delete-text" class="btn btn-sm btn-outline-danger w-50">
+                            <i class="bi bi-trash me-1"></i> Xóa Khung Chữ
+                        </button>
+                    </div>
+
+                    <div class="mb-3 p-2 border rounded bg-light">
+                        <label class="form-label form-label-sm fw-bold text-dark mb-1">
+                            <i class="bi bi-pencil me-1"></i> Sửa nội dung văn bản đang chọn:
+                        </label>
+                        <textarea id="tool-text-val" class="form-control form-control-sm" rows="2" placeholder="Nhập văn bản...">Lời Chúc Mẫu Dành Cho User</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-bold">Định dạng văn bản:</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <!-- ĐỒNG BỘ NGUYÊN DANH SÁCH FONT VỚI PERSONALIZE -->
+                                <select id="tool-font" class="form-select form-select-sm">
+                                    <optgroup label="Google Fonts &amp; Web Safe">
+                                        <option value="Arial" selected>Arial</option>
+                                        <option value="'Aboreto', cursive">Aboreto</option>
+                                        <option value="'Amatic SC', cursive">Amatic SC</option>
+                                        <option value="'Arimo', sans-serif">Arimo</option>
+                                        <option value="'Bentham', serif">Bentham</option>
+                                        <option value="'Cinzel', serif">Cinzel</option>
+                                        <option value="'Cormorant Garamond', serif">Cormorant Garamond</option>
+                                        <option value="'Dancing Script', cursive">Dancing Script</option>
+                                        <option value="'Fraunces', serif">Fraunces</option>
+                                        <option value="'Great Vibes', cursive">Great Vibes</option>
+                                        <option value="'Instrument Serif', serif">Instrument Serif</option>
+                                        <option value="'Josefin Sans', sans-serif">Josefin Sans</option>
+                                        <option value="'Josefin Slab', serif">Josefin Slab</option>
+                                        <option value="'Kreon', serif">Kreon</option>
+                                        <option value="'Lato', sans-serif">Lato</option>
+                                        <option value="'Libre Baskerville', serif">Libre Baskerville</option>
+                                        <option value="'Lobster', cursive">Lobster</option>
+                                        <option value="'Lora', serif">Lora</option>
+                                        <option value="'Meow Script', cursive">Meow Script</option>
+                                        <option value="'Merriweather', serif">Merriweather</option>
+                                        <option value="'Monsieur La Doulaise', cursive">Monsieur La Doulaise</option>
+                                        <option value="'Montserrat', sans-serif">Montserrat</option>
+                                        <option value="'Mountains of Christmas', cursive">Mountains of Christmas</option>
+                                        <option value="'Nunito', sans-serif">Nunito</option>
+                                        <option value="'Open Sans', sans-serif">Open Sans</option>
+                                        <option value="'Oswald', sans-serif">Oswald</option>
+                                        <option value="'Pacifico', cursive">Pacifico</option>
+                                        <option value="'Parisienne', cursive">Parisienne</option>
+                                        <option value="'Patrick Hand', cursive">Patrick Hand</option>
+                                        <option value="'Playfair Display', serif">Playfair Display</option>
+                                        <option value="'Poppins', sans-serif">Poppins</option>
+                                        <option value="'Quicksand', sans-serif">Quicksand</option>
+                                        <option value="'Rozha One', serif">Rozha One</option>
+                                        <option value="'Sail', cursive">Sail</option>
+                                        <option value="'Silkscreen', cursive">Silkscreen</option>
+                                        <option value="'Spicy Rice', cursive">Spicy Rice</option>
+                                        <option value="'Tenor Sans', sans-serif">Tenor Sans</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <select id="tool-size" class="form-select form-select-sm">
+                                    <option value="14px">14px</option>
+                                    <option value="16px">16px</option>
+                                    <option value="18px" selected>18px</option>
+                                    <option value="20px">20px</option>
+                                    <option value="24px">24px</option>
+                                    <option value="28px">28px</option>
+                                    <option value="32px">32px</option>
+                                    <option value="36px">36px</option>
+                                    <option value="42px">42px</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="small fw-semibold me-1">Màu chữ:</span>
+                            <input type="color" id="tool-color" class="form-control form-control-color form-control-sm" value="#000000" title="Chọn màu chữ">
+                            <button type="button" id="btn-toggle-bold" class="btn btn-sm btn-primary text-white px-3 fw-bold">B</button>
+                            <button type="button" id="btn-toggle-italic" class="btn btn-sm btn-outline-secondary px-3 fst-italic">I</button>
+                        </div>
+
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between">
+                                <label for="slider-text-width" class="form-label form-label-sm mb-0">Độ rộng khung chữ:</label>
+                                <span id="val-text-width" class="small text-muted fw-bold">273px</span>
+                            </div>
+                            <input type="range" id="slider-text-width" class="form-range form-range-sm" min="100" max="580" value="273">
+                        </div>
+                    </div>
+
+                    <hr class="my-3" />
+
                     <h5 class="fw-bold mb-3 border-bottom pb-2 text-primary">
                         <i class="bi bi-info-circle me-1"></i> Thông Tin Template
                     </h5>
@@ -71,80 +169,18 @@
                         </select>
                     </div>
 
-                    <!-- 1. Upload Ảnh Bìa Thô Canvas -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-image text-primary me-1"></i> 1. Upload Ảnh Bìa Thô (Background Canvas *)
                         </label>
                         <input type="file" name="imageFile" id="input-bg-file" class="form-control" accept="image/*" required />
-                        <small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i>Ảnh phông nền thô dùng để chèn text mẫu trong Canvas.</small>
                     </div>
 
-                    <!-- 2. Upload Ảnh Đại Diện Card Preview -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-card-image text-primary me-1"></i> 2. Upload Ảnh Đại Diện Card (Preview Thumbnail)
                         </label>
                         <input type="file" name="thumbnailFile" class="form-control" accept="image/*" />
-                        <small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i>Ảnh hiển thị ngoài danh sách/catalog. Bỏ trống sẽ dùng chung Ảnh Bìa Thô.</small>
-                    </div>
-
-                    <hr />
-
-                    <h6 class="fw-bold text-primary mb-3">
-                        <i class="bi bi-fonts me-1"></i> Công Cụ Đặt Text Mẫu Cho User
-                    </h6>
-                    
-                    <div class="d-flex gap-2 mb-3">
-                        <button type="button" id="btn-add-text" class="btn btn-sm btn-outline-primary w-50">
-                            <i class="bi bi-plus-circle me-1"></i> Thêm Khung Chữ
-                        </button>
-                        <button type="button" id="btn-delete-text" class="btn btn-sm btn-outline-danger w-50">
-                            <i class="bi bi-trash me-1"></i> Xóa Khung Chữ
-                        </button>
-                    </div>
-
-                    <div class="mb-2">
-                        <label class="form-label small fw-semibold">Nội dung chữ đang chọn:</label>
-                        <input type="text" id="tool-text-val" class="form-control" value="Lời Chúc Mẫu Dành Cho User" placeholder="Nhập văn bản..." />
-                    </div>
-
-                    <!-- Bộ Công Cụ Định Dạng Font, Size, Bold, Italic & Màu Chữ -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Font chữ:</label>
-                            <select id="tool-font" class="form-select form-select-sm">
-                                <option value="Arial">Arial</option>
-                                <option value="Georgia">Georgia</option>
-                                <option value="Comic Sans MS">Comic Sans</option>
-                                <option value="Courier New">Courier New</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-semibold">Kích thước (Size):</label>
-                            <select id="tool-size" class="form-select form-select-sm">
-                                <option value="14px">14px</option>
-                                <option value="16px">16px</option>
-                                <option value="18px">18px</option>
-                                <option value="20px" selected>20px</option>
-                                <option value="24px">24px</option>
-                                <option value="28px">28px</option>
-                                <option value="32px">32px</option>
-                                <option value="36px">36px</option>
-                            </select>
-                        </div>
-                        <div class="col-6 mt-2">
-                            <label class="form-label small fw-semibold">Màu chữ:</label>
-                            <input type="color" id="tool-color" class="form-control form-control-color w-100" value="#000000" />
-                        </div>
-                        <div class="col-6 mt-2 d-flex align-items-end gap-1">
-                            <button type="button" id="btn-toggle-bold" class="btn btn-sm btn-outline-dark flex-fill fw-bold" title="In đậm">
-                                B
-                            </button>
-                            <button type="button" id="btn-toggle-italic" class="btn btn-sm btn-outline-dark flex-fill fst-italic" title="In nghiêng">
-                                I
-                            </button>
-                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-success btn-lg w-100 mt-2 fw-semibold">
@@ -158,62 +194,70 @@
 
 @section Scripts {
     <script>
-        let selectedItem = document.querySelector('.draggable-item');
+        let selectedItem = document.querySelector('.draggable-text-box');
 
-        document.getElementById('input-bg-file').addEventListener('change', function(e) {
+        function rgbToHex(rgb) {
+            if (!rgb) return '#000000';
+            if (rgb.startsWith('#')) return rgb;
+            const res = rgb.match(/\d+/g);
+            return res ? "#" + res.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('') : rgb;
+        }
+
+        document.getElementById('input-bg-file').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(evt) {
-                    document.getElementById('preview-background').src = evt.target.result;
+                reader.onload = function (evt) {
+                    document.getElementById('card-preview-area').style.backgroundImage = `url('${evt.target.result}')`;
                 }
                 reader.readAsDataURL(file);
             }
         });
 
-        function rgbToHex(rgb) {
-            if (!rgb) return '#000000';
-            const res = rgb.match(/\d+/g);
-            return res ? "#" + res.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('') : rgb;
-        }
-
         function bindElementEvents(el) {
-            el.addEventListener('click', function(e) {
+            el.addEventListener('click', function (e) {
                 e.stopPropagation();
-                document.querySelectorAll('.draggable-item').forEach(item => {
-                    item.classList.remove('active-element');
-                    item.style.border = 'none';
+                document.querySelectorAll('.draggable-text-box').forEach(item => {
+                    item.classList.remove('active');
+                    item.style.border = '1px dashed rgba(13,110,253,0.5)';
                 });
                 selectedItem = el;
-                selectedItem.classList.add('active-element');
+                selectedItem.classList.add('active');
                 selectedItem.style.border = '2px dashed #0d6efd';
 
-                document.getElementById('tool-text-val').value = selectedItem.querySelector('.text-val').innerText;
+                const textNode = selectedItem.querySelector('.text-content');
+                document.getElementById('tool-text-val').value = textNode ? textNode.innerText : '';
                 document.getElementById('tool-font').value = selectedItem.style.fontFamily.replace(/['"]/g, '') || 'Arial';
-                document.getElementById('tool-size').value = selectedItem.style.fontSize || '20px';
+                document.getElementById('tool-size').value = selectedItem.style.fontSize || '18px';
                 document.getElementById('tool-color').value = rgbToHex(selectedItem.style.color) || '#000000';
+
+                const currentWidth = parseInt(selectedItem.style.width) || selectedItem.offsetWidth || 273;
+                document.getElementById('slider-text-width').value = currentWidth;
+                document.getElementById('val-text-width').innerText = currentWidth + 'px';
 
                 const isBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
                 const isItalic = selectedItem.style.fontStyle === 'italic';
 
-                document.getElementById('btn-toggle-bold').classList.toggle('btn-dark', isBold);
-                document.getElementById('btn-toggle-bold').classList.toggle('btn-outline-dark', !isBold);
+                document.getElementById('btn-toggle-bold').classList.toggle('btn-primary', isBold);
+                document.getElementById('btn-toggle-bold').classList.toggle('text-white', isBold);
+                document.getElementById('btn-toggle-bold').classList.toggle('btn-outline-secondary', !isBold);
 
-                document.getElementById('btn-toggle-italic').classList.toggle('btn-dark', isItalic);
-                document.getElementById('btn-toggle-italic').classList.toggle('btn-outline-dark', !isItalic);
+                document.getElementById('btn-toggle-italic').classList.toggle('btn-primary', isItalic);
+                document.getElementById('btn-toggle-italic').classList.toggle('text-white', isItalic);
+                document.getElementById('btn-toggle-italic').classList.toggle('btn-outline-secondary', !isItalic);
             });
 
             let isDragging = false, offsetCustomX = 0, offsetCustomY = 0;
-            const container = document.getElementById('admin-canvas-area');
+            const container = document.getElementById('card-preview-area');
 
-            el.addEventListener('mousedown', function(e) {
+            el.addEventListener('mousedown', function (e) {
                 isDragging = true;
                 const rect = el.getBoundingClientRect();
                 offsetCustomX = e.clientX - rect.left;
                 offsetCustomY = e.clientY - rect.top;
             });
 
-            document.addEventListener('mousemove', function(e) {
+            document.addEventListener('mousemove', function (e) {
                 if (!isDragging || selectedItem !== el) return;
                 const containerRect = container.getBoundingClientRect();
                 let leftPX = e.clientX - containerRect.left - offsetCustomX;
@@ -222,94 +266,113 @@
                 let leftPercent = (leftPX / containerRect.width) * 100;
                 let topPercent = (topPX / containerRect.height) * 100;
 
-                leftPercent = Math.max(0, Math.min(leftPercent, 80));
-                topPercent = Math.max(0, Math.min(topPercent, 90));
+                leftPercent = Math.max(0, Math.min(leftPercent, 95));
+                topPercent = Math.max(0, Math.min(topPercent, 95));
 
                 el.style.left = leftPercent.toFixed(2) + '%';
                 el.style.top = topPercent.toFixed(2) + '%';
             });
 
-            document.addEventListener('mouseup', function() { isDragging = false; });
+            document.addEventListener('mouseup', function () { isDragging = false; });
         }
 
         if (selectedItem) bindElementEvents(selectedItem);
 
-        document.getElementById('tool-text-val').addEventListener('input', function(e) {
+        document.getElementById('slider-text-width').addEventListener('input', function (e) {
+            const val = e.target.value;
+            document.getElementById('val-text-width').innerText = val + 'px';
             if (selectedItem) {
-                selectedItem.querySelector('.text-val').innerText = e.target.value || ' ';
+                selectedItem.style.width = val + 'px';
             }
         });
 
-        document.getElementById('tool-font').addEventListener('change', function(e) {
+        document.getElementById('tool-text-val').addEventListener('input', function (e) {
             if (selectedItem) {
-                selectedItem.style.fontFamily = e.target.value;
+                const textNode = selectedItem.querySelector('.text-content');
+                if (textNode) textNode.innerText = e.target.value || ' ';
             }
         });
 
-        document.getElementById('tool-size').addEventListener('change', function(e) {
-            if (selectedItem) {
-                selectedItem.style.fontSize = e.target.value;
-            }
+        document.getElementById('tool-font').addEventListener('change', function (e) {
+            if (selectedItem) selectedItem.style.fontFamily = e.target.value;
         });
 
-        document.getElementById('tool-color').addEventListener('input', function(e) {
-            if (selectedItem) {
-                selectedItem.style.color = e.target.value;
-            }
+        document.getElementById('tool-size').addEventListener('change', function (e) {
+            if (selectedItem) selectedItem.style.fontSize = e.target.value;
         });
 
-        document.getElementById('btn-toggle-bold').addEventListener('click', function() {
+        document.getElementById('tool-color').addEventListener('input', function (e) {
+            if (selectedItem) selectedItem.style.color = e.target.value;
+        });
+
+        document.getElementById('btn-toggle-bold').addEventListener('click', function () {
             if (selectedItem) {
                 const isCurrentBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
                 selectedItem.style.fontWeight = isCurrentBold ? 'normal' : 'bold';
-                this.classList.toggle('btn-dark', !isCurrentBold);
-                this.classList.toggle('btn-outline-dark', isCurrentBold);
+                this.classList.toggle('btn-primary', !isCurrentBold);
+                this.classList.toggle('text-white', !isCurrentBold);
+                this.classList.toggle('btn-outline-secondary', isCurrentBold);
             }
         });
 
-        document.getElementById('btn-toggle-italic').addEventListener('click', function() {
+        document.getElementById('btn-toggle-italic').addEventListener('click', function () {
             if (selectedItem) {
                 const isCurrentItalic = selectedItem.style.fontStyle === 'italic';
                 selectedItem.style.fontStyle = isCurrentItalic ? 'normal' : 'italic';
-                this.classList.toggle('btn-dark', !isCurrentItalic);
-                this.classList.toggle('btn-outline-dark', isCurrentItalic);
+                this.classList.toggle('btn-primary', !isCurrentItalic);
+                this.classList.toggle('text-white', !isCurrentItalic);
+                this.classList.toggle('btn-outline-secondary', isCurrentItalic);
             }
         });
 
-        document.getElementById('btn-add-text').addEventListener('click', function() {
-            const newEl = document.createElement('div');
-            newEl.className = 'draggable-item position-absolute p-2 rounded text-center';
-            newEl.style.cssText = 'top: 50%; left: 20%; width: 60%; color: #ffffff; font-family: Arial; font-size: 20px; font-weight: normal; font-style: normal; background: rgba(0,0,0,0.5); cursor: move;';
-            newEl.innerHTML = '<span class="text-val">Chữ Mới Thêm</span>';
+        document.getElementById('btn-add-text').addEventListener('click', function () {
+            document.querySelectorAll('.draggable-text-box').forEach(item => {
+                item.classList.remove('active');
+                item.style.border = '1px dashed rgba(13,110,253,0.5)';
+            });
 
-            document.getElementById('admin-canvas-area').appendChild(newEl);
+            const newEl = document.createElement('div');
+            newEl.className = 'draggable-text-box active position-absolute p-2 rounded text-center d-flex align-items-center justify-content-center';
+            newEl.style.cssText = 'top: 40%; left: 15%; width: 273px; min-height: 110px; color: #000000; font-family: Arial; font-size: 18px; font-weight: bold; font-style: normal; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4); cursor: move; box-sizing: border-box;';
+            newEl.innerHTML = '<span class="text-content" style="white-space: pre-wrap; display: block; width: 100%;">Văn bản mới</span>';
+
+            document.getElementById('card-preview-area').appendChild(newEl);
             bindElementEvents(newEl);
             newEl.click();
         });
 
-        document.getElementById('btn-delete-text').addEventListener('click', function() {
-            const allItems = document.querySelectorAll('.draggable-item');
+        document.getElementById('btn-delete-text').addEventListener('click', function () {
+            const allItems = document.querySelectorAll('.draggable-text-box');
             if (allItems.length > 1 && selectedItem) {
                 selectedItem.remove();
-                selectedItem = document.querySelector('.draggable-item');
+                selectedItem = document.querySelector('.draggable-text-box');
                 if (selectedItem) selectedItem.click();
             } else {
                 alert('Phải giữ lại ít nhất 1 khung chữ mẫu!');
             }
         });
 
-        document.getElementById('form-create-template').addEventListener('submit', function(e) {
+        document.getElementById('form-create-template').addEventListener('submit', function (e) {
             const elements = [];
-            document.querySelectorAll('#admin-canvas-area .draggable-item').forEach(el => {
+            document.querySelectorAll('#card-preview-area .draggable-text-box').forEach(el => {
+                const textNode = el.querySelector('.text-content');
+
+                let topVal = el.style.top || '75%';
+                let leftVal = el.style.left || '15%';
+
+                if (!topVal.toString().includes('%') && !topVal.toString().includes('px')) topVal += '%';
+                if (!leftVal.toString().includes('%') && !leftVal.toString().includes('px')) leftVal += '%';
+
                 elements.push({
-                    content: el.querySelector('.text-val').innerText,
-                    top: el.style.top || '35%',
-                    left: el.style.left || '15%',
+                    content: textNode ? textNode.innerText : '',
+                    top: topVal,
+                    left: leftVal,
+                    width: el.style.width || '273px',
                     fontFamily: el.style.fontFamily || 'Arial',
-                    fontSize: el.style.fontSize || '20px',
-                    fontWeight: el.style.fontWeight || 'normal',
+                    fontSize: el.style.fontSize || '18px',
+                    fontWeight: el.style.fontWeight || 'bold',
                     fontStyle: el.style.fontStyle || 'normal',
-                    color: el.style.color || '#ffffff'
+                    color: el.style.color || '#000000'
                 });
             });
 

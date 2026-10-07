@@ -29,13 +29,13 @@ public class FeedbackController : Controller
 
         if (string.IsNullOrWhiteSpace(content))
         {
-            ViewBag.Error = "Vui lòng nhập nội dung phản hồi.";
+            ViewBag.Error = "Please enter your feedback.";
             return View("Index");
         }
 
         if (content.Length > 1000)
         {
-            ViewBag.Error = "Nội dung phản hồi tối đa 1000 ký tự.";
+            ViewBag.Error = "Feedback must be at most 1000 characters.";
             return View("Index");
         }
 
@@ -49,7 +49,7 @@ public class FeedbackController : Controller
         });
         _context.SaveChanges();
 
-        TempData["SuccessMessage"] = "Cảm ơn bạn đã gửi phản hồi!";
+        TempData["SuccessMessage"] = "Thank you for your feedback!";
         return RedirectToAction("Index");
     }
 }

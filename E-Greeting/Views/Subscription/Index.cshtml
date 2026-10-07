@@ -1,16 +1,16 @@
 ﻿@model IEnumerable<E_Greeting.Controllers.SubscriptionModel>
 
 @{
-    ViewData["Title"] = "Gói Đăng Ký - E-Greeting";
-    int currentRank = ViewBag.CurrentPlanId is int r ? r : -1;   // -1 = chưa đăng ký gì
+    ViewData["Title"] = "Subscription Plans - E-Greeting";
+    int currentRank = ViewBag.CurrentPlanId is int r ? r : -1;   // -1 = not registered for anything yet
     DateOnly? endDate = ViewBag.CurrentEndDate as DateOnly?;
 }
 
 <div class="container my-4">
     <div class="text-center mb-5">
-        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold mb-2">DỊCH VỤ GỬI THIỆP</span>
-        <h2 class="fw-bold text-dark">Lựa Chọn Gói Dịch Vụ Phù Hợp</h2>
-        <p class="text-muted">Đăng ký ngay để sử dụng tính năng gửi thiệp tự động và mở khóa kho thiệp VIP độc quyền.</p>
+        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold mb-2">GREETING CARD SERVICE</span>
+        <h2 class="fw-bold text-dark">Choose the Right Service Plan</h2>
+        <p class="text-muted">Subscribe now to use the automatic card sending feature and unlock the exclusive VIP card collection.</p>
     </div>
 
     @if (TempData["SuccessMessage"] != null)
@@ -21,7 +21,7 @@
         </div>
     }
 
-    @* THÊM MỚI: hiện lỗi từ server *@
+    @* NEW: show errors from the server *@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
@@ -34,8 +34,8 @@
         @foreach (var plan in Model)
         {
             bool isCurrent = currentRank == plan.Id;
-            bool isLower = currentRank > plan.Id;                      // gói thấp hơn gói đang dùng
-            bool isUpgrade = currentRank >= 0 && plan.Id > currentRank;  // đã có gói, gói này cao hơn
+            bool isLower = currentRank > plan.Id;                      // plan lower than the current plan
+            bool isUpgrade = currentRank >= 0 && plan.Id > currentRank;  // already has a plan, this plan is higher
 
             <div class="col-lg-4 col-md-6">
                 <div class="card border-0 shadow-sm rounded-4 p-4 position-relative h-100">
@@ -62,30 +62,30 @@
                     <div class="mt-auto">
                         @if (currentRank < 0 && plan.Id == 0)
                         {
-                            @* Chưa đăng nhập: thẻ Basic không hiện gì *@
+                            @* Not logged in: the Basic card shows nothing *@
                         }
                         else if (isCurrent)
                         {
                             <button type="button" class="btn btn-success rounded-pill w-100 fw-semibold py-2" disabled>
-                                <i class="bi bi-check-circle me-1"></i> Bạn đang sử dụng
+                                <i class="bi bi-check-circle me-1"></i> You are using this plan
                             </button>
                             @if (endDate.HasValue)
                             {
                                 <small class="text-muted d-block text-center mt-2">
-                                    Hết hạn: @endDate.Value.ToString("dd/MM/yyyy")
+                                    Expires: @endDate.Value.ToString("dd/MM/yyyy")
                                 </small>
                             }
                         }
                         else if (isLower)
                         {
-                            <small class="text-muted d-block text-center">Đã bao gồm trong gói của bạn</small>
+                            <small class="text-muted d-block text-center">Included in your plan</small>
                         }
                         else
                         {
                             <form asp-controller="Subscription" asp-action="Subscribe" method="post">
                                 <input type="hidden" name="planId" value="@plan.Id" />
                                 <button type="submit" class="btn btn-outline-primary rounded-pill w-100 fw-semibold py-2">
-                                    @(isUpgrade ? "Nâng cấp ngay" : "Đăng Ký Ngay")
+                                    @(isUpgrade ? "Upgrade now" : "Register now")
                                 </button>
                             </form>
                         }
