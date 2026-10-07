@@ -31,18 +31,18 @@ public class TemplateController : Controller
         return View(templates);
     }
 
-    // ACTION FOR CARD DETAILS PAGE (VIEW DETAIL)
-    [HttpGet("details/{id?}")]
-    public async Task<IActionResult> Details(int id)
-    {
-        if (id <= 0) return NotFound();
+        // ACTION FOR E-CARD DETAILS PAGE
+        [HttpGet("details/{id?}")]
+        public async Task<IActionResult> Details(int id)
+        {
+            if (id <= 0) return NotFound();
 
         var template = await _templateService.GetTemplateById(id);
         if (template == null) return NotFound();
 
-        // 1. Check if current account is VIP & has wishlisted this card
-        bool isWishlisted = false;
-        bool isUserVip = false;
+            // 1. Check whether current account is VIP & has wishlisted this card
+            bool isWishlisted = false;
+            bool isUserVip = false;
 
         if (User.Identity != null && User.Identity.IsAuthenticated)
         {
@@ -54,25 +54,25 @@ public class TemplateController : Controller
                 // Check Wishlist
                 isWishlisted = await _context.Wishlists.AnyAsync(w => w.AccountId == account.Id && w.TemplateId == id);
 
-                // Check active VIP Subscription (Safe DateOnly/DateTime comparison)
-                var today = DateOnly.FromDateTime(DateTime.Now);
-                isUserVip = await _context.Subscriptions.AnyAsync(s =>
-                    s.AccountId == account.Id &&
-                    s.IsActive &&
-                    s.EndDate >= today);
+                    // Check VIP Subscription active status (Safe DateOnly comparison)
+                    var today = DateOnly.FromDateTime(DateTime.Now);
+                    isUserVip = await _context.Subscriptions.AnyAsync(s =>
+                        s.AccountId == account.Id &&
+                        s.IsActive &&
+                        s.EndDate >= today);
+                }
             }
-        }
 
         ViewBag.IsWishlisted = isWishlisted;
         ViewBag.IsUserVip = isUserVip;
 
-        // 2. Get list of related card templates
-        var filter = new TemplateFilter
-        {
-            CategoryId = template.CategoryId,
-            PageSize = 4
-        };
-        var relatedTemplates = await _templateService.GetTemplates(filter);
+            // 2. Fetch related card templates list
+            var filter = new TemplateFilter
+            {
+                CategoryId = template.CategoryId,
+                PageSize = 4
+            };
+            var relatedTemplates = await _templateService.GetTemplates(filter);
 
         ViewBag.RelatedTemplates = relatedTemplates.Templates
             .Where(t => t.Id != id)
