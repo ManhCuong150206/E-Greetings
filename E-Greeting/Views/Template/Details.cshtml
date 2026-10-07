@@ -1,34 +1,34 @@
 ﻿@model E_Greeting.Models.Template
 @{
-    ViewData["Title"] = Model.Name ?? "Chi tiết thiệp";
+    ViewData["Title"] = Model.Name ?? "Card Details";
     bool isWishlisted = ViewBag.IsWishlisted ?? false;
     bool isUserVip = ViewBag.IsUserVip ?? false;
 }
 
 <div class="container my-4">
-    <!-- NÚT QUAY LẠI TRANG CHỦ -->
+    <!-- TOP HEADER WITH BACK TO HOME BUTTON -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-dark mb-0"><i class="bi bi-card-heading text-primary me-2"></i>Trang Chi Tiết Thiệp</h2>
-            <span class="text-muted small">Khám phá và tùy chỉnh thông điệp yêu thương của bạn</span>
+            <h2 class="fw-bold text-primary mb-0"><i class="bi bi-card-heading text-primary me-2"></i>Card Details Page</h2>
+            <span class="text-muted small">Explore and personalize your heartfelt greeting messages</span>
         </div>
         <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại trang chủ
+            <i class="bi bi-arrow-left me-1"></i> Back to Home
         </a>
     </div>
 
     <div class="row g-4 align-items-stretch">
 
-        <!-- CỘT TRÁI: KHUNG HIỂN THỊ THIỆP PHÓNG LỚN (KÍCH THƯỚC LỚN HƠN) -->
+        <!-- LEFT COLUMN: ENLARGED CARD PREVIEW FRAME -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden p-3 p-md-4 d-flex flex-column align-items-center justify-content-center h-100" style="background-color: #f4f5f7;">
                 <div class="w-100 mb-2 text-start">
                     <span class="badge bg-white text-secondary border fw-semibold px-3 py-2 rounded-pill shadow-sm">
-                        <i class="bi bi-eye-fill text-primary me-1"></i> Xem Trước Mẫu Thiệp
+                        <i class="bi bi-eye-fill text-primary me-1"></i> Card Template Preview
                     </span>
                 </div>
 
-                <!-- Khung chứa ảnh mở rộng kích thước tối đa -->
+                <!-- Preview container expanding to full size -->
                 <div class="preview-wrapper bg-white rounded-3 p-2 shadow-lg d-inline-block text-center my-auto w-100" style="max-width: 100%;">
                     <img src="@(string.IsNullOrEmpty(Model.ImagePath) ? "/images/default-card.jpg" : Model.ImagePath)"
                          alt="@Model.Name"
@@ -38,35 +38,35 @@
             </div>
         </div>
 
-        <!-- CỘT PHẢI: BẢNG THÔNG TIN VÀ CÔNG CỤ THIẾT KẾ -->
+        <!-- RIGHT COLUMN: INFORMATION PANEL & DESIGN TOOLS -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
                 <div>
-                    <!-- TIÊU ĐỀ KHỐI THÔNG TIN -->
-                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
-                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Thông Tin Thiệp
+                    <!-- INFORMATION PANEL TITLE -->
+                    <h5 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Card Information
                     </h5>
 
-                    <!-- TÊN THIỆP & THỂ LOẠI -->
+                    <!-- CARD NAME & CATEGORY -->
                     <div class="mb-3">
                         <div class="fs-6 text-secondary mb-1">
-                            <span class="fw-bold text-dark">Tên thiệp:</span> @Model.Name
+                            <span class="fw-bold text-dark">Card Name:</span> @Model.Name
                         </div>
                         <div class="fs-6 text-secondary mb-2">
-                            <span class="fw-bold text-dark">Thể loại:</span> @(Model.Category?.Name ?? "Thiệp điện tử")
+                            <span class="fw-bold text-dark">Category:</span> @(Model.Category?.Name ?? "E-Greeting Card")
                         </div>
                         <div class="fs-6 text-secondary mb-2">
-                            <span class="fw-bold text-dark">Định dạng:</span> Thiệp Điện Tử (E-Card HD)
+                            <span class="fw-bold text-dark">Format:</span> Electronic Card (E-Card HD)
                         </div>
                         <div class="fs-6 text-secondary">
-                            <span class="fw-bold text-dark">Tương thích:</span> PC, Tablet & Mobile
+                            <span class="fw-bold text-dark">Compatibility:</span> PC, Tablet &amp; Mobile
                         </div>
                     </div>
 
                     <div class="d-flex align-items-center mb-4">
                         @if (Model.IsFree)
                         {
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold fs-6">Miễn phí</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold fs-6">Free Access</span>
                         }
                         else
                         {
@@ -74,25 +74,25 @@
                         }
                     </div>
 
-                    <!-- HÀNG NÚT CUSTOM TEMPLATE VÀ NÚT WISHLIST -->
+                    <!-- CUSTOM TEMPLATE BUTTON & WISHLIST BUTTON -->
                     <div class="d-flex gap-2 mb-4">
-                        <button id="btnCustomize" class="btn btn-success btn-lg flex-grow-1 rounded-pill py-3 fw-bold text-white fs-5 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                        <button id="btnCustomize" class="btn btn-primary btn-lg flex-grow-1 rounded-pill py-3 fw-bold text-white fs-5 shadow-sm d-flex align-items-center justify-content-center gap-2">
                             <i class="bi bi-palette-fill"></i> Custom Template
                         </button>
 
-                        <button id="btnSaveWishlist" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;" title="Lưu thiệp yêu thích" data-id="@Model.Id">
+                        <button id="btnSaveWishlist" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;" title="Save to Favorites" data-id="@Model.Id">
                             <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart") fs-4" id="wishlistIcon"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- KHỐI BỔ SUNG THÔNG TIN NGẮN BÊN DƯỚI NÚT -->
+                <!-- KEY FEATURES LIST BELOW BUTTONS -->
                 <div class="p-3 bg-light rounded-3 border">
-                    <h6 class="fw-bold text-dark fs-7 mb-2"><i class="bi bi-stars text-warning me-1"></i>Tính năng nổi bật:</h6>
+                    <h6 class="fw-bold text-dark fs-7 mb-2"><i class="bi bi-stars text-warning me-1"></i>Key Features:</h6>
                     <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
-                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Chỉnh sửa linh hoạt văn bản, font chữ và màu sắc.</li>
-                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Thêm sticker, hình ảnh cá nhân và nhạc nền.</li>
-                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Xuất thiệp nét cao và gửi trực tiếp qua Email.</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Flexible editing of text, fonts, and colors.</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>Add custom stickers, photos, and background music.</li>
+                        <li><i class="bi bi-check-circle-fill text-success me-2"></i>High-definition export and direct email delivery.</li>
                     </ul>
                 </div>
             </div>
@@ -100,12 +100,12 @@
 
     </div>
 
-    <!-- CÓ THỂ BẠN CŨNG THÍCH -->
+    <!-- YOU MAY ALSO LIKE SECTION -->
     <div class="mt-5 pt-5 border-top">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold mb-0">Có thể bạn cũng thích</h4>
+            <h4 class="fw-bold mb-0">You May Also Like</h4>
             <a asp-controller="Home" asp-action="Index" class="text-primary text-decoration-none fw-semibold small">
-                Xem tất cả <i class="bi bi-arrow-right"></i>
+                View All <i class="bi bi-arrow-right"></i>
             </a>
         </div>
 
@@ -121,13 +121,13 @@
                                     <img src="@item.ImagePath" class="card-img-top img-fluid p-2" style="max-height: 100%; object-fit: contain;" alt="@item.Name">
                                 </a>
                                 <span class="badge @(item.IsFree ? "bg-success" : "bg-warning text-dark") position-absolute top-0 end-0 m-2">
-                                    @(item.IsFree ? "Miễn phí" : "VIP")
+                                    @(item.IsFree ? "Free" : "VIP")
                                 </span>
                             </div>
                             <div class="card-body text-center d-flex flex-column justify-content-between p-3">
                                 <h6 class="card-title text-truncate fw-bold mb-2">@item.Name</h6>
                                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm rounded-pill w-100 fw-semibold">
-                                    Xem Thiệp Này
+                                    View This Card
                                 </a>
                             </div>
                         </div>
@@ -137,31 +137,31 @@
         </div>
     </div>
 
-    <!-- CÂU HỎI THƯỜNG GẶP -->
+    <!-- FREQUENTLY ASKED QUESTIONS SECTION -->
     <div class="mt-5 pt-4">
-        <h4 class="fw-bold text-center mb-4">Các câu hỏi thường gặp</h4>
+        <h4 class="fw-bold text-center mb-4">Frequently Asked Questions</h4>
         <div class="accordion accordion-flush max-w-2xl mx-auto shadow-sm rounded-3 overflow-hidden border" id="faqAccordion">
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                        Tôi có thể chỉnh sửa nội dung trên thiệp không?
+                        Can I edit the content on the card?
                     </button>
                 </h2>
                 <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
                     <div class="accordion-body text-muted small">
-                        Có, bạn hoàn toàn có thể thay đổi văn bản, font chữ, màu sắc, thêm hình ảnh cá nhân và nhạc nền trước khi xuất/gửi thiệp.
+                        Yes, you can completely customize text, fonts, colors, add personal photos, and background music before saving or sending your card.
                     </div>
                 </div>
             </div>
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                        Thiệp có gửi trực tiếp qua Email được không?
+                        Can the card be sent directly via Email?
                     </button>
                 </h2>
                 <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                     <div class="accordion-body text-muted small">
-                        Hệ thống E-Greeting hỗ trợ gửi thiệp trực tiếp đến email người nhận kèm theo nhạc nền và thông điệp tùy chỉnh của bạn.
+                        The E-Greeting system supports sending cards directly to recipient emails along with custom background music and personalized messages.
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@
     </div>
 </div>
 
-<!-- MODAL CỬA SỔ THÔNG BÁO YÊU CẦU NÂNG CẤP VIP GIỮA MÀN HÌNH -->
+<!-- VIP SUBSCRIPTION REQUIRED MODAL DIALOG -->
 <div class="modal fade" id="vipAlertModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg text-center p-3">
@@ -177,14 +177,14 @@
                 <div class="text-warning display-3 mb-3">
                     <i class="bi bi-star-fill"></i>
                 </div>
-                <h5 class="fw-bold text-dark mb-3">Yêu Cầu Tài Khoản Premium VIP</h5>
+                <h5 class="fw-bold text-dark mb-3">Premium VIP Account Required</h5>
                 <p class="text-secondary mb-4 fs-6">
-                    Mẫu thiệp này thuộc danh mục VIP. Bạn cần đăng ký tài khoản Premium VIP mới có thể sử dụng thiệp này!
+                    This template belongs to the VIP category. You need an active Premium VIP subscription to customize and use this card!
                 </p>
                 <div class="d-flex justify-content-center gap-3">
-                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold border" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold border" data-bs-dismiss="modal">Cancel</button>
                     <a href="/Subscription" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm">
-                        Đồng ý Nâng cấp VIP
+                        Upgrade to VIP
                     </a>
                 </div>
             </div>
@@ -194,15 +194,15 @@
 
 @section Scripts {
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             const isFreeTemplate = @(Model.IsFree ? "true" : "false");
             const isUserVip = @(isUserVip ? "true" : "false");
             const templateId = @Model.Id;
 
-            // 1. XỬ LÝ BẤM NÚT CUSTOM TEMPLATE (KIỂM TRA VIP)
+            // 1. HANDLE CUSTOM TEMPLATE BUTTON CLICK (VIP CHECK)
             const btnCustomize = document.getElementById("btnCustomize");
             if (btnCustomize) {
-                btnCustomize.addEventListener("click", function(e) {
+                btnCustomize.addEventListener("click", function (e) {
                     e.preventDefault();
 
                     if (!isFreeTemplate && !isUserVip) {
@@ -214,12 +214,12 @@
                 });
             }
 
-            // 2. XỬ LÝ THẢ TIM (SAVE WISHLIST)
+            // 2. HANDLE WISHLIST TOGGLE BUTTON
             const btnSaveWishlist = document.getElementById("btnSaveWishlist");
             const wishlistIcon = document.getElementById("wishlistIcon");
 
             if (btnSaveWishlist) {
-                btnSaveWishlist.addEventListener("click", function(e) {
+                btnSaveWishlist.addEventListener("click", function (e) {
                     e.preventDefault();
                     fetch(`/Home/ToggleWishlist?templateId=${templateId}`, {
                         method: 'POST'
@@ -236,7 +236,7 @@
                                 alert(data.message);
                             }
                         })
-                        .catch(err => alert("Vui lòng đăng nhập để lưu thiệp yêu thích!"));
+                        .catch(err => alert("Please log in to save favorite templates!"));
                 });
             }
         });

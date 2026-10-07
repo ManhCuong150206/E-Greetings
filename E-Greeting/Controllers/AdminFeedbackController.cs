@@ -18,7 +18,7 @@ namespace E_Greeting.Controllers
             _context = context;
         }
 
-        // CẤP 1: DANH SÁCH USERS ĐÃ TỪNG GỬI FEEDBACK
+        // LEVEL 1: LIST OF USERS WHO HAVE SUBMITTED FEEDBACK
         [HttpGet("Admin/Feedbacks")]
         [HttpGet("AdminFeedback/Feedbacks")]
         public async Task<IActionResult> Feedbacks(string? search, int page = 1)
@@ -38,8 +38,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
+            // Sort Ascending by Real DB Id
             var usersList = await query
-                .OrderByDescending(a => a.Id)
+                .OrderBy(a => a.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -57,7 +58,7 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/Feedbacks.cshtml", usersList);
         }
 
-        // CẤP 2: DANH SÁCH CHI TIẾT FEEDBACK CỦA USER
+        // LEVEL 2: DETAILED FEEDBACK LIST FOR A SPECIFIC USER
         [HttpGet("Admin/UserFeedbacks/{accountId}")]
         public async Task<IActionResult> UserFeedbacks(int accountId, int page = 1)
         {
@@ -73,8 +74,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
+            // Sort Ascending by Real DB Id
             var feedbacks = await query
-                .OrderByDescending(f => f.Id)
+                .OrderBy(f => f.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
