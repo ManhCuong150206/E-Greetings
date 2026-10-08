@@ -4,7 +4,7 @@
 @{
     string userBadge = "";
 
-    // Lấy thông tin RouteData và URL thực tế từ Request.Path
+    // RETRIEVE ROUTE DATA AND REAL REQUEST PATH
     string currentController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
     string currentAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
     string currentPath = (Context.Request.Path.Value ?? "").ToLower();
@@ -20,22 +20,11 @@
     // ==========================================
     // ADMIN NAVIGATION ACTIVE STATE LOGIC
     // ==========================================
-    bool isAdminDashboardActive = (currentController == "admin" && (currentAction == "dashboard" || currentAction == "index" || string.IsNullOrEmpty(currentAction)))
-                                  || currentPath == "/admin" || currentPath == "/admin/dashboard";
-
-    bool isAdminCategoriesActive = currentPath.Contains("/admin/categor") || currentPath.Contains("/admin/template")
-                                   || (currentController == "admin" && (currentAction.Contains("categor") || currentAction.Contains("template")));
-
-    bool isAdminUsersActive = currentPath.Contains("/admin/user") || currentPath.Contains("/admin/account") || currentPath.Contains("/admin/vip")
-                              || (currentController == "admin" && (currentAction.Contains("user") || currentAction.Contains("account") || currentAction.Contains("vip")));
-
-    // Bắt chính xác 100% Admin Feedback qua URL thực tế
-    bool isAdminFeedbacksActive = currentPath.Contains("/admin/feedback")
-                                  || currentPath.Contains("/admin/feedbacks")
-                                  || (currentController == "admin" && currentAction.Contains("feedback"));
-
-    bool isAdminSentLogsActive = currentPath.Contains("/admin/sent") || currentPath.Contains("/admin/log")
-                                 || (currentController == "admin" && (currentAction.Contains("sent") || currentAction.Contains("log")));
+    bool isAdminDashboardActive = currentController == "admin" && (currentAction == "dashboard" || currentAction == "index");
+    bool isAdminCategoriesActive = currentController == "admincategory" || currentController == "admintemplate" || currentPath.Contains("admincategory") || currentPath.Contains("admintemplate");
+    bool isAdminUsersActive = currentController == "adminuservip" || currentPath.Contains("adminuservip");
+    bool isAdminFeedbacksActive = currentController == "adminfeedback" || currentPath.Contains("adminfeedback");
+    bool isAdminSentLogsActive = currentController == "adminsenthistory" || currentPath.Contains("adminsenthistory");
 
     if (User.Identity != null && User.Identity.IsAuthenticated)
     {
@@ -101,26 +90,26 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 align-items-center">
                         @if (User.Identity != null && User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("ADMIN")))
                         {
-                            <!-- ADMIN NAVIGATION -->
+                            <!-- ADMIN NAVIGATION LINKS MATCHING SEPARATE ADMIN CONTROLLERS -->
                             <li class="nav-item">
                                 <a class="nav-link nav-link-custom @(isAdminDashboardActive ? "active" : "")" asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(isAdminCategoriesActive ? "active" : "")" asp-controller="Admin" asp-action="Categories">Categories & Templates</a>
+                                <a class="nav-link nav-link-custom @(isAdminCategoriesActive ? "active" : "")" asp-controller="AdminCategory" asp-action="Categories">Categories &amp; Templates</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(isAdminUsersActive ? "active" : "")" asp-controller="Admin" asp-action="Users">Users & VIP</a>
+                                <a class="nav-link nav-link-custom @(isAdminUsersActive ? "active" : "")" asp-controller="AdminUserVip" asp-action="Users">Users &amp; VIP</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(isAdminFeedbacksActive ? "active" : "")" asp-controller="Admin" asp-action="Feedbacks">Feedbacks</a>
+                                <a class="nav-link nav-link-custom @(isAdminFeedbacksActive ? "active" : "")" asp-controller="AdminFeedback" asp-action="Feedbacks">Feedbacks</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom @(isAdminSentLogsActive ? "active" : "")" asp-controller="Admin" asp-action="SentLogs">Sent History Logs</a>
+                                <a class="nav-link nav-link-custom @(isAdminSentLogsActive ? "active" : "")" asp-controller="AdminSentHistory" asp-action="SentLogs">Sent History Logs</a>
                             </li>
                         }
                         else
                         {
-                            <!-- USER NAVIGATION -->
+                            <!-- USER NAVIGATION LINKS -->
                             <li class="nav-item">
                                 <a class="nav-link nav-link-custom @(isHomeActive ? "active" : "")" asp-controller="Home" asp-action="Index">Home</a>
                             </li>
@@ -246,36 +235,36 @@
 
     <!-- GLOBAL NOTICE MODAL SCRIPT -->
     <script>
-            function showNoticeModal(title, message, isSuccess = true, redirectUrl = null) {
-                const modalEl = document.getElementById('noticeModal');
-                if (!modalEl) {
-                    alert(message);
-                    if (redirectUrl) window.location.href = redirectUrl;
-                    return;
-                }
-
-                document.getElementById('noticeTitle').innerText = title || (isSuccess ? "Success" : "Notification");
-                document.getElementById('noticeMessage').innerText = message;
-
-                const iconEl = document.getElementById('noticeIcon');
-                if (isSuccess) {
-                    iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success display-4"></i>';
-                } else {
-                    iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>';
-                }
-
-                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-
-                if (redirectUrl) {
-                    const handleClose = function () {
-                        window.location.href = redirectUrl;
-                        modalEl.removeEventListener('hidden.bs.modal', handleClose);
-                    };
-                    modalEl.addEventListener('hidden.bs.modal', handleClose);
-                }
-
-                modalInstance.show();
+        function showNoticeModal(title, message, isSuccess = true, redirectUrl = null) {
+            const modalEl = document.getElementById('noticeModal');
+            if (!modalEl) {
+                alert(message);
+                if (redirectUrl) window.location.href = redirectUrl;
+                return;
             }
+
+            document.getElementById('noticeTitle').innerText = title || (isSuccess ? "Success" : "Notification");
+            document.getElementById('noticeMessage').innerText = message;
+
+            const iconEl = document.getElementById('noticeIcon');
+            if (isSuccess) {
+                iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success display-4"></i>';
+            } else {
+                iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>';
+            }
+
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+            if (redirectUrl) {
+                const handleClose = function () {
+                    window.location.href = redirectUrl;
+                    modalEl.removeEventListener('hidden.bs.modal', handleClose);
+                };
+                modalEl.addEventListener('hidden.bs.modal', handleClose);
+            }
+
+            modalInstance.show();
+        }
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

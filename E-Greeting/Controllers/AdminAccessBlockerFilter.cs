@@ -22,11 +22,13 @@ namespace E_Greeting.Controllers
                     // Get target Controller name
                     string controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
 
-                    // EXCEPTION: Allow Admin to access AdminController & AccountController (for Logout / Profile)
-                    if (!controllerName.Equals("Admin", StringComparison.OrdinalIgnoreCase) &&
-                        !controllerName.Equals("Account", StringComparison.OrdinalIgnoreCase))
+                    // EXCEPTION: Allow Admin to access ALL Admin Controllers (starting with "Admin") & AccountController (for Logout / Profile)
+                    bool isAdminController = controllerName.StartsWith("Admin", StringComparison.OrdinalIgnoreCase);
+                    bool isAccountController = controllerName.Equals("Account", StringComparison.OrdinalIgnoreCase);
+
+                    if (!isAdminController && !isAccountController)
                     {
-                        // Redirect immediately to Admin Dashboard
+                        // Redirect immediately to Admin Dashboard if Admin tries to access User controllers
                         context.Result = new RedirectToActionResult("Dashboard", "Admin", null);
                     }
                 }

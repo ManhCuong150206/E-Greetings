@@ -11,7 +11,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="text-primary fw-bold"><i class="bi bi-magic me-2"></i> Template Design Editor</h3>
         <a asp-action="Templates" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-outline-secondary rounded-pill">
-            <i class="bi bi-arrow-left"></i> Cancel & Back
+            <i class="bi bi-arrow-left"></i> Cancel &amp; Back
         </a>
     </div>
 
@@ -30,7 +30,7 @@
                     <div class="card-body p-3 d-flex justify-content-center bg-dark bg-opacity-10 overflow-auto">
                         <div id="card-preview-area"
                              class="position-relative shadow border rounded bg-white overflow-hidden"
-                             style="width: 100%; max-width: 600px; height: 420px; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22600%22%20height%3D%22420%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20fill%3D%22%236c757d%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3ECover%20Image%20Not%20Uploaded%20Yet%3C%2Ftext%3E%3C%2Fsvg%3E'); background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none;">
+                             style="width: 100%; max-width: 600px; height: 420px; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22600%22%20height%3D%22420%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ffffff%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20fill%3D%22%236c757d%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3ECover%20Image%20Not%20Uploaded%20Yet%3C%2Ftext%3E%3C%2Fsvg%3E'); background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none; touch-action: none;">
 
                             <div class="draggable-text-box active position-absolute p-2 rounded text-center d-flex align-items-center justify-content-center"
                                  style="top: 75%; left: 15%; width: 273px; min-height: 110px; color: #000000; font-family: Arial; font-size: 18px; font-weight: bold; font-style: normal; cursor: move; border: 2px dashed #0d6efd; background: rgba(255,255,255,0.4); box-sizing: border-box;">
@@ -183,7 +183,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-success btn-lg w-100 mt-2 fw-semibold">
-                        <i class="bi bi-cloud-upload me-1"></i> Save & Create Template
+                        <i class="bi bi-cloud-upload me-1"></i> Save &amp; Create Template
                     </button>
                 </div>
             </div>
@@ -291,42 +291,69 @@
                 selectedItem.style.border = '2px dashed #0d6efd';
 
                 const textNode = selectedItem.querySelector('.text-content');
-                document.getElementById('tool-text-val').value = textNode ? textNode.innerText : '';
-                document.getElementById('tool-font').value = selectedItem.style.fontFamily.replace(/['"]/g, '') || 'Arial';
-                document.getElementById('tool-size').value = selectedItem.style.fontSize || '18px';
-                document.getElementById('tool-color').value = rgbToHex(selectedItem.style.color) || '#000000';
+                if (document.getElementById('tool-text-val')) {
+                    document.getElementById('tool-text-val').value = textNode ? textNode.innerText : '';
+                }
+                if (document.getElementById('tool-font')) {
+                    document.getElementById('tool-font').value = selectedItem.style.fontFamily.replace(/['"]/g, '') || 'Arial';
+                }
+                if (document.getElementById('tool-size')) {
+                    document.getElementById('tool-size').value = selectedItem.style.fontSize || '18px';
+                }
+                if (document.getElementById('tool-color')) {
+                    document.getElementById('tool-color').value = rgbToHex(selectedItem.style.color) || '#000000';
+                }
 
                 const currentWidth = parseInt(selectedItem.style.width) || selectedItem.offsetWidth || 273;
-                document.getElementById('slider-text-width').value = currentWidth;
-                document.getElementById('val-text-width').innerText = currentWidth + 'px';
+                if (document.getElementById('slider-text-width')) {
+                    document.getElementById('slider-text-width').value = currentWidth;
+                }
+                if (document.getElementById('val-text-width')) {
+                    document.getElementById('val-text-width').innerText = currentWidth + 'px';
+                }
 
                 const isBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
                 const isItalic = selectedItem.style.fontStyle === 'italic';
 
-                document.getElementById('btn-toggle-bold').classList.toggle('btn-primary', isBold);
-                document.getElementById('btn-toggle-bold').classList.toggle('text-white', isBold);
-                document.getElementById('btn-toggle-bold').classList.toggle('btn-outline-secondary', !isBold);
+                if (document.getElementById('btn-toggle-bold')) {
+                    document.getElementById('btn-toggle-bold').classList.toggle('btn-primary', isBold);
+                    document.getElementById('btn-toggle-bold').classList.toggle('text-white', isBold);
+                    document.getElementById('btn-toggle-bold').classList.toggle('btn-outline-secondary', !isBold);
+                }
 
-                document.getElementById('btn-toggle-italic').classList.toggle('btn-primary', isItalic);
-                document.getElementById('btn-toggle-italic').classList.toggle('text-white', isItalic);
-                document.getElementById('btn-toggle-italic').classList.toggle('btn-outline-secondary', !isItalic);
+                if (document.getElementById('btn-toggle-italic')) {
+                    document.getElementById('btn-toggle-italic').classList.toggle('btn-primary', isItalic);
+                    document.getElementById('btn-toggle-italic').classList.toggle('text-white', isItalic);
+                    document.getElementById('btn-toggle-italic').classList.toggle('btn-outline-secondary', !isItalic);
+                }
             });
 
             let isDragging = false, offsetCustomX = 0, offsetCustomY = 0;
             const container = document.getElementById('card-preview-area');
 
-            el.addEventListener('mousedown', function (e) {
-                isDragging = true;
-                const rect = el.getBoundingClientRect();
-                offsetCustomX = e.clientX - rect.left;
-                offsetCustomY = e.clientY - rect.top;
-            });
+            function getClientCoords(e) {
+                if (e.touches && e.touches.length > 0) {
+                    return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+                }
+                return { clientX: e.clientX, clientY: e.clientY };
+            }
 
-            document.addEventListener('mousemove', function (e) {
+            function startDrag(e) {
+                isDragging = true;
+                const coords = getClientCoords(e);
+                const rect = el.getBoundingClientRect();
+                offsetCustomX = coords.clientX - rect.left;
+                offsetCustomY = coords.clientY - rect.top;
+            }
+
+            function moveDrag(e) {
                 if (!isDragging || selectedItem !== el) return;
+                if (e.type === 'touchmove') e.preventDefault();
+
+                const coords = getClientCoords(e);
                 const containerRect = container.getBoundingClientRect();
-                let leftPX = e.clientX - containerRect.left - offsetCustomX;
-                let topPX = e.clientY - containerRect.top - offsetCustomY;
+                let leftPX = coords.clientX - containerRect.left - offsetCustomX;
+                let topPX = coords.clientY - containerRect.top - offsetCustomY;
 
                 let leftPercent = (leftPX / containerRect.width) * 100;
                 let topPercent = (topPX / containerRect.height) * 100;
@@ -336,9 +363,21 @@
 
                 el.style.left = leftPercent.toFixed(2) + '%';
                 el.style.top = topPercent.toFixed(2) + '%';
-            });
+            }
 
-            document.addEventListener('mouseup', function () { isDragging = false; });
+            function stopDrag() {
+                isDragging = false;
+            }
+
+            // MOUSE EVENTS
+            el.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', moveDrag);
+            document.addEventListener('mouseup', stopDrag);
+
+            // TOUCH EVENTS (MOBILE / TABLET SUPPORT)
+            el.addEventListener('touchstart', startDrag, { passive: false });
+            document.addEventListener('touchmove', moveDrag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
         }
 
         if (selectedItem) bindElementEvents(selectedItem);
@@ -406,7 +445,6 @@
             newEl.click();
         });
 
-        // FIXED: REPLACED DEFAULT BROWSER ALERT WITH CENTERED POPUP MODAL
         document.getElementById('btn-delete-text').addEventListener('click', function () {
             const allItems = document.querySelectorAll('.draggable-text-box');
             if (allItems.length > 1 && selectedItem) {
