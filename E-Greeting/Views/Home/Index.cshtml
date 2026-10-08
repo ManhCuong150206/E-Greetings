@@ -150,10 +150,6 @@
     </nav>
 </section>
 
-<button id="btnScrollTop" class="btn btn-primary rounded-circle shadow-lg position-fixed bottom-0 end-0 m-4 d-none" style="z-index: 1000; width: 48px; height: 48px;">
-    <i class="bi bi-arrow-up fs-5"></i>
-</button>
-
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -164,7 +160,6 @@
             const btnReset = document.getElementById("btnReset");
             const cardItems = document.querySelectorAll(".card-item");
             const noResults = document.getElementById("noResults");
-            const btnScrollTop = document.getElementById("btnScrollTop");
             const paginationList = document.getElementById("paginationList");
 
             let onlyWishlist = false;
@@ -227,18 +222,18 @@
                 }
 
                 let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                                            </li>`;
+                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                            </li>`;
 
                 for (let i = 1; i <= totalPages; i++) {
                     html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                                <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
-                                            </li>`;
+                                <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
+                            </li>`;
                 }
 
                 html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                            <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                                        </li>`;
+                            <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                        </li>`;
 
                 paginationList.innerHTML = html;
 
@@ -315,15 +310,6 @@
                     currentPage = 1;
                     updateGridAndPagination();
                 });
-            }
-
-            window.addEventListener("scroll", function() {
-                if (window.scrollY > 300) btnScrollTop.classList.remove("d-none");
-                else btnScrollTop.classList.add("d-none");
-            });
-
-            if (btnScrollTop) {
-                btnScrollTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
             }
 
             updateGridAndPagination();

@@ -1,23 +1,12 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
 
-    // 1. Tự động highlight Menu (active state) dựa theo URL hiện tại
-    const currentPath = window.location.pathname.toLowerCase();
-    const navLinks = document.querySelectorAll(".nav-link-custom, .dropdown-item");
-
-    navLinks.forEach(link => {
-        const href = link.getAttribute("href");
-        if (href && href !== "#" && currentPath.includes(href.toLowerCase())) {
-            link.classList.add("active", "fw-bold", "text-primary");
-        }
-    });
-
-    // 2. Kích hoạt Bootstrap Tooltips (nếu có dùng icon hướng dẫn)
+    // 1. Initialize Bootstrap Tooltips
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltipTriggerList.forEach(tooltipTriggerEl => {
         new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // 3. Tự động ẩn thông báo Alert sau 5 giây (Success/Error Message)
+    // 2. Automatically dismiss Alert banners after 5 seconds
     const alertList = document.querySelectorAll('.alert-dismissible');
     alertList.forEach(alert => {
         setTimeout(() => {
@@ -29,8 +18,8 @@
 });
 
 /**
- * Hàm hỗ trợ hiển thị thông báo Toast / Alert nhanh cho toàn ứng dụng
- * @param {string} message Nội dung thông báo
+ * Helper function to display Toast / Alert notifications across the application
+ * @param {string} message Notification content
  * @param {string} type 'success' | 'danger' | 'warning' | 'info'
  */
 function showToast(message, type = 'success') {

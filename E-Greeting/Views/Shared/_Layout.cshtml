@@ -2,18 +2,46 @@
 @using Microsoft.EntityFrameworkCore
 @inject E_Greeting.Models.AppDbContext _context
 @{
-    // Default: No badge if not logged in or on a free plan
     string userBadge = "";
+
+    // Lấy thông tin RouteData và URL thực tế từ Request.Path
+    string currentController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
+    string currentAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLower();
+    string currentPath = (Context.Request.Path.Value ?? "").ToLower();
+
+    // ==========================================
+    // USER NAVIGATION ACTIVE STATE LOGIC
+    // ==========================================
+    bool isHomeActive = (currentController == "home" && currentAction == "index") || currentPath == "/" || currentPath == "/home";
+    bool isSubscriptionActive = currentController == "subscription" || currentPath.StartsWith("/subscription");
+    bool isFeedbackActive = (currentController == "feedback" && !currentPath.Contains("admin")) || (currentPath.StartsWith("/feedback") && !currentPath.Contains("admin"));
+    bool isHistoryActive = currentController == "card" || currentAction == "history" || currentPath.Contains("history");
+
+    // ==========================================
+    // ADMIN NAVIGATION ACTIVE STATE LOGIC
+    // ==========================================
+    bool isAdminDashboardActive = (currentController == "admin" && (currentAction == "dashboard" || currentAction == "index" || string.IsNullOrEmpty(currentAction)))
+                                  || currentPath == "/admin" || currentPath == "/admin/dashboard";
+
+    bool isAdminCategoriesActive = currentPath.Contains("/admin/categor") || currentPath.Contains("/admin/template")
+                                   || (currentController == "admin" && (currentAction.Contains("categor") || currentAction.Contains("template")));
+
+    bool isAdminUsersActive = currentPath.Contains("/admin/user") || currentPath.Contains("/admin/account") || currentPath.Contains("/admin/vip")
+                              || (currentController == "admin" && (currentAction.Contains("user") || currentAction.Contains("account") || currentAction.Contains("vip")));
+
+    // Bắt chính xác 100% Admin Feedback qua URL thực tế
+    bool isAdminFeedbacksActive = currentPath.Contains("/admin/feedback")
+                                  || currentPath.Contains("/admin/feedbacks")
+                                  || (currentController == "admin" && currentAction.Contains("feedback"));
+
+    bool isAdminSentLogsActive = currentPath.Contains("/admin/sent") || currentPath.Contains("/admin/log")
+                                 || (currentController == "admin" && (currentAction.Contains("sent") || currentAction.Contains("log")));
 
     if (User.Identity != null && User.Identity.IsAuthenticated)
     {
-        // Get current username or email
         string currentUserName = User.Identity.Name ?? "";
-
-        // Convert DateTime.Now to DateOnly for DB comparison
         DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 
-        // Fetch active service names only if IsActive = true AND Payment Status = "PAID"
         var activeServiceNames = _context.Subscriptions
             .Include(s => s.Service)
             .Include(s => s.Account)
@@ -25,7 +53,6 @@
             .Select(s => s.Service.Name)
             .ToList();
 
-        // Prioritize displaying VIP / Premium if any VIP plan is active and paid
         if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
             (name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || name.Contains("Premium", StringComparison.OrdinalIgnoreCase))))
         {
@@ -58,12 +85,12 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <!-- HEADER & NAVBAR -->
+    <!-- HEADER & FLOATING NAVBAR -->
     <header>
-        <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-            <div class="container">
+        <nav id="smartNavbar" class="navbar navbar-expand-lg navbar-custom">
+            <div class="container-fluid">
                 <a class="navbar-brand navbar-brand-custom d-flex align-items-center" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-envelope-heart-fill text-primary me-2 fs-3"></i> E-Greeting
+                    <i class="bi bi-envelope-heart-fill text-primary me-2 fs-3 fw-semibold"></i> E-Greeting
                 </a>
 
                 <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
@@ -71,59 +98,56 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 align-items-center">
                         @if (User.Identity != null && User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("ADMIN")))
                         {
-                            <!-- 5 ADMIN BACK-OFFICE TABS -->
+                            <!-- ADMIN NAVIGATION -->
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="Dashboard">📊 Dashboard</a>
+                                <a class="nav-link nav-link-custom @(isAdminDashboardActive ? "active" : "")" asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="Categories">📁 Categories & Templates</a>
+                                <a class="nav-link nav-link-custom @(isAdminCategoriesActive ? "active" : "")" asp-controller="Admin" asp-action="Categories">Categories & Templates</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="Users">👥 Users & VIP</a>
+                                <a class="nav-link nav-link-custom @(isAdminUsersActive ? "active" : "")" asp-controller="Admin" asp-action="Users">Users & VIP</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="Feedbacks">💬 Feedbacks</a>
+                                <a class="nav-link nav-link-custom @(isAdminFeedbacksActive ? "active" : "")" asp-controller="Admin" asp-action="Feedbacks">Feedbacks</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom fw-semibold" asp-controller="Admin" asp-action="SentLogs">✉️ Sent History Logs</a>
+                                <a class="nav-link nav-link-custom @(isAdminSentLogsActive ? "active" : "")" asp-controller="Admin" asp-action="SentLogs">Sent History Logs</a>
                             </li>
                         }
                         else
                         {
-                            <!-- DEFAULT USER / CUSTOMER MENU -->
+                            <!-- USER NAVIGATION -->
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom" asp-controller="Home" asp-action="Index">HOME</a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-custom" asp-controller="Subscription" asp-action="Index">SUBSCRIBE</a>
+                                <a class="nav-link nav-link-custom @(isHomeActive ? "active" : "")" asp-controller="Home" asp-action="Index">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom" asp-controller="Feedback" asp-action="Index">FEEDBACK</a>
+                                <a class="nav-link nav-link-custom @(isSubscriptionActive ? "active" : "")" asp-controller="Subscription" asp-action="Index">Subscription</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-custom" asp-controller="Card" asp-action="History">HISTORY</a>
+                                <a class="nav-link nav-link-custom @(isFeedbackActive ? "active" : "")" asp-controller="Feedback" asp-action="Index">Feedback</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-custom @(isHistoryActive ? "active" : "")" asp-controller="Card" asp-action="History">History</a>
                             </li>
                         }
                     </ul>
 
-                    <!-- ACCOUNT / AUTH -->
+                    <!-- ACCOUNT / AUTHENTICATION SECTION -->
                     <div class="d-flex align-items-center gap-2">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             @if (User.IsInRole("Admin") || User.IsInRole("ADMIN"))
                             {
-                                <!-- ADMIN DIRECT DASHBOARD LINK -->
-                                <a class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold" asp-controller="Admin" asp-action="Dashboard">
-                                    <i class="bi bi-shield-lock-fill me-1"></i> Administrator (@User.Identity.Name)
+                                <a class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold" asp-controller="Admin" asp-action="Dashboard">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Administrator
                                 </a>
                             }
                             else
                             {
-                                <!-- REGULAR USER PROFILE -->
                                 <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-inline-flex align-items-center" asp-controller="Account" asp-action="Profile">
                                     <i class="bi bi-person-circle me-1"></i> @User.Identity.Name @Html.Raw(userBadge)
                                 </a>
@@ -146,7 +170,7 @@
         </nav>
     </header>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN CONTENT AREA -->
     <div class="container my-5">
         <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;"></div>
 
@@ -215,7 +239,7 @@
         </div>
     </footer>
 
-    <!-- JS Scripts -->
+    <!-- JS SCRIPTS -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

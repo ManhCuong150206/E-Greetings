@@ -22,10 +22,11 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    padding-top: 100px; /* Space reserved for floating navbar */
 }
 
 /* ==========================================================================
-   2. FORM & BUTTON FOCUS ACCESSIBILITY (DEFAULT ASP.NET CORE)
+   2. FORM & BUTTON FOCUS ACCESSIBILITY
    ========================================================================== */
 .btn:focus,
 .btn:active:focus,
@@ -47,43 +48,52 @@ body {
 }
 
 /* ==========================================================================
-   3. NAVBAR CUSTOM STYLES
+   3. FLOATING OVERLAY NAVBAR & LINK STYLES
    ========================================================================== */
-.navbar-custom {
-    background: #ffffff;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-    padding: 12px 0;
+#smartNavbar {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    z-index: 1050;
+    /* Glassmorphism Effect */
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 20px;
+    transition: all 0.3s ease;
 }
 
-.navbar-brand-custom {
-    font-weight: 700;
-    font-size: 1.4rem;
-    background: linear-gradient(45deg, #0d6efd, #0dcaf0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* Default Navigation Link State */
+.navbar-nav .nav-link-custom {
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 16px !important;
+    transition: color 0.2s ease-in-out;
+    text-decoration: none !important;
 }
 
-.nav-link-custom {
-    font-weight: 500;
-    color: #4a5568 !important;
-    margin: 0 4px;
-    transition: all 0.2s ease-in-out;
-    border-radius: 6px;
-    padding: 8px 12px !important;
-}
-
-    .nav-link-custom:hover {
+    /* Link Hover State */
+    .navbar-nav .nav-link-custom:hover {
         color: #0d6efd !important;
-        background-color: #f0f4ff;
     }
 
-/* ==========================================================================
+    /* Enforced Active State for Both User & Admin Tabs */
+    .navbar-nav .nav-link-custom.active,
+    a.nav-link-custom.active {
+        color: #0d6efd !important;
+        font-weight: 700 !important;
+    }/* ==========================================================================
    4. FOOTER CUSTOM STYLES
    ========================================================================== */
 footer.footer-custom {
     background-color: #1a202c;
     color: #a0aec0;
-    margin-top: auto; /* Giữ Footer luôn ở đáy trang */
+    margin-top: auto; /* Pin footer to the bottom of the page */
 }
 
 footer a {
@@ -120,10 +130,14 @@ footer a {
         color: white;
     }
 
-/* Container bao bọc toàn bộ khu vực sửa thiệp */
+/* ==========================================================================
+   5. CARD EDITOR & CANVAS STYLES
+   ========================================================================== */
+
+/* Main Card Editor Container Wrapper */
 .card-edit-wrapper {
     width: 100%;
-    max-width: 850px; /* Độ rộng tối đa của khung thiệp */
+    max-width: 850px;
     margin: 0 auto;
     background-color: #f1f3f5;
     padding: 15px;
@@ -131,7 +145,7 @@ footer a {
     box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 }
 
-/* Khung Canvas làm việc chính */
+/* Working Canvas Area */
 #cardArea {
     position: relative;
     width: 100%;
@@ -140,22 +154,23 @@ footer a {
     justify-content: center;
     align-items: center;
     background-color: #ffffff;
-    overflow: hidden; /* Đảm bảo nội dung kéo thả không tràn ra ngoài */
+    overflow: hidden; /* Prevent draggable elements from overflowing */
     border-radius: 8px;
 }
 
-    /* Thẻ <img> hiển thị hình nền thiệp */
+    /* Background Card Image */
     #cardArea img.bg-card-img {
         width: 100%;
         height: auto;
-        max-height: 650px; /* Giới hạn chiều cao không vượt quá màn hình */
-        object-fit: contain; /* QUAN TRỌNG: Giữ nguyên tỷ lệ, hiển thị 100% bức ảnh không bị xén */
+        max-height: 650px;
+        object-fit: contain; /* Maintain full aspect ratio without cropping */
         display: block;
         margin: 0 auto;
     }
+
 .draggable-text-box {
     position: absolute;
-    background: transparent !important; /* Trong suốt hoàn toàn */
+    background: transparent !important;
     border: 1px dashed transparent;
     padding: 6px 10px;
     cursor: move;
@@ -164,35 +179,29 @@ footer a {
     box-sizing: border-box;
     min-width: 100px;
     min-height: 40px;
-    resize: both; /* Cho phép kéo góc dưới phải để chỉnh kích thước khung */
-    overflow: auto; /* Cần thiết để kích hoạt tính năng resize của CSS */
+    resize: both; /* Allow resizing from the bottom-right corner */
+    overflow: auto;
     word-wrap: break-word;
-    white-space: pre-wrap; /* Giữ nguyên các dòng ngắt nét */
+    white-space: pre-wrap;
+    height: auto !important;
+    max-height: none !important;
+    overflow-wrap: break-word !important;
 }
 
-    /* Hiệu ứng viền nét đứt màu xanh khi hover hoặc click chọn */
+    /* Blue Dashed Border on Hover or Selection */
     .draggable-text-box:hover,
     .draggable-text-box.active {
         border: 1.5px dashed #0d6efd !important;
         outline: none;
     }
 
-    /* Tay nắm kéo co dãn kích thước (Resize handle) ở góc dưới phải */
+    /* Resize handle styling */
     .draggable-text-box::-webkit-resizer {
         background-color: #0d6efd;
         border-radius: 2px;
     }
 
-.draggable-text-box {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    white-space: pre-wrap !important;
-}
-
-    /* Triệt tiêu thanh cuộn trên mọi trình duyệt */
+    /* Hide scrollbars across all browsers */
     .draggable-text-box::-webkit-scrollbar,
     .text-content::-webkit-scrollbar {
         display: none !important;
@@ -207,10 +216,10 @@ footer a {
 }
 
 /* ==========================================================================
-   1. TEMPLATE DETAILS & PREVIEW LAYOUT
+   6. TEMPLATE DETAILS & PREVIEW LAYOUT
    ========================================================================== */
 
-/* Nền vùng preview thiệp */
+/* Preview Background Wrapper */
 .card-preview-wrapper {
     background-color: #fcf8f2;
     min-height: 480px;
@@ -220,7 +229,7 @@ footer a {
     align-content: center;
 }
 
-/* Khung hiển thị ảnh thiệp */
+/* Card Image Display Box */
 .card-preview-container {
     max-width: 100%;
     background-color: #ffffff;
@@ -236,33 +245,32 @@ footer a {
     border: none;
 }
 
-/* Hiệu ứng hover cho card danh sách gợi ý */
+/* Hover effect for card items */
 .hover-top {
     transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
     .hover-top:hover {
         transform: translateY(-6px);
-        box-shadow: 0 10px 20px rgba(13, 110, 253, 0.15) !important; /* Đổi bóng mờ sang sắc xanh */
+        box-shadow: 0 10px 20px rgba(13, 110, 253, 0.15) !important;
     }
 
 .fs-7 {
     font-size: 0.8rem;
 }
 
-
 /* ==========================================================================
-   2. ENVELOPE & CARD PREVIEW STYLES (MỞ RỘNG TOÀN KHUNG)
+   7. ENVELOPE & CARD PREVIEW STYLES
    ========================================================================== */
 
-/* Nền vàng kem ôm trọn khoảng trống */
+/* Cream Yellow Envelope Background */
 .envelope-preview-bg {
     background-color: #fef1cf !important;
     min-height: 580px;
     width: 100%;
 }
 
-/* Khung bọc phong thư + thiệp mở rộng linh hoạt theo thẻ chứa */
+/* Envelope and Card Container */
 .card-envelope-container {
     position: relative;
     width: 100%;
@@ -274,7 +282,7 @@ footer a {
     margin: 0 auto;
 }
 
-/* Phong thư nằm phía dưới */
+/* Background Envelope Layer */
 .envelope-back {
     position: absolute;
     width: 82%;
@@ -288,7 +296,7 @@ footer a {
     overflow: hidden;
 }
 
-/* Nắp gấp của phong thư ở bên trái */
+/* Left Envelope Flap */
 .envelope-flap {
     position: absolute;
     top: 0;
@@ -300,7 +308,7 @@ footer a {
     border-left: 140px solid #f8fafc;
 }
 
-/* Thiệp mẫu đè nổi lên phía trên */
+/* Floating Card Overlay Layer */
 .card-floating-wrapper {
     position: absolute;
     width: 82%;
@@ -323,25 +331,22 @@ footer a {
         object-fit: cover;
     }
 
-
 /* ==========================================================================
-   3. RIGHT SIDEBAR STYLES (MÀU CHỦ ĐẠO XANH DƯƠNG)
+   8. RIGHT SIDEBAR STYLES
    ========================================================================== */
 
-/* Nút Customize chuyển sang màu Xanh Dương */
 .btn-customize {
-    background-color: #0d6efd !important; /* Bootstrap Primary Blue */
+    background-color: #0d6efd !important;
     color: #ffffff !important;
     border: none;
     transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
     .btn-customize:hover {
-        background-color: #0b5ed7 !important; /* Xanh dương đậm khi hover */
+        background-color: #0b5ed7 !important;
         box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35) !important;
     }
 
-/* Vòng tròn chọn màu (Color circles) */
 .color-circle {
     width: 26px;
     height: 26px;
@@ -355,11 +360,10 @@ footer a {
     .color-circle:hover,
     .color-circle.active {
         transform: scale(1.15);
-        outline: 2px solid #0d6efd !important; /* Viền highlight màu xanh dương */
+        outline: 2px solid #0d6efd !important;
         outline-offset: 2px;
     }
 
-/* Danh sách nút/link thao tác trong sidebar */
 .sidebar-action-item {
     display: flex;
     align-items: center;
@@ -373,11 +377,11 @@ footer a {
 }
 
     .sidebar-action-item:hover {
-        color: #0d6efd !important; /* Đổi màu chữ sang xanh dương khi rê chuột */
+        color: #0d6efd !important;
         transform: translateX(3px);
     }
 
     .sidebar-action-item i {
         font-size: 1.1rem;
-        color: #0d6efd; /* Đổi màu icon sang xanh dương */
+        color: #0d6efd;
     }

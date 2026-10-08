@@ -113,13 +113,6 @@
     <div class="container my-4">
         <div class="preview-card-wrapper">
 
-            @if (isEventPassed)
-            {
-                <div class="alert alert-warning text-center fw-bold shadow-sm mb-3">
-                    <i class="bi bi-lock-fill me-2"></i>The event has passed. Response updating is now closed!
-                </div>
-            }
-
             <div class="preview-box mb-4">
                 <!-- 1. Card Title Header -->
                 <div class="preview-header">
@@ -216,6 +209,14 @@
                                 <i class="bi bi-send-fill me-1"></i><span id="btnSubmitText">Submit Response</span>
                             </button>
                         </form>
+
+                        @* Thông báo hết hạn nằm bên dưới Form Reply *@
+                        @if (isEventPassed)
+                        {
+                            <div class="alert alert-warning text-center mt-3 mb-0 fw-semibold rounded-3 shadow-sm border-warning-subtle">
+                                <i class="bi bi-lock-fill me-1"></i> The event has passed. Response updating is now closed!
+                            </div>
+                        }
                     </div>
 
                 </div>
@@ -266,15 +267,44 @@
                     }
                 }
 
-                // 2. Lock form if the event date has passed
+                // 2. Lock form & trigger modal warning on user click if event date has passed
                 if (isEventPassed) {
-                    const inputs = document.querySelectorAll('#form-reply input, #form-reply textarea, #form-reply button');
-                    inputs.forEach(el => el.disabled = true);
+                    const warningMessage = "The event has passed. Response updating is now closed!";
+                    const warningTitle = "Notice";
+
+                    const messageInput = document.getElementById('input-reply');
+                    if (messageInput) {
+                        messageInput.setAttribute('readonly', 'readonly');
+                    }
+
+                    // Chọn 3 nút trạng thái (labels), khung tin nhắn và nút submit
+                    const interactiveElements = document.querySelectorAll('#form-reply label.btn, #input-reply, #btnSubmitReply');
+
+                    interactiveElements.forEach(el => {
+                        el.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            if (document.activeElement) {
+                                document.activeElement.blur();
+                            }
+
+                            // Gọi Modal cảnh báo toàn cục
+                            if (typeof showNoticeModal === 'function') {
+                                showNoticeModal(warningTitle, warningMessage, false);
+                            } else {
+                                alert(warningMessage);
+                            }
+                        });
+                    });
                 }
             });
 
             // Handle form submission
             document.getElementById("btnSubmitReply")?.addEventListener("click", function() {
+                const isEventPassed = @(isEventPassed.ToString().ToLower());
+                if (isEventPassed) return; // Nếu hết hạn thì không thực thi gửi AJAX
+
                 const form = document.getElementById("form-reply");
                 const statusChecked = form.querySelector('input[name="AttendanceStatus"]:checked');
 
