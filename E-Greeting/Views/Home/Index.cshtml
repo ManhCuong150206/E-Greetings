@@ -6,7 +6,7 @@
     var wishlistIds = ViewBag.WishlistCardIds as List<int> ?? new List<int>();
 }
 
-<!-- 1. HERO BANNER -->
+<!-- 1. HERO BANNER SECTION -->
 <section class="hero-banner bg-primary bg-gradient text-white rounded-4 p-4 p-md-5 mb-5 shadow-sm position-relative overflow-hidden">
     <div class="row align-items-center position-relative z-1">
         <div class="col-lg-7 text-center text-lg-start">
@@ -30,10 +30,11 @@
     </div>
 </section>
 
-<!-- 2. FILTER & SEARCH BAR -->
+<!-- 2. FILTER & SEARCH CONTROL BAR -->
 <section id="cardCatalog" class="mb-4">
     <div class="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
         <div class="row g-3 align-items-center">
+            <!-- Title Keyword Search -->
             <div class="col-lg-4 col-md-4">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
@@ -41,6 +42,7 @@
                 </div>
             </div>
 
+            <!-- Category Filter Dropdown -->
             <div class="col-lg-3 col-md-3">
                 <select id="categoryFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">All Categories</option>
@@ -59,6 +61,7 @@
                 </select>
             </div>
 
+            <!-- Free vs Paid Filter Dropdown -->
             <div class="col-lg-3 col-md-3">
                 <select id="typeFilter" class="form-select bg-light border-0 fw-medium">
                     <option value="all">All Card Types</option>
@@ -67,12 +70,14 @@
                 </select>
             </div>
 
+            <!-- Wishlist Filter Button -->
             <div class="col-lg-1 col-md-1">
                 <button id="btnWishlistFilter" class="btn btn-outline-danger w-100 rounded-3 shadow-sm d-flex align-items-center justify-content-center" title="View wishlist cards">
                     <i class="bi bi-heart-fill"></i>
                 </button>
             </div>
 
+            <!-- Reset Filters Button -->
             <div class="col-lg-1 col-md-1 text-end">
                 <button id="btnReset" class="btn btn-outline-secondary w-100 rounded-3" title="Reset filters">
                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -82,7 +87,7 @@
     </div>
 </section>
 
-<!-- 3. CARD CATALOG FROM DATABASE -->
+<!-- 3. TEMPLATES CATALOG DISPLAY GRID -->
 <section class="mb-5">
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="cardGrid">
         @if (Model != null && Model.Any())
@@ -101,6 +106,7 @@
 
                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-hover position-relative">
 
+                        <!-- Toggle Wishlist Icon Button -->
                         <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-2 z-3 btn-toggle-wishlist"
                                 data-id="@card.Id"
                                 style="width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;"
@@ -108,10 +114,12 @@
                             <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart text-secondary") fs-6"></i>
                         </button>
 
+                        <!-- Free / Paid Access Badge -->
                         <span class="position-absolute top-0 end-0 m-2 badge z-2 @(card.IsFree ? "bg-success" : "bg-warning text-dark")">
                             @(card.IsFree ? "Free" : "Paid")
                         </span>
 
+                        <!-- Image Preview Box -->
                         <div class="card-img-container bg-light d-flex align-items-center justify-content-center p-2"
                              style="height: 280px; overflow: hidden;">
                             <a href="/template/details/@card.Id" class="w-100 h-100 d-flex align-items-center justify-content-center">
@@ -122,6 +130,7 @@
                             </a>
                         </div>
 
+                        <!-- Card Body -->
                         <div class="card-body d-flex flex-column p-3">
                             <h6 class="card-title fw-bold text-dark text-truncate mb-3">@card.Name</h6>
 
@@ -136,6 +145,7 @@
         }
     </div>
 
+    <!-- Empty State Result Display -->
     <div id="noResults" class="text-center py-5 @(Model != null && Model.Any() ? "d-none" : "")">
         <i class="bi bi-search-heart text-muted display-1"></i>
         <h5 class="mt-3 text-secondary">No matching card templates found</h5>
@@ -143,7 +153,7 @@
     </div>
 </section>
 
-<!-- 4. PAGINATION -->
+<!-- 4. PAGINATION CONTROLS -->
 <section class="d-flex justify-content-center my-4">
     <nav aria-label="Page navigation">
         <ul class="pagination pagination-md shadow-sm rounded-pill overflow-hidden" id="paginationList"></ul>
@@ -165,6 +175,13 @@
             let onlyWishlist = false;
             const itemsPerPage = 8;
             let currentPage = 1;
+
+            // Retrieve categoryId query parameter from URL (When redirected from View All)
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryIdParam = urlParams.get('categoryId');
+            if (categoryIdParam && categoryFilter) {
+                categoryFilter.value = categoryIdParam;
+            }
 
             function updateGridAndPagination() {
                 const keyword = searchInput.value.toLowerCase().trim();
@@ -222,18 +239,18 @@
                 }
 
                 let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                            </li>`;
+                                        <a class="page-link" href="javascript:void(0)" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                                    </li>`;
 
                 for (let i = 1; i <= totalPages; i++) {
                     html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                                <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
-                            </li>`;
+                                        <a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a>
+                                    </li>`;
                 }
 
                 html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                            <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                        </li>`;
+                                    <a class="page-link" href="javascript:void(0)" data-page="${currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                                </li>`;
 
                 paginationList.innerHTML = html;
 
@@ -249,7 +266,7 @@
                 });
             }
 
-            // AJAX TOGGLE WISHLIST
+            // AJAX Toggle Wishlist with Modal Notification
             document.querySelectorAll(".btn-toggle-wishlist").forEach(btn => {
                 btn.addEventListener("click", function(e) {
                     e.preventDefault();
@@ -273,12 +290,12 @@
                                 }
                                 updateGridAndPagination();
                             } else {
-                                alert(data.message);
+                                showNoticeModal("Notice", data.message || "An error occurred.", false);
                             }
                         })
                         .catch(err => {
                             console.error("Wishlist Error:", err);
-                            alert("Please log in to use this feature!");
+                            showNoticeModal("Notice", "Please log in to use this feature!", false);
                         });
                 });
             });

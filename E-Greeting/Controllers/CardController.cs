@@ -345,27 +345,28 @@ public class CardController : Controller
     public async Task<IActionResult> History(string tab = "cards", int page = 1)
     {
         int? accountId = GetCurrentUserId();
-        int pageSize = 10; // Giới hạn 10 thiệp mỗi trang
+        int pageSize = 10; // Limit to 10 cards per page
 
-        // 1. Tạo query truy vấn thiệp của người dùng
+        // 1. Query sent cards for the current user
         var queryCards = _context.SentCards
             .Include(c => c.Template)
             .Where(c => c.AccountId == accountId)
             .OrderByDescending(c => c.SentAt ?? c.ScheduledAt);
 
-        // 2. Tính toán tổng số lượng thiệp và số trang
+        // 2. Calculate total count and total pages
         int totalItems = await queryCards.CountAsync();
         int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
         if (totalPages < 1) totalPages = 1;
         if (page < 1) page = 1;
         if (page > totalPages) page = totalPages;
 
-        // 3. Phân trang dữ liệu thiệp (Skip/Take)
+        // 3. Apply pagination (Skip/Take)
         var sentCards = await queryCards
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
+        // 4. Query VIP package subscriptions and payments for the current user
         var userSubscriptions = await _context.Subscriptions
              .Include(s => s.Service)
              .Include(s => s.Payments)
@@ -418,7 +419,7 @@ public class CardController : Controller
             _ => rawStatus
         };
 
-        // Lấy lời nhắn cũ từ DB (nếu có) để không bị mất khi người dùng chỉ đổi trạng thái
+        // Retrieve existing message from DB (if any) to prevent loss when updating status only
         string existingMessage = "";
         if (!string.IsNullOrEmpty(card.RecipientReply))
         {
@@ -433,7 +434,7 @@ public class CardController : Controller
             catch { }
         }
 
-        // Ưu tiên lời nhắn mới nếu người dùng có nhập; nếu bỏ trống thì giữ nguyên lời nhắn cũ
+        // Prefer new message if provided; fallback to existing message if left empty
         string finalMessage = !string.IsNullOrWhiteSpace(request.ReplyMessage)
             ? request.ReplyMessage
             : existingMessage;
@@ -472,7 +473,7 @@ public class CardController : Controller
                 string? eventTimeStr = eventTimeProp.GetString();
                 if (!string.IsNullOrWhiteSpace(eventTimeStr) && DateTime.TryParse(eventTimeStr, out DateTime eventDate))
                 {
-                    // So sánh chính xác ngày và giờ/phút hiện tại với thời gian sự kiện
+                    // Compare current date and time with the exact event date
                     return DateTime.Now > eventDate;
                 }
             }
