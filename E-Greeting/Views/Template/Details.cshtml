@@ -5,6 +5,41 @@
     bool isUserVip = ViewBag.IsUserVip ?? false;
 }
 
+<style>
+    /* WISHLIST BUTTON CUSTOM STYLING (MATCHING HOME CARD) */
+    .btn-wishlist-custom {
+        width: 58px;
+        height: 58px;
+        flex-shrink: 0;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 50% !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+    /* HOVER EFFECT (IMAGE 2 & IMAGE 3) */
+    .btn-wishlist-custom:hover {
+        background-color: #e5e7eb !important;
+        border-color: #d1d5db !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* HEART ICON BASE STYLING */
+    .btn-wishlist-custom .wishlist-heart-icon {
+        font-size: 1.5rem;
+        transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+    }
+
+    .btn-wishlist-custom:hover .wishlist-heart-icon {
+        transform: scale(1.08);
+    }
+</style>
+
 <div class="container my-4">
     <!-- TOP HEADER WITH BACK TO HOME BUTTON -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -74,14 +109,15 @@
                         }
                     </div>
 
-                    <!-- CUSTOM TEMPLATE BUTTON & WISHLIST BUTTON -->
+                    <!-- CUSTOM TEMPLATE BUTTON & SYNCHRONIZED WISHLIST BUTTON -->
                     <div class="d-flex gap-2 mb-4">
                         <button id="btnCustomize" class="btn btn-primary btn-lg flex-grow-1 rounded-pill py-3 fw-bold text-white fs-5 shadow-sm d-flex align-items-center justify-content-center gap-2">
                             <i class="bi bi-palette-fill"></i> Custom Template
                         </button>
 
-                        <button id="btnSaveWishlist" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; flex-shrink: 0;" title="Save to Favorites" data-id="@Model.Id">
-                            <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart") fs-4" id="wishlistIcon"></i>
+                        <!-- WISHLIST BUTTON MATCHING HOME CARD STATES -->
+                        <button id="btnSaveWishlist" class="btn btn-wishlist-custom" title="Save to Favorites" data-id="@Model.Id">
+                            <i class="bi @(isWishlisted ? "bi-heart-fill text-danger" : "bi-heart text-secondary") wishlist-heart-icon" id="wishlistIcon"></i>
                         </button>
                     </div>
                 </div>
@@ -171,22 +207,42 @@
 
 <!-- VIP SUBSCRIPTION REQUIRED MODAL DIALOG -->
 <div class="modal fade" id="vipAlertModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg text-center p-3">
-            <div class="modal-body">
-                <div class="text-warning display-3 mb-3">
-                    <i class="bi bi-star-fill"></i>
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg text-center p-4">
+            <div class="modal-body p-0">
+                <div class="mx-auto rounded-circle bg-warning-subtle d-flex align-items-center justify-content-center mb-3" style="width: 75px; height: 75px;">
+                    <i class="bi bi-star-fill text-warning display-4"></i>
                 </div>
-                <h5 class="fw-bold text-dark mb-3">Premium VIP Account Required</h5>
-                <p class="text-secondary mb-4 fs-6">
-                    This template belongs to the VIP category. You need an active Premium VIP subscription to customize and use this card!
+                <h4 class="fw-bold text-dark mb-2">Premium VIP Required</h4>
+                <p class="text-secondary small mb-4">
+                    This template belongs to the VIP category. You need an active Premium VIP subscription (Service Plan 2) to customize and use this card!
                 </p>
-                <div class="d-flex justify-content-center gap-3">
+                <div class="d-flex justify-content-center gap-2">
                     <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold border" data-bs-dismiss="modal">Cancel</button>
                     <a href="/Subscription" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm">
                         Upgrade to VIP
                     </a>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GENERAL CENTERED POPUP MODAL FOR AJAX NOTIFICATIONS -->
+<div class="modal fade" id="generalAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content text-center p-4 rounded-4 shadow border-0">
+            <div class="modal-body p-0">
+                <div class="mb-3" id="generalModalIconContainer">
+                    <div class="mx-auto rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;">
+                        <i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold mb-2" id="generalModalTitle">Notice</h4>
+                <p class="text-secondary small mb-4" id="generalModalMessage"></p>
+                <button type="button" class="btn btn-danger fw-semibold px-5 py-2 rounded-pill" data-bs-dismiss="modal">
+                    OK
+                </button>
             </div>
         </div>
     </div>
@@ -199,12 +255,26 @@
             const isUserVip = @(isUserVip ? "true" : "false");
             const templateId = @Model.Id;
 
-            // 1. HANDLE CUSTOM TEMPLATE BUTTON CLICK (VIP CHECK)
+            let generalModalInstance = null;
+
+            // Helper function to show dynamic centered alert popup
+            function showCenterAlert(title, message) {
+                document.getElementById('generalModalTitle').innerText = title;
+                document.getElementById('generalModalMessage').innerText = message;
+
+                if (!generalModalInstance) {
+                    generalModalInstance = new bootstrap.Modal(document.getElementById('generalAlertModal'));
+                }
+                generalModalInstance.show();
+            }
+
+            // 1. HANDLE CUSTOM TEMPLATE BUTTON CLICK (STRICT PREMIUM VIP CHECK)
             const btnCustomize = document.getElementById("btnCustomize");
             if (btnCustomize) {
                 btnCustomize.addEventListener("click", function (e) {
                     e.preventDefault();
 
+                    // If template is VIP and user has no active ServiceId == 2 subscription
                     if (!isFreeTemplate && !isUserVip) {
                         const modal = new bootstrap.Modal(document.getElementById('vipAlertModal'));
                         modal.show();
@@ -214,7 +284,7 @@
                 });
             }
 
-            // 2. HANDLE WISHLIST TOGGLE BUTTON
+            // 2. HANDLE WISHLIST TOGGLE BUTTON (AJAX WITH DYNAMIC ICON TOGGLE)
             const btnSaveWishlist = document.getElementById("btnSaveWishlist");
             const wishlistIcon = document.getElementById("wishlistIcon");
 
@@ -228,15 +298,19 @@
                         .then(data => {
                             if (data.success) {
                                 if (data.isAdded) {
-                                    wishlistIcon.className = "bi bi-heart-fill text-danger fs-4";
+                                    // MATCHES IMAGE 3 & 4 (RED FILLED HEART)
+                                    wishlistIcon.className = "bi bi-heart-fill text-danger wishlist-heart-icon";
                                 } else {
-                                    wishlistIcon.className = "bi bi-heart fs-4";
+                                    // MATCHES IMAGE 1 & 2 (GREY OUTLINED HEART)
+                                    wishlistIcon.className = "bi bi-heart text-secondary wishlist-heart-icon";
                                 }
                             } else {
-                                alert(data.message);
+                                showCenterAlert("Notice", data.message || "Failed to update wishlist status.");
                             }
                         })
-                        .catch(err => alert("Please log in to save favorite templates!"));
+                        .catch(err => {
+                            showCenterAlert("Authentication Required", "Please log in to save favorite templates!");
+                        });
                 });
             }
         });

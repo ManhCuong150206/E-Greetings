@@ -38,9 +38,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
-            // Sort Ascending by Real DB Id
+            // SORT DESCENDING BY ID (NEWEST USER FIRST)
             var usersList = await query
-                .OrderBy(a => a.Id)
+                .OrderByDescending(a => a.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -74,9 +74,9 @@ namespace E_Greeting.Controllers
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
             page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
 
-            // Sort Ascending by Real DB Id
+            // SORT DESCENDING BY ID (NEWEST FEEDBACK FIRST)
             var feedbacks = await query
-                .OrderBy(f => f.Id)
+                .OrderByDescending(f => f.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

@@ -30,6 +30,54 @@ namespace E_Greeting.Controllers
             int pageUser = 1,
             int pageTx = 1)
         {
+            // =========================================================================
+            // LAZY AUTO-UPDATE: EXPIRE OUTDATED SUBSCRIPTIONS & PENDING PAYMENTS IN DB
+            // =========================================================================
+            var nowDateTime = DateTime.Now.Date;
+
+            // Fetch active subscriptions and expire them in memory/DB safely
+            var allActiveSubs = await _context.Subscriptions
+                .Where(s => s.IsActive == true)
+                .ToListAsync();
+
+            var expiredSubs = allActiveSubs
+                .Where(s => ConvertToDateTime((object?)s.EndDate) < nowDateTime)
+                .ToList();
+
+            if (expiredSubs.Any())
+            {
+                foreach (var sub in expiredSubs)
+                {
+                    sub.IsActive = false;
+                    _context.Entry(sub).Property(x => x.IsActive).IsModified = true;
+                }
+            }
+
+            // Fetch UNPAID payments and expire those older than 3 days
+            var threeDaysAgo = DateTime.Now.AddDays(-3);
+            var unpaidPayments = await _context.Payments
+                .Where(p => p.Status == "UNPAID")
+                .ToListAsync();
+
+            var expiredPayments = unpaidPayments
+                .Where(p => ConvertToDateTime((object?)p.PaymentDate) < threeDaysAgo)
+                .ToList();
+
+            if (expiredPayments.Any())
+            {
+                foreach (var pay in expiredPayments)
+                {
+                    pay.Status = "EXPIRED";
+                    _context.Entry(pay).Property(x => x.Status).IsModified = true;
+                }
+            }
+
+            if (expiredSubs.Any() || expiredPayments.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+            // =========================================================================
+
             var model = new UserManagementViewModel
             {
                 ActiveTab = tab,
@@ -58,19 +106,23 @@ namespace E_Greeting.Controllers
             int totalUserPages = (int)Math.Ceiling((double)totalUsersCount / pageSize);
             pageUser = Math.Max(1, Math.Min(pageUser, Math.Max(1, totalUserPages)));
 
-            // Sort Ascending by Id (Real DB Id from smallest to largest)
+            // Sort DESCENDING by Id (NEWEST USER FIRST)
             var rawUsers = await usersQuery
-                .OrderBy(u => u.Id)
+                .OrderByDescending(u => u.Id)
                 .Skip((pageUser - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Retrieve Active Subscriptions
-            var subscriptions = await _context.Subscriptions
+            // Retrieve Active Subscriptions valid for today
+            var rawActiveSubscriptions = await _context.Subscriptions
                 .Include(s => s.Service)
                 .Where(s => s.IsActive == true)
                 .OrderByDescending(s => s.Id)
                 .ToListAsync();
+
+            var activeSubscriptions = rawActiveSubscriptions
+                .Where(s => ConvertToDateTime((object?)s.EndDate) >= nowDateTime)
+                .ToList();
 
             var sentCardCounts = await _context.SentCards
                 .Where(s => s.AccountId.HasValue)
@@ -79,8 +131,8 @@ namespace E_Greeting.Controllers
                 .ToDictionaryAsync(g => g.AccountId, g => g.Count);
 
             model.Users = rawUsers.Select(u => {
-                var activeSub = subscriptions.FirstOrDefault(s => s.AccountId == u.Id);
-                DateTime? endDate = activeSub != null ? ConvertToNullableDateTime((object)activeSub.EndDate) : null;
+                var activeSub = activeSubscriptions.FirstOrDefault(s => s.AccountId == u.Id);
+                DateTime? endDate = activeSub != null ? ConvertToNullableDateTime((object?)activeSub.EndDate) : null;
 
                 return new AccountUserDto
                 {
@@ -89,7 +141,7 @@ namespace E_Greeting.Controllers
                     Email = u.Email,
                     Role = u.Role,
                     Status = u.Status,
-                    CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free",
+                    CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free Package",
                     VipEndDate = endDate,
                     SentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
                 };
@@ -126,9 +178,9 @@ namespace E_Greeting.Controllers
             int totalTxPages = (int)Math.Ceiling((double)totalTxCount / pageSize);
             pageTx = Math.Max(1, Math.Min(pageTx, Math.Max(1, totalTxPages)));
 
-            // Sort Ascending by Id (Real DB Id from smallest to largest)
+            // Sort DESCENDING by Id (NEWEST PAYMENT TRANSACTION FIRST)
             var rawTxList = await txQuery
-                .OrderBy(p => p.Id)
+                .OrderByDescending(p => p.Id)
                 .Skip((pageTx - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -137,21 +189,25 @@ namespace E_Greeting.Controllers
                 DateTime? subStart = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.StartDate) : null;
                 DateTime? subEnd = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.EndDate) : null;
 
+                int subIdVal = p.SubscriptionId;
+                int accountIdVal = p.Subscription != null ? p.Subscription.AccountId : 0;
+                int serviceIdVal = (p.Subscription != null && p.Subscription.ServiceId.HasValue) ? p.Subscription.ServiceId.Value : 0;
+
                 return new PaymentTransactionDto
                 {
                     PaymentId = p.Id,
-                    SubscriptionId = p.SubscriptionId,
-                    AccountId = p.Subscription?.AccountId ?? 0,
+                    SubscriptionId = subIdVal,
+                    AccountId = accountIdVal,
                     UserName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "N/A",
                     UserEmail = p.Subscription?.Account != null ? p.Subscription.Account.Email : "N/A",
-                    ServiceId = p.Subscription?.ServiceId ?? 0,
+                    ServiceId = serviceIdVal,
                     ServiceName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Paid Package",
                     Amount = p.Amount,
-                    PaymentDate = ConvertToDateTime(p.PaymentDate),
+                    PaymentDate = ConvertToDateTime((object?)p.PaymentDate),
                     VipStartDate = subStart,
                     VipEndDate = subEnd,
-                    PaymentMethod = p.PaymentMethod ?? "VNPAY/Card",
-                    Status = p.Status ?? ""
+                    PaymentMethod = p.PaymentMethod ?? "SePay/QR",
+                    Status = p.Status ?? "UNPAID"
                 };
             }).ToList();
 
@@ -209,38 +265,54 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
 
-        // Manual Payment Approval Action
+        // Manual Payment Approval Action (STRICT CHECK: PREVENT OVERWRITING SAME ACTIVE PACKAGE)
         [HttpPost("Admin/ApprovePayment")]
         public async Task<IActionResult> ApprovePayment(int paymentId)
         {
             var payment = await _context.Payments
                 .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Service)
                 .FirstOrDefaultAsync(p => p.Id == paymentId);
 
-            if (payment != null)
+            if (payment != null && payment.Subscription != null)
             {
-                payment.Status = "PAID";
-                _context.Payments.Update(payment);
+                int accountId = payment.Subscription.AccountId;
+                int targetServiceId = payment.Subscription.ServiceId ?? 0;
+                var nowDateTime = DateTime.Now.Date;
 
-                if (payment.Subscription != null)
+                // Fetch active subscriptions for this user
+                var userActiveSubs = await _context.Subscriptions
+                    .Include(s => s.Service)
+                    .Where(s => s.AccountId == accountId && s.IsActive == true)
+                    .ToListAsync();
+
+                var currentActiveSub = userActiveSubs
+                    .FirstOrDefault(s => ConvertToDateTime((object?)s.EndDate) >= nowDateTime);
+
+                // Check duplicate approval for the same package level
+                if (currentActiveSub != null && currentActiveSub.ServiceId == targetServiceId)
                 {
-                    int accountId = payment.Subscription.AccountId;
-
-                    // Deactivate older active subscriptions for this user
-                    var oldActiveSubs = await _context.Subscriptions
-                        .Where(s => s.AccountId == accountId && s.IsActive == true && s.Id != payment.SubscriptionId)
-                        .ToListAsync();
-
-                    foreach (var oldSub in oldActiveSubs)
-                    {
-                        oldSub.IsActive = false;
-                        _context.Subscriptions.Update(oldSub);
-                    }
-
-                    // Activate current subscription
-                    payment.Subscription.IsActive = true;
-                    _context.Subscriptions.Update(payment.Subscription);
+                    DateTime activeEndDate = ConvertToDateTime((object?)currentActiveSub.EndDate);
+                    TempData["ErrorMessage"] = $"Cannot approve payment #{paymentId}! User already has an active subscription (ID: #{currentActiveSub.Id}, Package: {currentActiveSub.Service?.Name}) valid until {activeEndDate:dd/MM/yyyy}. Direct approval is blocked to prevent duplicate charges or time overlaps.";
+                    return RedirectToAction(nameof(Users), new { tab = "payments" });
                 }
+
+                // If upgrading package, deactivate old active subscription
+                if (currentActiveSub != null && currentActiveSub.ServiceId != targetServiceId)
+                {
+                    currentActiveSub.IsActive = false;
+                    _context.Entry(currentActiveSub).Property(x => x.IsActive).IsModified = true;
+                }
+
+                // Approve payment and activate new subscription
+                payment.Status = "PAID";
+                payment.Subscription.IsActive = true;
+
+                SetDynamicDate(payment.Subscription, "StartDate", DateTime.Now);
+                SetDynamicDate(payment.Subscription, "EndDate", DateTime.Now.AddMonths(1));
+
+                _context.Entry(payment).State = EntityState.Modified;
+                _context.Entry(payment.Subscription).State = EntityState.Modified;
 
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = $"Approved payment successfully for invoice #{paymentId}!";
@@ -248,8 +320,24 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
 
-        private static DateTime ConvertToDateTime(object dateObj)
+        private static void SetDynamicDate(object obj, string propName, DateTime dateTimeValue)
         {
+            var prop = obj.GetType().GetProperty(propName);
+            if (prop == null) return;
+
+            if (prop.PropertyType == typeof(DateOnly) || prop.PropertyType == typeof(DateOnly?))
+            {
+                prop.SetValue(obj, DateOnly.FromDateTime(dateTimeValue));
+            }
+            else
+            {
+                prop.SetValue(obj, dateTimeValue);
+            }
+        }
+
+        private static DateTime ConvertToDateTime(object? dateObj)
+        {
+            if (dateObj == null) return DateTime.MinValue;
             if (dateObj is DateTime dt) return dt;
             if (dateObj is DateOnly dOnly) return dOnly.ToDateTime(TimeOnly.MinValue);
             return Convert.ToDateTime(dateObj);

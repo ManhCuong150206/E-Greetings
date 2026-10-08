@@ -15,14 +15,6 @@
         </a>
     </div>
 
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
     <form asp-action="CreateTemplate" method="post" enctype="multipart/form-data" id="form-create-template">
         <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
         <input type="hidden" name="configData" id="input-config-data" />
@@ -199,11 +191,76 @@
     </form>
 </div>
 
+<!-- FLOATING CENTER NOTIFICATION POPUP (DYNAMIC & TEMPDATA SUPPORTED) -->
+<div class="modal fade" id="globalCreateAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content text-center p-4 rounded-4 shadow border-0">
+            <div class="modal-body p-0">
+                <div class="mb-3" id="alertModalIconContainer">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="mx-auto rounded-circle bg-success-subtle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;">
+                            <i class="bi bi-check-circle-fill text-success display-4"></i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mx-auto rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;">
+                            <i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>
+                        </div>
+                    }
+                </div>
+                <h4 class="fw-bold mb-2" id="alertModalTitle">@(TempData["SuccessMessage"] != null ? "Success!" : "Notice")</h4>
+                <p class="text-secondary small mb-4" id="alertModalMessage">
+                    @(TempData["SuccessMessage"] ?? TempData["ErrorMessage"] ?? "")
+                </p>
+                <button type="button" class="btn @(TempData["SuccessMessage"] != null ? "btn-success" : "btn-danger") fw-semibold px-5 py-2" id="alertModalBtn" data-bs-dismiss="modal">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        let createAlertModal = null;
+
+        function showCenterAlert(title, message, isSuccess = false) {
+            const iconContainer = document.getElementById('alertModalIconContainer');
+            const titleEl = document.getElementById('alertModalTitle');
+            const messageEl = document.getElementById('alertModalMessage');
+            const btnEl = document.getElementById('alertModalBtn');
+
+            if (isSuccess) {
+                iconContainer.innerHTML = `<div class="mx-auto rounded-circle bg-success-subtle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;"><i class="bi bi-check-circle-fill text-success display-4"></i></div>`;
+                btnEl.className = "btn btn-success fw-semibold px-5 py-2";
+            } else {
+                iconContainer.innerHTML = `<div class="mx-auto rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;"><i class="bi bi-exclamation-triangle-fill text-danger display-4"></i></div>`;
+                btnEl.className = "btn btn-danger fw-semibold px-5 py-2";
+            }
+
+            titleEl.innerText = title;
+            messageEl.innerText = message;
+
+            if (!createAlertModal) {
+                createAlertModal = new bootstrap.Modal(document.getElementById('globalCreateAlertModal'));
+            }
+            createAlertModal.show();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const alertModalEl = document.getElementById('globalCreateAlertModal');
+            createAlertModal = new bootstrap.Modal(alertModalEl);
+
+            const hasServerMessage = "@(TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null ? "true" : "false")";
+            if (hasServerMessage === "true") {
+                createAlertModal.show();
+            }
+        });
+
         let selectedItem = document.querySelector('.draggable-text-box');
 
-        // Convert RGB color to HEX format
         function rgbToHex(rgb) {
             if (!rgb) return '#000000';
             if (rgb.startsWith('#')) return rgb;
@@ -211,7 +268,6 @@
             return res ? "#" + res.slice(0, 3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('') : rgb;
         }
 
-        // Live preview for background cover image selection
         document.getElementById('input-bg-file').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
@@ -223,7 +279,6 @@
             }
         });
 
-        // Bind interactive events for draggable text elements
         function bindElementEvents(el) {
             el.addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -288,7 +343,6 @@
 
         if (selectedItem) bindElementEvents(selectedItem);
 
-        // Adjust text box width via slider
         document.getElementById('slider-text-width').addEventListener('input', function (e) {
             const val = e.target.value;
             document.getElementById('val-text-width').innerText = val + 'px';
@@ -297,7 +351,6 @@
             }
         });
 
-        // Update text content live
         document.getElementById('tool-text-val').addEventListener('input', function (e) {
             if (selectedItem) {
                 const textNode = selectedItem.querySelector('.text-content');
@@ -305,22 +358,18 @@
             }
         });
 
-        // Update font family
         document.getElementById('tool-font').addEventListener('change', function (e) {
             if (selectedItem) selectedItem.style.fontFamily = e.target.value;
         });
 
-        // Update font size
         document.getElementById('tool-size').addEventListener('change', function (e) {
             if (selectedItem) selectedItem.style.fontSize = e.target.value;
         });
 
-        // Update font color
         document.getElementById('tool-color').addEventListener('input', function (e) {
             if (selectedItem) selectedItem.style.color = e.target.value;
         });
 
-        // Toggle font bold style
         document.getElementById('btn-toggle-bold').addEventListener('click', function () {
             if (selectedItem) {
                 const isCurrentBold = selectedItem.style.fontWeight === 'bold' || selectedItem.style.fontWeight === '700';
@@ -331,7 +380,6 @@
             }
         });
 
-        // Toggle font italic style
         document.getElementById('btn-toggle-italic').addEventListener('click', function () {
             if (selectedItem) {
                 const isCurrentItalic = selectedItem.style.fontStyle === 'italic';
@@ -342,7 +390,6 @@
             }
         });
 
-        // Add new text box element
         document.getElementById('btn-add-text').addEventListener('click', function () {
             document.querySelectorAll('.draggable-text-box').forEach(item => {
                 item.classList.remove('active');
@@ -359,7 +406,7 @@
             newEl.click();
         });
 
-        // Remove selected text box
+        // FIXED: REPLACED DEFAULT BROWSER ALERT WITH CENTERED POPUP MODAL
         document.getElementById('btn-delete-text').addEventListener('click', function () {
             const allItems = document.querySelectorAll('.draggable-text-box');
             if (allItems.length > 1 && selectedItem) {
@@ -367,11 +414,10 @@
                 selectedItem = document.querySelector('.draggable-text-box');
                 if (selectedItem) selectedItem.click();
             } else {
-                alert('At least one text box template must be retained!');
+                showCenterAlert('Notice', 'At least one text box template must be retained!', false);
             }
         });
 
-        // Serialize layout elements into JSON configData before form submission
         document.getElementById('form-create-template').addEventListener('submit', function (e) {
             const elements = [];
             document.querySelectorAll('#card-preview-area .draggable-text-box').forEach(el => {
