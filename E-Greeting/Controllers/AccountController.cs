@@ -30,10 +30,29 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login(string? returnUrl = null)
+    public async Task<IActionResult> Login(string? returnUrl = null)
     {
+        // 1. Case where the link is opened from an email (with returnUrl):
+        if (!string.IsNullOrEmpty(returnUrl))
+        {
+            // If the browser is holding onto cookies from an old account
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                // Step A: Clear authentication cookies.
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+                // Step B: Redirect to this same URL to completely clear the HttpContext User.
+                return RedirectToAction("Login", new { returnUrl = returnUrl });
+            }
+
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        // 2. Standard scenario (User manually clicks the Login button on the web):
         if (User.Identity?.IsAuthenticated == true)
             return RedirectToAction("Index", "Home");
+
         ViewBag.ReturnUrl = returnUrl;
         return View();
     }

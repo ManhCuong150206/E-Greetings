@@ -1,5 +1,6 @@
 ﻿using E_Greeting.Models;
 using E_Greeting.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -264,6 +265,19 @@ public class CardController : Controller
     [HttpGet]
     public async Task<IActionResult> ViewCard(int id)
     {
+        // =========================================================================
+        // FORCE LOGOUT: ENSURE CARD RECIPIENTS ALWAYS SEE GUEST UI (UNAUTHENTICATED NAVBAR)
+        // =========================================================================
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            // Clear Authentication Cookie to log out any lingering active account session on the browser
+            await HttpContext.SignOutAsync(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Redirect once back to the same ViewCard URL to refresh and clear the HttpContext User on Navbar
+            return RedirectToAction("ViewCard", new { id = id });
+        }
+        // =========================================================================
+
         var card = await _context.SentCards
             .Include(c => c.Account)
             .Include(c => c.Template)
