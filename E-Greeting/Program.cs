@@ -1,3 +1,4 @@
+using E_Greeting.Controllers;
 using E_Greeting.Models;
 using E_Greeting.Service;
 using E_Greeting.Service.Categories;
@@ -9,19 +10,19 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cấu hình Services
+// Configure services
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-// Service gửi mail nhắc hết hạn gói VIP (Admin)
+// Service for sending package expiration reminders via email VIP (Admin)
 builder.Services.AddScoped<IAdminEmailService, AdminEmailService>();
 builder.Services.AddScoped<ISubscriptionReminderService, SubscriptionReminderService>();
 builder.Services.AddHostedService<SubscriptionReminderService>();
 
-// Service hẹn giờ gửi thiệp tự động (User)
+// Automated scheduled card-sending service (User)
 builder.Services.AddHostedService<EmailSchedulerService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -40,9 +41,14 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 
 // Add services to the container.
 builder.Services.AddMemoryCache();
-builder.Services.AddControllersWithViews();
 
-// Kết nối SQL Server
+// REGISTER MVC CONTROLLERS WITH GLOBAL ADMIN ACCESS BLOCKER FILTER
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<AdminAccessBlockerFilter>();
+});
+
+// Connect to SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -57,7 +63,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-// Middleware xác thực & phân quyền
+// Authentication & Authorization Middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
