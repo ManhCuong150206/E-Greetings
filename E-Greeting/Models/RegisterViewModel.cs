@@ -1,23 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace E_Greeting.Models
+namespace E_Greeting.Models;
+
+public class RegisterViewModel
 {
-    public class RegisterViewModel
-    {
-        [Required(ErrorMessage = "Please enter your name")]
-        public string Name { get; set; }
+    [Required(ErrorMessage = "Full name is required")]
+    public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter your email")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        public string Email { get; set; }
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
+    public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please enter your password")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
+    [Required(ErrorMessage = "Password is required")]
+    [MinLength(3, ErrorMessage = "Password must be more than 2 characters!")]
+    public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please confirm your password")]
-        [DataType(DataType.Password)]
-        [Compare("Password", ErrorMessage = "Passwords do not match")]
-        public string ConfirmPassword { get; set; }
-    }
+    [Required(ErrorMessage = "Confirm Password is required")]
+    [Compare("Password", ErrorMessage = "Confirm password does not match")]
+    public string ConfirmPassword { get; set; } = string.Empty;
 }

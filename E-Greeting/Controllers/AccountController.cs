@@ -32,16 +32,11 @@ public class AccountController : Controller
     [HttpGet]
     public async Task<IActionResult> Login(string? returnUrl = null)
     {
-        // 1. Case where the link is opened from an email (with returnUrl):
         if (!string.IsNullOrEmpty(returnUrl))
         {
-            // If the browser is holding onto cookies from an old account
             if (User.Identity?.IsAuthenticated == true)
             {
-                // Step A: Clear authentication cookies.
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-                // Step B: Redirect to this same URL to completely clear the HttpContext User.
                 return RedirectToAction("Login", new { returnUrl = returnUrl });
             }
 
@@ -49,7 +44,6 @@ public class AccountController : Controller
             return View();
         }
 
-        // 2. Standard scenario (User manually clicks the Login button on the web):
         if (User.Identity?.IsAuthenticated == true)
             return RedirectToAction("Index", "Home");
 
@@ -109,15 +103,19 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Register()
-    {
-        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
-    }
+    public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
+
     [HttpPost]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (User.Identity?.IsAuthenticated == true)
             return RedirectToAction("Index", "Home");
+
+        // Validate password length > 2 characters
+        if (!string.IsNullOrEmpty(model.Password) && model.Password.Length <= 2)
+        {
+            ModelState.AddModelError("Password", "Password must be more than 2 characters!");
+        }
 
         if (!ModelState.IsValid)
             return View(model);
@@ -174,7 +172,14 @@ public class AccountController : Controller
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out int userId)) return RedirectToAction("Login");
 
-        if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
+        // Validate password length > 2 characters
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length <= 2)
+        {
+            TempData["ErrorMessage"] = "New password must be more than 2 characters!";
+            return RedirectToAction("Profile");
+        }
+
+        if (newPassword != confirmPassword)
         {
             TempData["ErrorMessage"] = "The new password and the confirmation password do not match!";
             return RedirectToAction("Profile");
@@ -183,13 +188,25 @@ public class AccountController : Controller
         var account = await _context.Accounts.FindAsync(userId);
         if (account == null) return RedirectToAction("Login");
 
-        if (account.Password != currentPassword)
+        // Verify current password with BCrypt (with fallback for legacy plain text passwords)
+        bool isCurrentValid = false;
+        try
+        {
+            isCurrentValid = BCrypt.Net.BCrypt.Verify(currentPassword, account.Password);
+        }
+        catch
+        {
+            isCurrentValid = (account.Password == currentPassword);
+        }
+
+        if (!isCurrentValid)
         {
             TempData["ErrorMessage"] = "The current password is incorrect!";
             return RedirectToAction("Profile");
         }
 
-        account.Password = newPassword;
+        // Hash new password using BCrypt
+        account.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
         _context.Accounts.Update(account);
         await _context.SaveChangesAsync();
 
@@ -202,11 +219,7 @@ public class AccountController : Controller
     // ==========================================
 
     [HttpGet]
-    public IActionResult ForgotPassword()
-    {
-        return User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
-    }
-
+    public IActionResult ForgotPassword() => User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View();
 
     [HttpPost]
     public async Task<IActionResult> ForgotPassword(string email)
@@ -222,7 +235,6 @@ public class AccountController : Controller
             return RedirectToAction("ForgotPassword");
         }
 
-        // Generate a 6-digit OTP, store for 5 minutes
         var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         _cache.Set(OtpKey(email), new OtpEntry { Code = otp }, TimeSpan.FromMinutes(5));
 
@@ -251,7 +263,6 @@ public class AccountController : Controller
         return View();
     }
 
-    // Step 1: verify OTP
     [HttpPost]
     public IActionResult VerifyOtp(string email, string otp)
     {
@@ -269,7 +280,6 @@ public class AccountController : Controller
         return View("ResetPassword");
     }
 
-    // Step 2: change password (re-verify the OTP so nobody can skip step 1)
     [HttpPost]
     public async Task<IActionResult> ResetPassword(string email, string otp, string newPassword, string confirmPassword)
     {
@@ -281,7 +291,17 @@ public class AccountController : Controller
             return RedirectToAction("ResetPassword", new { email });
         }
 
-        if (string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
+        // Validate password length > 2 characters
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length <= 2)
+        {
+            TempData["ErrorMessage"] = "New password must be more than 2 characters!";
+            ViewBag.Email = email;
+            ViewBag.Otp = otp;
+            ViewBag.Verified = true;
+            return View("ResetPassword");
+        }
+
+        if (newPassword != confirmPassword)
         {
             TempData["ErrorMessage"] = "The confirmation password does not match!";
             ViewBag.Email = email;
@@ -297,9 +317,10 @@ public class AccountController : Controller
             return RedirectToAction("ForgotPassword");
         }
 
-        account.Password = newPassword;
+        // Hash new password using BCrypt
+        account.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _context.SaveChangesAsync();
-        _cache.Remove(OtpKey(email)); // OTP is single-use
+        _cache.Remove(OtpKey(email));
 
         TempData["SuccessMessage"] = "Password changed successfully, please login.";
         return RedirectToAction("Login");
@@ -343,7 +364,7 @@ public class AccountController : Controller
             HtmlBody = $@"
             <div style='font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:25px;border:1px solid #e2e8f0;border-radius:12px;text-align:center'>
                 <h2 style='color:#0d6efd;margin:0 0 10px'>E-Greeting</h2>
-                <p style='color:#334155'>Your password reset OTP     is:</p>
+                <p style='color:#334155'>Your password reset OTP is:</p>
                 <div style='font-size:36px;font-weight:bold;letter-spacing:10px;color:#0d6efd;margin:20px 0'>{otp}</div>
                 <p style='color:#64748b;font-size:14px'>This code is valid for 5 minutes. Do not share this code with anyone.</p>
             </div>"

@@ -16,8 +16,7 @@ public partial class Account
 
     public bool Status { get; set; }
 
-    // BỔ SUNG TRƯỜNG NÀY: Để kiểm tra trạng thái VIP / Subscription
-    [NotMapped] // 👈 Thêm thẻ này để EF Core KHÔNG tìm cột IsSubscribed trong bảng Account
+    [NotMapped]
     public bool IsSubscribed { get; set; } = false;
 
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
