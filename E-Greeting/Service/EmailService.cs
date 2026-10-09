@@ -32,7 +32,7 @@ public class EmailService : IEmailService
                     <div style='padding: 20px 0;'>
                         <p style='font-size: 16px; color: #334155;'>Hello,</p>
                         <p style='font-size: 16px; color: #334155; line-height: 1.6;'>
-                            <strong>{senderName}</strong> has created and sent you a special greeting card complete with background music and custom effects!
+                            <strong>{senderEmail}</strong> has created and sent you a special greeting card complete with background music and custom effects!
                         </p>
                         
                         <div style='text-align: center; margin: 35px 0;'>
