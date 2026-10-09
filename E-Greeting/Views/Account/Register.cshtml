@@ -40,12 +40,22 @@
                 <div class="row g-2 mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold"><i class="bi bi-lock me-1"></i> Password <span class="text-danger">*</span></label>
-                        <input asp-for="Password" class="form-control rounded-3" placeholder="••••••••" />
+                        <div class="input-group">
+                            <input asp-for="Password" class="form-control rounded-start-3" type="password" placeholder="Enter password..." />
+                            <button class="btn btn-outline-secondary rounded-end-3" type="button" onclick="togglePassword(this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold"><i class="bi bi-shield-check me-1"></i> Confirm Password <span class="text-danger">*</span></label>
-                        <input asp-for="ConfirmPassword" class="form-control rounded-3" placeholder="••••••••" />
+                        <div class="input-group">
+                            <input asp-for="ConfirmPassword" class="form-control rounded-start-3" type="password" placeholder="Confirm password" />
+                            <button class="btn btn-outline-secondary rounded-end-3" type="button" onclick="togglePassword(this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                     </div>
                 </div>
