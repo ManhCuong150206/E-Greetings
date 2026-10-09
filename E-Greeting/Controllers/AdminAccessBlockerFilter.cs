@@ -19,14 +19,19 @@ namespace E_Greeting.Controllers
             {
                 if (user.IsInRole("Admin") || user.IsInRole("ADMIN"))
                 {
-                    // Get target Controller name
+                    // Get target Controller and Action names
                     string controllerName = context.RouteData.Values["controller"]?.ToString() ?? "";
+                    string actionName = context.RouteData.Values["action"]?.ToString() ?? "";
 
-                    // EXCEPTION: Allow Admin to access ALL Admin Controllers (starting with "Admin") & AccountController (for Logout / Profile)
+                    // EXCEPTION 1: Allow Admin to access ALL Admin Controllers (starting with "Admin") & AccountController (for Logout / Profile)
                     bool isAdminController = controllerName.StartsWith("Admin", StringComparison.OrdinalIgnoreCase);
                     bool isAccountController = controllerName.Equals("Account", StringComparison.OrdinalIgnoreCase);
 
-                    if (!isAdminController && !isAccountController)
+                    // EXCEPTION 2: Allow Admin to access ViewCard action on CardController (so it can trigger auto-logout for recipients)
+                    bool isViewCardAction = controllerName.Equals("Card", StringComparison.OrdinalIgnoreCase) &&
+                                            actionName.Equals("ViewCard", StringComparison.OrdinalIgnoreCase);
+
+                    if (!isAdminController && !isAccountController && !isViewCardAction)
                     {
                         // Redirect immediately to Admin Dashboard if Admin tries to access User controllers
                         context.Result = new RedirectToActionResult("Dashboard", "Admin", null);
