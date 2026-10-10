@@ -240,33 +240,42 @@
                                 </div>
                             </div>
 
-                            <!-- Modal Edit Service -->
+                            <!-- Modal Edit Service (PRICE EDITABLE ONLY) -->
                             <div class="modal fade text-start" id="editServiceModal_@s.Id" tabindex="-1">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content shadow border-0 rounded-4">
                                         <form method="post" action="/Admin/EditService">
                                             <div class="modal-header bg-primary text-white border-0 py-3">
-                                                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit VIP Service Package</h5>
+                                                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit VIP Service Price</h5>
                                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body p-4">
                                                 <input type="hidden" name="id" value="@s.Id" />
+                                                
+                                                <!-- Package Name (READONLY) -->
                                                 <div class="mb-3">
                                                     <label class="form-label fw-semibold">Package Name</label>
-                                                    <input type="text" name="name" class="form-control" value="@s.Name" required />
+                                                    <input type="text" class="form-control bg-light" value="@s.Name" readonly />
                                                 </div>
+
+                                                <!-- Price (EDITABLE WITH NON-NEGATIVE & REQUIRED VALIDATION) -->
                                                 <div class="mb-3">
                                                     <label class="form-label fw-semibold">Price (VNĐ)</label>
-                                                    <input type="number" name="price" class="form-control" value="@s.Price" step="1000" required />
+                                                    <input type="number" name="price" class="form-control" value="@s.Price" step="1000" min="0" required />
                                                 </div>
+
+                                                <!-- Package Features (READONLY) -->
                                                 <div class="mb-3">
                                                     <label class="form-label fw-semibold">Package Features</label>
-                                                    <textarea name="features" class="form-control" rows="3">@s.Features</textarea>
+                                                    <textarea class="form-control bg-light" rows="3" readonly>@s.Features</textarea>
+                                                    <small class="text-muted d-block mt-2">
+                                                        <i class="bi bi-exclamation-circle-fill text-warning me-1"></i>Package identity and features are locked to preserve historical subscription integrity.
+                                                    </small>
                                                 </div>
                                             </div>
                                             <div class="modal-footer border-0 pb-4 pe-4">
                                                 <button type="button" class="btn btn-secondary fw-semibold px-4" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary fw-semibold px-4">Save Package</button>
+                                                <button type="submit" class="btn btn-primary fw-semibold px-4">Save Price</button>
                                             </div>
                                         </form>
                                     </div>

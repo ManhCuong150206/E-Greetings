@@ -248,19 +248,26 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Edit Service Package Action
+        // Edit Service Package Action (STRICT VALIDATION: PRICE CANNOT BE NEGATIVE)
         [HttpPost("Admin/EditService")]
-        public async Task<IActionResult> EditService(int id, string name, decimal price, string features)
+        public async Task<IActionResult> EditService(int id, decimal price)
         {
+            // Validate non-negative price
+            if (price < 0)
+            {
+                TempData["ErrorMessage"] = "Package price cannot be negative!";
+                return RedirectToAction(nameof(Users), new { tab = "payments" });
+            }
+
             var service = await _context.Services.FindAsync(id);
             if (service != null)
             {
-                service.Name = name;
+                // Only update pricing, keeping package name and core features locked
                 service.Price = price;
-                service.Features = features;
+
                 _context.Services.Update(service);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Updated VIP service package successfully!";
+                TempData["SuccessMessage"] = $"Updated price for package '{service.Name}' successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
