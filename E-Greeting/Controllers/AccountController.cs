@@ -157,9 +157,24 @@ public class AccountController : Controller
         var account = await _context.Accounts.FindAsync(userId);
         if (account == null) return NotFound();
 
+        // 1. Save updated profile name to Database
         account.Name = name;
         _context.Accounts.Update(account);
         await _context.SaveChangesAsync();
+
+        // 2. Immediately refresh Authentication Cookie Claims with the updated name
+        var userRole = (account.Role ?? "User").Trim().ToLower() == "admin" ? "Admin" : (account.Role ?? "User").Trim();
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, account.Id.ToString()),
+            new(ClaimTypes.Name, account.Name ?? account.Email),
+            new(ClaimTypes.Email, account.Email),
+            new(ClaimTypes.Role, userRole)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
         TempData["SuccessMessage"] = "Personal information updated successfully!";
         return RedirectToAction("Profile");

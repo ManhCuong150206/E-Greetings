@@ -28,14 +28,17 @@
 
     if (User.Identity != null && User.Identity.IsAuthenticated)
     {
+        string userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
         string currentUserName = User.Identity.Name ?? "";
         DateOnly today = DateOnly.FromDateTime(DateTime.Now);
+
+        int.TryParse(userIdStr, out int currentUserId);
 
         var activeServiceNames = _context.Subscriptions
             .Include(s => s.Service)
             .Include(s => s.Account)
             .Include(s => s.Payments)
-            .Where(s => (s.Account.Name == currentUserName || s.Account.Email == currentUserName)
+            .Where(s => (s.AccountId == currentUserId || s.Account.Name == currentUserName || s.Account.Email == currentUserName)
                      && s.IsActive
                      && (s.EndDate == null || s.EndDate >= today)
                      && s.Payments.Any(p => p.Status == "PAID"))
@@ -235,36 +238,36 @@
 
     <!-- GLOBAL NOTICE MODAL SCRIPT -->
     <script>
-        function showNoticeModal(title, message, isSuccess = true, redirectUrl = null) {
-            const modalEl = document.getElementById('noticeModal');
-            if (!modalEl) {
-                alert(message);
-                if (redirectUrl) window.location.href = redirectUrl;
-                return;
+            function showNoticeModal(title, message, isSuccess = true, redirectUrl = null) {
+                const modalEl = document.getElementById('noticeModal');
+                if (!modalEl) {
+                    alert(message);
+                    if (redirectUrl) window.location.href = redirectUrl;
+                    return;
+                }
+
+                document.getElementById('noticeTitle').innerText = title || (isSuccess ? "Success" : "Notification");
+                document.getElementById('noticeMessage').innerText = message;
+
+                const iconEl = document.getElementById('noticeIcon');
+                if (isSuccess) {
+                    iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success display-4"></i>';
+                } else {
+                    iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>';
+                }
+
+                const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+                if (redirectUrl) {
+                    const handleClose = function() {
+                        window.location.href = redirectUrl;
+                        modalEl.removeEventListener('hidden.bs.modal', handleClose);
+                    };
+                    modalEl.addEventListener('hidden.bs.modal', handleClose);
+                }
+
+                modalInstance.show();
             }
-
-            document.getElementById('noticeTitle').innerText = title || (isSuccess ? "Success" : "Notification");
-            document.getElementById('noticeMessage').innerText = message;
-
-            const iconEl = document.getElementById('noticeIcon');
-            if (isSuccess) {
-                iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success display-4"></i>';
-            } else {
-                iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill text-danger display-4"></i>';
-            }
-
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-
-            if (redirectUrl) {
-                const handleClose = function () {
-                    window.location.href = redirectUrl;
-                    modalEl.removeEventListener('hidden.bs.modal', handleClose);
-                };
-                modalEl.addEventListener('hidden.bs.modal', handleClose);
-            }
-
-            modalInstance.show();
-        }
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
