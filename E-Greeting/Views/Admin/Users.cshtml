@@ -52,7 +52,7 @@
                                 <tr>
                                     <th width="80">No.</th>
                                     <th>User Name</th>
-                                    <th>Email</th>
+                                    <th>Email Address</th>
                                     <th>Current VIP Package</th>
                                     <th>Sent Cards</th>
                                     <th width="120">Status</th>
@@ -69,7 +69,7 @@
                                             <td class="fw-bold text-dark">@u.Name</td>
                                             <td>@u.Email</td>
                                             <td>
-                                                @if (u.CurrentVipPackage != "Free" && u.CurrentVipPackage != "Miễn phí" && u.CurrentVipPackage != "Free Package")
+                                                @if (u.CurrentVipPackage != "Free" && u.CurrentVipPackage != "Free Package")
                                                 {
                                                     <span class="badge bg-success">@u.CurrentVipPackage</span>
                                                 }
@@ -144,7 +144,7 @@
             {
                 @foreach (var u in Model.Users)
                 {
-                    <!-- EDIT USER MODAL -->
+                    <!-- EDIT USER MODAL (EMAIL SET TO READONLY) -->
                     <div class="modal fade text-start" id="editUserModal_@u.Id" tabindex="-1">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content shadow border-0 rounded-4">
@@ -156,12 +156,15 @@
                                     <div class="modal-body p-4">
                                         <input type="hidden" name="id" value="@u.Id" />
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Full Name</label>
-                                            <input type="text" name="name" class="form-control" value="@u.Name" required />
+                                            <label class="form-label fw-semibold">Email Address (Read-only)</label>
+                                            <input type="email" class="form-control bg-light" value="@u.Email" readonly disabled />
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="bi bi-exclamation-circle-fill text-warning me-1"></i>Email serves as the unique account identity and cannot be changed.
+                                            </small>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Email Address</label>
-                                            <input type="email" name="email" class="form-control" value="@u.Email" required />
+                                            <label class="form-label fw-semibold">Full Name</label>
+                                            <input type="text" name="name" class="form-control" value="@u.Name" required />
                                         </div>
                                     </div>
                                     <div class="modal-footer border-0 pb-4 pe-4">
@@ -173,7 +176,7 @@
                         </div>
                     </div>
 
-                    <!-- LOCK / UNLOCK CONFIRMATION MODAL (CENTERED POPUP) -->
+                    <!-- LOCK / UNLOCK CONFIRMATION MODAL -->
                     <div class="modal fade" id="toggleStatusModal_@u.Id" tabindex="-1">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
                             <div class="modal-content text-center p-4 rounded-4 shadow border-0">
@@ -251,7 +254,7 @@
                                             </div>
                                             <div class="modal-body p-4">
                                                 <input type="hidden" name="id" value="@s.Id" />
-                                                
+
                                                 <!-- Package Name (READONLY) -->
                                                 <div class="mb-3">
                                                     <label class="form-label fw-semibold">Package Name</label>
@@ -345,7 +348,7 @@
                                                 <div class="small text-muted">@t.UserEmail</div>
                                             </td>
                                             <td><span class="badge bg-info text-dark">@t.ServiceName</span></td>
-                                            <td class="fw-bold text-success">@t.Amount.ToString("N0") đ</td>
+                                            <td class="fw-bold text-success">@t.Amount.ToString("N0") VNĐ</td>
                                             <td>@t.PaymentDate.ToString("dd/MM/yyyy")</td>
                                             <td>
                                                 @if (t.VipStartDate.HasValue && t.VipEndDate.HasValue)
@@ -435,7 +438,7 @@
                 }
             </div>
 
-            <!-- MODALS FOR PAYMENT APPROVAL CONFIRMATION (CENTERED POPUP) -->
+            <!-- MODALS FOR PAYMENT APPROVAL CONFIRMATION -->
             @if (Model.Transactions != null && Model.Transactions.Any())
             {
                 @foreach (var t in Model.Transactions)
@@ -470,7 +473,7 @@
     </div>
 </div>
 
-<!-- FLOATING CENTER NOTIFICATION POPUP (MATCHING DESIGN) -->
+<!-- FLOATING CENTER NOTIFICATION POPUP -->
 @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
 {
     <div class="modal fade" id="globalAlertModal" tabindex="-1" aria-hidden="true">

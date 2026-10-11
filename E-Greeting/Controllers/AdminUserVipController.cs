@@ -232,18 +232,17 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Edit User Information Action
+        // Edit User Information Action (EMAIL IS READ-ONLY TO PROTECT TRANSACTION HISTORY INTEGRITY)
         [HttpPost("Admin/EditUser")]
-        public async Task<IActionResult> EditUser(int id, string name, string email)
+        public async Task<IActionResult> EditUser(int id, string name)
         {
             var account = await _context.Accounts.FindAsync(id);
             if (account != null)
             {
                 account.Name = name;
-                account.Email = email;
                 _context.Accounts.Update(account);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Updated user information successfully!";
+                TempData["SuccessMessage"] = "Updated user profile successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
