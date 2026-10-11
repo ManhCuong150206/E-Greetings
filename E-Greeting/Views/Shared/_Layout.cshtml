@@ -1,8 +1,11 @@
 ﻿@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
 @using Microsoft.EntityFrameworkCore
 @inject E_Greeting.Models.AppDbContext _context
 @{
     string userBadge = "";
+    string displayName = User.Identity?.Name ?? "";
 
     // RETRIEVE ROUTE DATA AND REAL REQUEST PATH
     string currentController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLower();
@@ -32,28 +35,53 @@
         string currentUserName = User.Identity.Name ?? "";
         DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 
-        int.TryParse(userIdStr, out int currentUserId);
-
-        var activeServiceNames = _context.Subscriptions
-            .Include(s => s.Service)
-            .Include(s => s.Account)
-            .Include(s => s.Payments)
-            .Where(s => (s.AccountId == currentUserId || s.Account.Name == currentUserName || s.Account.Email == currentUserName)
-                     && s.IsActive
-                     && (s.EndDate == null || s.EndDate >= today)
-                     && s.Payments.Any(p => p.Status == "PAID"))
-            .Select(s => s.Service.Name)
-            .ToList();
-
-        if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
-            (name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || name.Contains("Premium", StringComparison.OrdinalIgnoreCase))))
+        if (int.TryParse(userIdStr, out int currentUserId))
         {
-            userBadge = "<span class='badge bg-warning text-dark fw-bold ms-1 shadow-sm'><i class='bi bi-crown-fill text-danger me-1'></i>VIP</span>";
-        }
-        else if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
-                 name.Contains("Pro", StringComparison.OrdinalIgnoreCase)))
-        {
-            userBadge = "<span class='badge bg-primary fw-bold ms-1 shadow-sm'><i class='bi bi-star-fill text-warning me-1'></i>PRO</span>";
+            // 1. FETCH REALTIME USER NAME FROM DB TO SYNC WITH ADMIN EDITS IMMEDIATELY ON REFRESH
+            var currentAccount = _context.Accounts.FirstOrDefault(a => a.Id == currentUserId);
+            if (currentAccount != null)
+            {
+                string dbName = currentAccount.Name ?? currentAccount.Email;
+                displayName = dbName;
+
+                // REFRESH COOKIE CLAIMS AUTOMATICALLY IF ADMIN CHANGED THE NAME
+                if (currentUserName != dbName)
+                {
+                    var userRole = (currentAccount.Role ?? "User").Trim().ToLower() == "admin" ? "Admin" : (currentAccount.Role ?? "User").Trim();
+                    var updatedClaims = new List<Claim>
+                    {
+                        new(ClaimTypes.NameIdentifier, currentAccount.Id.ToString()),
+                        new(ClaimTypes.Name, dbName),
+                        new(ClaimTypes.Email, currentAccount.Email),
+                        new(ClaimTypes.Role, userRole)
+                    };
+                    var identity = new ClaimsIdentity(updatedClaims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    Context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+                }
+            }
+
+            // 2. RETRIEVE ACTIVE VIP/PRO BADGES
+            var activeServiceNames = _context.Subscriptions
+                .Include(s => s.Service)
+                .Include(s => s.Account)
+                .Include(s => s.Payments)
+                .Where(s => (s.AccountId == currentUserId || s.Account.Name == currentUserName || s.Account.Email == currentUserName)
+                         && s.IsActive
+                         && (s.EndDate == null || s.EndDate >= today)
+                         && s.Payments.Any(p => p.Status == "PAID"))
+                .Select(s => s.Service.Name)
+                .ToList();
+
+            if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
+                (name.Contains("VIP", StringComparison.OrdinalIgnoreCase) || name.Contains("Premium", StringComparison.OrdinalIgnoreCase))))
+            {
+                userBadge = "<span class='badge bg-warning text-dark fw-bold ms-1 shadow-sm'><i class='bi bi-crown-fill text-danger me-1'></i>VIP</span>";
+            }
+            else if (activeServiceNames.Any(name => !string.IsNullOrEmpty(name) &&
+                     name.Contains("Pro", StringComparison.OrdinalIgnoreCase)))
+            {
+                userBadge = "<span class='badge bg-primary fw-bold ms-1 shadow-sm'><i class='bi bi-star-fill text-warning me-1'></i>PRO</span>";
+            }
         }
     }
 }
@@ -141,7 +169,7 @@
                             else
                             {
                                 <a class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-inline-flex align-items-center" asp-controller="Account" asp-action="Profile">
-                                    <i class="bi bi-person-circle me-1"></i> @User.Identity.Name @Html.Raw(userBadge)
+                                    <i class="bi bi-person-circle me-1"></i> @displayName @Html.Raw(userBadge)
                                 </a>
                             }
 
