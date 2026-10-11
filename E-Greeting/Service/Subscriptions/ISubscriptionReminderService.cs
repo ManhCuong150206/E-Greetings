@@ -5,7 +5,7 @@ namespace E_Greeting.Service.Subscriptions
 {
     public interface ISubscriptionReminderService
     {
-        // Hàm kích hoạt gửi email nhắc nhở thủ công hoặc gọi từ Background Task
+        // Trigger function to send task reminder emails or call from a background task.
         Task CheckAndSendExpiryRemindersAsync(CancellationToken stoppingToken = default);
     }
 }

@@ -58,6 +58,46 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/Feedbacks.cshtml", usersList);
         }
 
+        // AJAX API: FETCH USERS WITH FEEDBACK JSON
+        [HttpGet("Admin/GetFeedbacksUsersJson")]
+        public async Task<IActionResult> GetFeedbacksUsersJson(string? search, int page = 1)
+        {
+            int pageSize = 10;
+
+            var query = _context.Accounts
+                .Where(a => _context.Feedbacks.Any(f => f.AccountId == a.Id))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(a => a.Name.Contains(search) || a.Email.Contains(search));
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var usersList = await query
+                .OrderByDescending(a => a.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    id = a.Id,
+                    name = a.Name,
+                    email = a.Email,
+                    feedbackCount = _context.Feedbacks.Count(f => f.AccountId == a.Id)
+                })
+                .ToListAsync();
+
+            return Json(new
+            {
+                users = usersList,
+                currentPage = page,
+                totalPages = totalPages
+            });
+        }
+
         // LEVEL 2: DETAILED FEEDBACK LIST FOR A SPECIFIC USER
         [HttpGet("Admin/UserFeedbacks/{accountId}")]
         public async Task<IActionResult> UserFeedbacks(int accountId, int page = 1)

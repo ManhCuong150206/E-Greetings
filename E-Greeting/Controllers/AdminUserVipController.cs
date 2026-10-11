@@ -140,7 +140,7 @@ namespace E_Greeting.Controllers
                     Name = u.Name,
                     Email = u.Email,
                     Role = u.Role,
-                    Status = u.Status,
+                    Status = u.Status, // Ensures current status state is accurately bound
                     CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free Package",
                     VipEndDate = endDate,
                     SentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
@@ -217,6 +217,137 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/Users.cshtml", model);
         }
 
+        // ==========================================
+        // AJAX ENDPOINTS FOR NON-REFRESH SEARCH
+        // ==========================================
+
+        [HttpGet("Admin/GetUsersJson")]
+        public async Task<IActionResult> GetUsersJson(string? searchUser = null, int pageUser = 1)
+        {
+            int pageSize = 10;
+            var nowDateTime = DateTime.Now.Date;
+
+            var usersQuery = _context.Accounts
+                .Where(a => a.Role != "ADMIN" && a.Role != "Admin")
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchUser))
+            {
+                usersQuery = usersQuery.Where(u => u.Name.Contains(searchUser) || u.Email.Contains(searchUser));
+            }
+
+            int totalUsersCount = await usersQuery.CountAsync();
+            int totalUserPages = (int)Math.Ceiling((double)totalUsersCount / pageSize);
+            pageUser = Math.Max(1, Math.Min(pageUser, Math.Max(1, totalUserPages)));
+
+            var rawUsers = await usersQuery
+                .OrderByDescending(u => u.Id)
+                .Skip((pageUser - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var rawActiveSubscriptions = await _context.Subscriptions
+                .Include(s => s.Service)
+                .Where(s => s.IsActive == true)
+                .OrderByDescending(s => s.Id)
+                .ToListAsync();
+
+            var activeSubscriptions = rawActiveSubscriptions
+                .Where(s => ConvertToDateTime((object?)s.EndDate) >= nowDateTime)
+                .ToList();
+
+            var sentCardCounts = await _context.SentCards
+                .Where(s => s.AccountId.HasValue)
+                .GroupBy(s => s.AccountId!.Value)
+                .Select(g => new { AccountId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.AccountId, g => g.Count);
+
+            var resultUsers = rawUsers.Select(u => {
+                var activeSub = activeSubscriptions.FirstOrDefault(s => s.AccountId == u.Id);
+                return new
+                {
+                    id = u.Id,
+                    name = u.Name,
+                    email = u.Email,
+                    role = u.Role,
+                    status = u.Status,
+                    currentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free Package",
+                    sentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
+                };
+            }).ToList();
+
+            return Json(new
+            {
+                users = resultUsers,
+                currentPage = pageUser,
+                totalPages = totalUserPages
+            });
+        }
+
+        [HttpGet("Admin/GetTransactionsJson")]
+        public async Task<IActionResult> GetTransactionsJson(string? searchTx = null, int? serviceId = null, string? status = null, int pageTx = 1)
+        {
+            int pageSize = 10;
+            var txQuery = _context.Payments
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Account)
+                .Include(p => p.Subscription)
+                    .ThenInclude(s => s.Service)
+                .AsQueryable();
+
+            if (serviceId.HasValue && serviceId.Value > 0)
+            {
+                txQuery = txQuery.Where(p => p.Subscription != null && p.Subscription.ServiceId == serviceId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                txQuery = txQuery.Where(p => p.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTx))
+            {
+                txQuery = txQuery.Where(p => (p.Subscription != null && p.Subscription.Account != null &&
+                    (p.Subscription.Account.Name.Contains(searchTx) || p.Subscription.Account.Email.Contains(searchTx))) || p.Id.ToString().Contains(searchTx));
+            }
+
+            int totalTxCount = await txQuery.CountAsync();
+            int totalTxPages = (int)Math.Ceiling((double)totalTxCount / pageSize);
+            pageTx = Math.Max(1, Math.Min(pageTx, Math.Max(1, totalTxPages)));
+
+            var rawTxList = await txQuery
+                .OrderByDescending(p => p.Id)
+                .Skip((pageTx - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var resultTx = rawTxList.Select(p => {
+                DateTime? subStart = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.StartDate) : null;
+                DateTime? subEnd = p.Subscription != null ? ConvertToNullableDateTime((object?)p.Subscription.EndDate) : null;
+
+                return new
+                {
+                    paymentId = p.Id,
+                    userName = p.Subscription?.Account != null ? p.Subscription.Account.Name : "N/A",
+                    userEmail = p.Subscription?.Account != null ? p.Subscription.Account.Email : "N/A",
+                    serviceName = p.Subscription?.Service != null ? p.Subscription.Service.Name : "Paid Package",
+                    amount = p.Amount,
+                    paymentDateStr = ConvertToDateTime((object?)p.PaymentDate).ToString("dd/MM/yyyy"),
+                    vipStartDateStr = subStart.HasValue ? subStart.Value.ToString("dd/MM/yy") : "",
+                    vipEndDateStr = subEnd.HasValue ? subEnd.Value.ToString("dd/MM/yy") : "",
+                    isVipActive = subEnd.HasValue && subEnd.Value >= DateTime.Now.Date,
+                    status = p.Status ?? "UNPAID"
+                };
+            }).ToList();
+
+            return Json(new
+            {
+                transactions = resultTx,
+                currentPage = pageTx,
+                totalPages = totalTxPages
+            });
+        }
+
         // Lock / Unlock User Account Action
         [HttpPost("Admin/ToggleUserStatus")]
         public async Task<IActionResult> ToggleUserStatus(int id)
@@ -232,35 +363,41 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Edit User Information Action
+        // Edit User Information Action (EMAIL IS READ-ONLY TO PROTECT TRANSACTION HISTORY INTEGRITY)
         [HttpPost("Admin/EditUser")]
-        public async Task<IActionResult> EditUser(int id, string name, string email)
+        public async Task<IActionResult> EditUser(int id, string name)
         {
             var account = await _context.Accounts.FindAsync(id);
             if (account != null)
             {
                 account.Name = name;
-                account.Email = email;
                 _context.Accounts.Update(account);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Updated user information successfully!";
+                TempData["SuccessMessage"] = "Updated user profile successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "users" });
         }
 
-        // Edit Service Package Action
+        // Edit Service Package Action (STRICT VALIDATION: PRICE CANNOT BE NEGATIVE)
         [HttpPost("Admin/EditService")]
-        public async Task<IActionResult> EditService(int id, string name, decimal price, string features)
+        public async Task<IActionResult> EditService(int id, decimal price)
         {
+            // Validate non-negative price
+            if (price < 0)
+            {
+                TempData["ErrorMessage"] = "Package price cannot be negative!";
+                return RedirectToAction(nameof(Users), new { tab = "payments" });
+            }
+
             var service = await _context.Services.FindAsync(id);
             if (service != null)
             {
-                service.Name = name;
+                // Only update pricing, keeping package name and core features locked
                 service.Price = price;
-                service.Features = features;
+
                 _context.Services.Update(service);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Updated VIP service package successfully!";
+                TempData["SuccessMessage"] = $"Updated price for package '{service.Name}' successfully!";
             }
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }

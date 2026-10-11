@@ -47,6 +47,42 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/Categories.cshtml", categories);
         }
 
+        // AJAX API: FETCH CATEGORIES JSON
+        [HttpGet("Admin/GetCategoriesJson")]
+        public IActionResult GetCategoriesJson(string? searchName, int page = 1)
+        {
+            int pageSize = 10;
+            var query = _context.Categories.Include(c => c.Templates).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchName))
+            {
+                query = query.Where(c => c.Name.Contains(searchName));
+            }
+
+            int totalItems = query.Count();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var categories = query
+                .OrderByDescending(c => c.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new
+                {
+                    id = c.Id,
+                    name = c.Name,
+                    templateCount = c.Templates != null ? c.Templates.Count : 0
+                })
+                .ToList();
+
+            return Json(new
+            {
+                categories = categories,
+                currentPage = page,
+                totalPages = totalPages
+            });
+        }
+
         [HttpPost("Admin/Create")]
         public IActionResult Create(Category category)
         {

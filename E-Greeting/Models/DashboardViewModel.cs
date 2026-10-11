@@ -11,7 +11,7 @@ namespace E_Greeting.Models
         public int TotalSentCards { get; set; }
         public decimal TotalRevenue { get; set; }
 
-        // Danh sách thống kê chi tiết theo từng Gói dịch vụ
+        // Detailed statistical list by service package
         public List<ServiceStatDto> ServiceStats { get; set; } = new List<ServiceStatDto>();
 
         public List<RecentPaymentDto> RecentPayments { get; set; } = new List<RecentPaymentDto>();
@@ -23,8 +23,8 @@ namespace E_Greeting.Models
         public int ServiceId { get; set; }
         public string ServiceName { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public int TotalSubscribers { get; set; } // Số lượt đăng ký thành công
-        public decimal TotalRevenue { get; set; }   // Doanh thu riêng của gói này
+        public int TotalSubscribers { get; set; } // Number of successful registrations
+        public decimal TotalRevenue { get; set; }   // Standalone revenue of this package
     }
 
     public class RecentPaymentDto
