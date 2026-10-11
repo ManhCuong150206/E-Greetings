@@ -402,7 +402,7 @@ namespace E_Greeting.Controllers
             return RedirectToAction(nameof(Users), new { tab = "payments" });
         }
 
-        // Manual Payment Approval Action (STRICT CHECK: PREVENT OVERWRITING SAME ACTIVE PACKAGE)
+        // Manual Payment Approval Action (STRICT CHECK BY SERVICE ID: PREVENT OVERWRITING SAME ACTIVE PACKAGE OR DOWNGRADING TO LOWER TIER)
         [HttpPost("Admin/ApprovePayment")]
         public async Task<IActionResult> ApprovePayment(int paymentId)
         {
@@ -426,17 +426,27 @@ namespace E_Greeting.Controllers
                 var currentActiveSub = userActiveSubs
                     .FirstOrDefault(s => ConvertToDateTime((object?)s.EndDate) >= nowDateTime);
 
-                // Check duplicate approval for the same package level
-                if (currentActiveSub != null && currentActiveSub.ServiceId == targetServiceId)
+                if (currentActiveSub != null)
                 {
-                    DateTime activeEndDate = ConvertToDateTime((object?)currentActiveSub.EndDate);
-                    TempData["ErrorMessage"] = $"Cannot approve payment #{paymentId}! User already has an active subscription (ID: #{currentActiveSub.Id}, Package: {currentActiveSub.Service?.Name}) valid until {activeEndDate:dd/MM/yyyy}. Direct approval is blocked to prevent duplicate charges or time overlaps.";
-                    return RedirectToAction(nameof(Users), new { tab = "payments" });
-                }
+                    int currentServiceId = currentActiveSub.ServiceId ?? 0;
 
-                // If upgrading package, deactivate old active subscription
-                if (currentActiveSub != null && currentActiveSub.ServiceId != targetServiceId)
-                {
+                    // Check duplicate approval for the same package level
+                    if (targetServiceId == currentServiceId)
+                    {
+                        DateTime activeEndDate = ConvertToDateTime((object?)currentActiveSub.EndDate);
+                        TempData["ErrorMessage"] = $"Cannot approve payment #{paymentId}! User already has an active subscription (ID: #{currentActiveSub.Id}, Package: {currentActiveSub.Service?.Name}) valid until {activeEndDate:dd/MM/yyyy}. Direct approval is blocked to prevent duplicate charges or time overlaps.";
+                        return RedirectToAction(nameof(Users), new { tab = "payments" });
+                    }
+
+                    // Check and block downgrade if target Service ID is lower than current active Service ID
+                    if (targetServiceId < currentServiceId)
+                    {
+                        DateTime activeEndDate = ConvertToDateTime((object?)currentActiveSub.EndDate);
+                        TempData["ErrorMessage"] = $"Cannot approve payment #{paymentId}! User currently holds a higher tier active subscription ('{currentActiveSub.Service?.Name}') valid until {activeEndDate:dd/MM/yyyy}. Downgrading to a lower tier package ('{payment.Subscription.Service?.Name}') while a higher package is active is strictly prohibited.";
+                        return RedirectToAction(nameof(Users), new { tab = "payments" });
+                    }
+
+                    // If upgrading package (targetServiceId > currentServiceId), deactivate old lower active subscription
                     currentActiveSub.IsActive = false;
                     _context.Entry(currentActiveSub).Property(x => x.IsActive).IsModified = true;
                 }
