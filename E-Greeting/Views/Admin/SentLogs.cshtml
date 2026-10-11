@@ -10,9 +10,9 @@
         <h2 class="text-primary fw-bold"><i class="bi bi-clock-history text-primary me-2"></i>Card Sending History Logs</h2>
     </div>
 
-    <!-- USER SEARCH BAR WITH AUTO-SUBMIT -->
+    <!-- USER SEARCH BAR WITH AJAX -->
     <div class="card shadow-sm p-3 mb-4 rounded-3 bg-light">
-        <form id="sentLogsSearchForm" asp-controller="AdminSentHistory" asp-action="SentLogs" method="get" class="row g-2 align-items-center">
+        <form id="sentLogsSearchForm" onsubmit="return false;" class="row g-2 align-items-center">
             <div class="col-md-11">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
@@ -20,9 +20,9 @@
                 </div>
             </div>
             <div class="col-md-1">
-                <a asp-controller="AdminSentHistory" asp-action="SentLogs" class="btn btn-outline-secondary w-100" title="Reset search">
+                <button type="button" id="resetSentLogsBtn" class="btn btn-outline-secondary w-100" title="Reset search">
                     <i class="bi bi-arrow-counterclockwise"></i>
-                </a>
+                </button>
             </div>
         </form>
     </div>
@@ -39,7 +39,7 @@
                         <th class="text-center" width="240">Total Sent Cards</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="sentLogsTableBody">
                     @if (Model != null && Model.Any())
                     {
                         foreach (var user in Model)
@@ -68,21 +68,23 @@
         </div>
 
         <!-- PAGINATION -->
-        @if (ViewBag.TotalPages > 1)
-        {
-            <div class="card-footer bg-white d-flex justify-content-center py-2">
-                <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                        {
-                            <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                                <a class="page-link" asp-controller="AdminSentHistory" asp-action="SentLogs" asp-route-search="@ViewBag.Search" asp-route-page="@i">@i</a>
-                            </li>
-                        }
-                    </ul>
-                </nav>
-            </div>
-        }
+        <div id="sentLogsPaginationContainer">
+            @if (ViewBag.TotalPages > 1)
+            {
+                <div class="card-footer bg-white d-flex justify-content-center py-2">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                    <a class="page-link sent-logs-page-link" href="javascript:void(0);" data-page="@i">@i</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
@@ -130,16 +132,101 @@
                 alertModal.show();
             }
 
-            // AUTO-SUBMIT SEARCH FORM WITH DEBOUNCE
+            // AJAX SEARCH & PAGINATION LOGIC
             const searchInput = document.getElementById('searchSentLogsInput');
-            const searchForm = document.getElementById('sentLogsSearchForm');
-            if (searchInput && searchForm) {
-                let timer;
+            const tableBody = document.getElementById('sentLogsTableBody');
+            const paginationContainer = document.getElementById('sentLogsPaginationContainer');
+            const resetBtn = document.getElementById('resetSentLogsBtn');
+
+            let timer;
+
+            async function fetchSentLogs(page = 1) {
+                const keyword = searchInput ? searchInput.value.trim() : "";
+                const url = `/Admin/GetSentLogsUsersJson?search=${encodeURIComponent(keyword)}&page=${page}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    renderTable(data.users);
+                    renderPagination(data.currentPage, data.totalPages);
+                } catch (error) {
+                    console.error("Error fetching sent logs:", error);
+                }
+            }
+
+            function renderTable(users) {
+                if (!tableBody) return;
+                if (!users || users.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No card sending logs recorded yet from users.</td></tr>';
+                    return;
+                }
+
+                let html = '';
+                users.forEach(u => {
+                    const count = u.sentCount;
+                    const suffix = count > 1 ? "s" : "";
+                    html += `
+                        <tr>
+                            <td class="text-center fw-bold">${u.id}</td>
+                            <td class="fw-semibold text-dark">${u.name}</td>
+                            <td>${u.email}</td>
+                            <td class="text-center">
+                                <a href="/Admin/UserSentCards/${u.id}" class="btn btn-info text-dark rounded-pill fw-bold shadow-sm px-3 py-1">
+                                    <i class="bi bi-envelope-paper-fill me-1"></i> ${count} Card${suffix} Sent
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableBody.innerHTML = html;
+            }
+
+            function renderPagination(currentPage, totalPages) {
+                if (!paginationContainer) return;
+                if (totalPages <= 1) {
+                    paginationContainer.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <div class="card-footer bg-white d-flex justify-content-center py-2">
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">`;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const activeClass = i === currentPage ? 'active' : '';
+                    html += `<li class="page-item ${activeClass}"><a class="page-link sent-logs-page-link" href="javascript:void(0);" data-page="${i}">${i}</a></li>`;
+                }
+
+                html += `
+                            </ul>
+                        </nav>
+                    </div>`;
+                paginationContainer.innerHTML = html;
+            }
+
+            if (searchInput) {
                 searchInput.addEventListener('input', function () {
                     clearTimeout(timer);
                     timer = setTimeout(() => {
-                        searchForm.submit();
-                    }, 400);
+                        fetchSentLogs(1);
+                    }, 350);
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function () {
+                    if (searchInput) searchInput.value = "";
+                    fetchSentLogs(1);
+                });
+            }
+
+            if (paginationContainer) {
+                paginationContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('sent-logs-page-link')) {
+                        const page = parseInt(e.target.getAttribute('data-page'));
+                        if (page) fetchSentLogs(page);
+                    }
                 });
             }
         });

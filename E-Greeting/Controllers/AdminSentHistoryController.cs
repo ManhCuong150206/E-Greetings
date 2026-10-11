@@ -59,6 +59,46 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/SentLogs.cshtml", usersList);
         }
 
+        // AJAX API: FETCH USERS WITH SENT LOGS JSON
+        [HttpGet("Admin/GetSentLogsUsersJson")]
+        public async Task<IActionResult> GetSentLogsUsersJson(string? search, int page = 1)
+        {
+            int pageSize = 10;
+
+            var query = _context.Accounts
+                .Where(a => _context.SentCards.Any(s => s.AccountId == a.Id))
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(a => a.Name.Contains(search) || a.Email.Contains(search));
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var usersList = await query
+                .OrderByDescending(a => a.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    id = a.Id,
+                    name = a.Name,
+                    email = a.Email,
+                    sentCount = _context.SentCards.Count(s => s.AccountId == a.Id)
+                })
+                .ToListAsync();
+
+            return Json(new
+            {
+                users = usersList,
+                currentPage = page,
+                totalPages = totalPages
+            });
+        }
+
         // LEVEL 2: DETAILED SENT CARDS LIST FOR A SPECIFIC USER (SORTED DESCENDING BY ID)
         [HttpGet("Admin/UserSentCards/{accountId}")]
         public async Task<IActionResult> UserSentCards(int accountId, int page = 1)

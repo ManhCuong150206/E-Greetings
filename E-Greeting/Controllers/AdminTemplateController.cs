@@ -73,6 +73,76 @@ namespace E_Greeting.Controllers
             return View("~/Views/Admin/Templates.cshtml", templates);
         }
 
+        // ==========================================
+        // AJAX JSON ENDPOINT FOR NON-REFRESH SEARCH
+        // ==========================================
+        [HttpGet("Admin/GetTemplatesJson")]
+        public IActionResult GetTemplatesJson(int categoryId, string? searchName, string? isFree, string? isActive, int page = 1)
+        {
+            int pageSize = 8;
+            var query = _context.Templates.Where(t => t.CategoryId == categoryId).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchName))
+            {
+                query = query.Where(t => t.Name.Contains(searchName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(isFree))
+            {
+                if (isFree == "true") query = query.Where(t => t.IsFree == true);
+                else if (isFree == "false") query = query.Where(t => t.IsFree == false);
+            }
+
+            if (!string.IsNullOrWhiteSpace(isActive))
+            {
+                if (isActive == "true") query = query.Where(t => t.IsActive == true);
+                else if (isActive == "false") query = query.Where(t => t.IsActive == false);
+            }
+
+            int totalItems = query.Count();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            page = Math.Max(1, Math.Min(page, Math.Max(1, totalPages)));
+
+            var rawTemplates = query
+                .OrderByDescending(t => t.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = rawTemplates.Select(item => {
+                string displayThumb = item.ImagePath;
+                if (!string.IsNullOrWhiteSpace(item.ConfigData))
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(item.ConfigData);
+                        if (doc.RootElement.TryGetProperty("preview_thumbnail", out var thumbProp))
+                        {
+                            string? jsonThumb = thumbProp.GetString();
+                            if (!string.IsNullOrWhiteSpace(jsonThumb)) displayThumb = jsonThumb;
+                        }
+                    }
+                    catch { }
+                }
+
+                return new
+                {
+                    id = item.Id,
+                    name = item.Name,
+                    displayThumb = displayThumb,
+                    isFree = item.IsFree,
+                    isActive = item.IsActive
+                };
+            }).ToList();
+
+            return Json(new
+            {
+                templates = result,
+                currentPage = page,
+                totalPages = totalPages
+            });
+        }
+
         [HttpPost("Admin/ToggleTemplateStatusAjax")]
         public async Task<IActionResult> ToggleTemplateStatusAjax(int id)
         {

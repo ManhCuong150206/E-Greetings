@@ -6,7 +6,9 @@
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4><i class="bi bi-images text-primary"></i> Templates in Category: <span class="text-primary">@ViewBag.CategoryName</span></h4>
+        <h2 class="text-primary fw-bold">
+            <i class="bi bi-images me-2"></i>Templates in Category: <span class="text-primary">@ViewBag.CategoryName</span>
+        </h2>
         <div>
             <a asp-controller="AdminCategory" asp-action="Categories" class="btn btn-outline-secondary me-2 rounded-pill">
                 <i class="bi bi-arrow-left"></i> Back to Categories
@@ -17,17 +19,17 @@
         </div>
     </div>
 
-    <!-- MULTI-FILTER FORM WITH AUTO-SUBMIT ON INPUT & CHANGE -->
+    <!-- MULTI-FILTER FORM WITH AJAX NO-REFRESH -->
     <div class="card shadow-sm p-3 mb-3 bg-light rounded-3">
-        <form id="filterForm" asp-controller="AdminTemplate" asp-action="Templates" method="get" class="row g-2 align-items-center">
-            <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
+        <form id="filterForm" onsubmit="return false;" class="row g-2 align-items-center">
+            <input type="hidden" id="categoryIdInput" name="categoryId" value="@ViewBag.CategoryId" />
 
             <div class="col-md-5">
-                <input type="text" name="searchName" value="@ViewBag.SearchName" class="form-control form-control-sm auto-submit-input" placeholder="Type template name to search..." />
+                <input type="text" id="searchNameInput" name="searchName" value="@ViewBag.SearchName" class="form-control form-control-sm auto-submit-input" placeholder="Type template name to search..." />
             </div>
 
             <div class="col-md-3">
-                <select name="isFree" class="form-select form-select-sm auto-submit-select">
+                <select id="isFreeSelect" name="isFree" class="form-select form-select-sm auto-submit-select">
                     <option value="">-- All Packages (Free & VIP) --</option>
                     <option value="true" selected="@(ViewBag.IsFree == "true")">Free Only</option>
                     <option value="false" selected="@(ViewBag.IsFree == "false")">Paid Only (VIP)</option>
@@ -35,7 +37,7 @@
             </div>
 
             <div class="col-md-3">
-                <select name="isActive" class="form-select form-select-sm auto-submit-select">
+                <select id="isActiveSelect" name="isActive" class="form-select form-select-sm auto-submit-select">
                     <option value="">-- All Statuses --</option>
                     <option value="true" selected="@(ViewBag.IsActive == "true")">Active</option>
                     <option value="false" selected="@(ViewBag.IsActive == "false")">Hidden</option>
@@ -43,15 +45,15 @@
             </div>
 
             <div class="col-md-1 d-flex">
-                <a asp-controller="AdminTemplate" asp-action="Templates" asp-route-categoryId="@ViewBag.CategoryId" class="btn btn-sm btn-outline-secondary w-100" title="Reset all filters">
+                <button type="button" id="resetFilterBtn" class="btn btn-sm btn-outline-secondary w-100" title="Reset all filters">
                     <i class="bi bi-arrow-counterclockwise"></i>
-                </a>
+                </button>
             </div>
         </form>
     </div>
 
     <!-- TEMPLATES LIST -->
-    <div class="row g-3">
+    <div class="row g-3" id="templateListContainer">
         @if (Model != null && Model.Any())
         {
             @foreach (var item in Model)
@@ -71,7 +73,7 @@
                     catch { }
                 }
 
-                <div class="col-md-3">
+                <div class="col-md-3 template-card-item">
                     <div class="card h-100 shadow-sm border-0 d-flex flex-column justify-content-between @(!item.IsActive ? "opacity-75 bg-light" : "")" id="card-template-@item.Id">
                         <div>
                             <div class="position-relative">
@@ -115,26 +117,21 @@
     </div>
 
     <!-- TEMPLATES PAGINATION -->
-    @if (ViewBag.TotalPages > 1)
-    {
-        <div class="d-flex justify-content-center mt-4">
+    <div id="templatePaginationContainer" class="d-flex justify-content-center mt-4">
+        @if (ViewBag.TotalPages > 1)
+        {
             <nav>
                 <ul class="pagination">
                     @for (int i = 1; i <= ViewBag.TotalPages; i++)
                     {
                         <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
-                            <a class="page-link" asp-controller="AdminTemplate" asp-action="Templates"
-                               asp-route-categoryId="@ViewBag.CategoryId"
-                               asp-route-searchName="@ViewBag.SearchName"
-                               asp-route-isFree="@ViewBag.IsFree"
-                               asp-route-isActive="@ViewBag.IsActive"
-                               asp-route-page="@i">@i</a>
+                            <a class="page-link template-page-link" href="javascript:void(0);" data-page="@i">@i</a>
                         </li>
                     }
                 </ul>
             </nav>
-        </div>
-    }
+        }
+    </div>
 </div>
 
 <!-- FLOATING CENTER NOTIFICATION POPUP (MATCHING GLOBAL DESIGN) -->
@@ -181,40 +178,167 @@
                 alertModal.show();
             }
 
-            const filterForm = document.getElementById('filterForm');
+            // ==========================================
+            // AJAX SEARCH, FILTER & PAGINATION FOR TEMPLATES
+            // ==========================================
+            const categoryIdInput = document.getElementById('categoryIdInput');
+            const searchNameInput = document.getElementById('searchNameInput');
+            const isFreeSelect = document.getElementById('isFreeSelect');
+            const isActiveSelect = document.getElementById('isActiveSelect');
+            const resetFilterBtn = document.getElementById('resetFilterBtn');
+            const templateListContainer = document.getElementById('templateListContainer');
+            const templatePaginationContainer = document.getElementById('templatePaginationContainer');
 
-            // 1. Auto-submit immediately when dropdown selection changes
-            document.querySelectorAll('.auto-submit-select').forEach(selectEl => {
-                selectEl.addEventListener('change', function () {
-                    filterForm.submit();
-                });
-            });
-
-            // 2. Auto-submit with Debounce (delay 400ms) when user types in search input
             let debounceTimer;
-            const searchInput = document.querySelector('.auto-submit-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', function () {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        filterForm.submit();
-                    }, 400);
-                });
 
-                // Keep cursor at the end of text when page reloads after search
-                const len = searchInput.value.length;
-                searchInput.setSelectionRange(len, len);
+            async function fetchTemplates(page = 1) {
+                const categoryId = categoryIdInput ? categoryIdInput.value : 0;
+                const searchName = searchNameInput ? searchNameInput.value.trim() : "";
+                const isFree = isFreeSelect ? isFreeSelect.value : "";
+                const isActive = isActiveSelect ? isActiveSelect.value : "";
+
+                const url = `/Admin/GetTemplatesJson?categoryId=${categoryId}&searchName=${encodeURIComponent(searchName)}&isFree=${isFree}&isActive=${isActive}&page=${page}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    renderTemplatesList(data.templates);
+                    renderTemplatesPagination(data.currentPage, data.totalPages);
+                } catch (error) {
+                    console.error("Error fetching templates:", error);
+                }
             }
 
-            // 3. Ajax toggle visibility status
-            document.querySelectorAll('.switch-toggle-status').forEach(el => {
-                el.addEventListener('change', function() {
-                    const templateId = this.getAttribute('data-id');
-                    const isChecked = this.checked;
+            function renderTemplatesList(templates) {
+                if (!templateListContainer) return;
+                if (!templates || templates.length === 0) {
+                    templateListContainer.innerHTML = `
+                        <div class="col-12 text-center py-5 text-muted">
+                            <i class="bi bi-folder-x fs-1"></i>
+                            <p class="mt-2">No templates match the selected filter criteria.</p>
+                        </div>
+                    `;
+                    return;
+                }
 
-                    fetch('/Admin/ToggleTemplateStatusAjax?id=' + templateId, {
-                        method: 'POST'
-                    })
+                let html = '';
+                templates.forEach(item => {
+                    const opacityClass = !item.isActive ? 'opacity-75 bg-light' : '';
+                    const badgeBg = item.isActive ? 'bg-success' : 'bg-secondary';
+                    const badgeText = item.isActive ? 'Active' : 'Hidden';
+                    const packageBg = item.isFree ? 'bg-info text-dark' : 'bg-warning text-dark';
+                    const packageText = item.isFree ? 'Free Package' : 'Paid (VIP)';
+                    const switchChecked = item.isActive ? 'checked' : '';
+                    const switchLabel = item.isActive ? 'Show' : 'Hide';
+
+                    html += `
+                        <div class="col-md-3 template-card-item">
+                            <div class="card h-100 shadow-sm border-0 d-flex flex-column justify-content-between ${opacityClass}" id="card-template-${item.id}">
+                                <div>
+                                    <div class="position-relative">
+                                        <img src="${item.displayThumb}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${item.name}">
+                                        <span class="position-absolute top-0 end-0 badge m-2 status-badge-${item.id} ${badgeBg}">
+                                            ${badgeText}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold text-truncate">${item.name}</h6>
+                                        <span class="badge ${packageBg}">
+                                            ${packageText}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center p-2">
+                                    <a href="/Admin/EditTemplate?id=${item.id}" class="btn btn-sm btn-outline-warning fw-semibold">
+                                        <i class="bi bi-pencil-square"></i> Edit
+                                    </a>
+
+                                    <div class="form-check form-switch m-0" title="Toggle visibility">
+                                        <input class="form-check-input switch-toggle-status" type="checkbox" role="switch" data-id="${item.id}" ${switchChecked} style="cursor: pointer;">
+                                        <label class="form-check-small fw-semibold small text-muted ms-1 switch-label-${item.id}">
+                                            ${switchLabel}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                templateListContainer.innerHTML = html;
+                bindToggleSwitchEvents();
+            }
+
+            function renderTemplatesPagination(currentPage, totalPages) {
+                if (!templatePaginationContainer) return;
+                if (totalPages <= 1) {
+                    templatePaginationContainer.innerHTML = '';
+                    return;
+                }
+
+                let html = '<nav><ul class="pagination">';
+                for (let i = 1; i <= totalPages; i++) {
+                    const activeClass = i === currentPage ? 'active' : '';
+                    html += `<li class="page-item ${activeClass}"><a class="page-link template-page-link" href="javascript:void(0);" data-page="${i}">${i}</a></li>`;
+                }
+                html += '</ul></nav>';
+                templatePaginationContainer.innerHTML = html;
+            }
+
+            // AUTO-SUBMIT INPUT SEARCH (DEBOUNCE 350MS)
+            if (searchNameInput) {
+                searchNameInput.addEventListener('input', function () {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        fetchTemplates(1);
+                    }, 350);
+                });
+            }
+
+            // AUTO-SUBMIT DROPDOWNS ON CHANGE
+            if (isFreeSelect) {
+                isFreeSelect.addEventListener('change', function () {
+                    fetchTemplates(1);
+                });
+            }
+
+            if (isActiveSelect) {
+                isActiveSelect.addEventListener('change', function () {
+                    fetchTemplates(1);
+                });
+            }
+
+            // RESET BUTTON
+            if (resetFilterBtn) {
+                resetFilterBtn.addEventListener('click', function () {
+                    if (searchNameInput) searchNameInput.value = "";
+                    if (isFreeSelect) isFreeSelect.value = "";
+                    if (isActiveSelect) isActiveSelect.value = "";
+                    fetchTemplates(1);
+                });
+            }
+
+            // PAGINATION CLICK EVENT
+            if (templatePaginationContainer) {
+                templatePaginationContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('template-page-link')) {
+                        const page = parseInt(e.target.getAttribute('data-page'));
+                        if (page) fetchTemplates(page);
+                    }
+                });
+            }
+
+            // BIND TOGGLE STATUS SWITCH EVENT VIA DELEGATION / RE-BIND
+            function bindToggleSwitchEvents() {
+                document.querySelectorAll('.switch-toggle-status').forEach(el => {
+                    el.onclick = null; // Unbind previous
+                    el.addEventListener('change', function() {
+                        const templateId = this.getAttribute('data-id');
+                        const isChecked = this.checked;
+
+                        fetch('/Admin/ToggleTemplateStatusAjax?id=' + templateId, {
+                            method: 'POST'
+                        })
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
@@ -223,15 +347,19 @@
                                 const card = document.getElementById('card-template-' + templateId);
 
                                 if (data.isActive) {
-                                    badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-success';
-                                    badge.innerText = 'Active';
-                                    label.innerText = 'Show';
-                                    card.classList.remove('opacity-75', 'bg-light');
+                                    if (badge) {
+                                        badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-success';
+                                        badge.innerText = 'Active';
+                                    }
+                                    if (label) label.innerText = 'Show';
+                                    if (card) card.classList.remove('opacity-75', 'bg-light');
                                 } else {
-                                    badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-secondary';
-                                    badge.innerText = 'Hidden';
-                                    label.innerText = 'Hide';
-                                    card.classList.add('opacity-75', 'bg-light');
+                                    if (badge) {
+                                        badge.className = 'position-absolute top-0 end-0 badge m-2 status-badge-' + templateId + ' bg-secondary';
+                                        badge.innerText = 'Hidden';
+                                    }
+                                    if (label) label.innerText = 'Hide';
+                                    if (card) card.classList.add('opacity-75', 'bg-light');
                                 }
                             } else {
                                 alert('Error: ' + data.message);
@@ -242,8 +370,12 @@
                             alert('Unable to connect to the server!');
                             this.checked = !isChecked;
                         });
+                    });
                 });
-            });
+            }
+
+            // INITIAL BIND FOR SWITCHES ON PAGE LOAD
+            bindToggleSwitchEvents();
         });
     </script>
 }
