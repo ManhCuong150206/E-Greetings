@@ -73,8 +73,15 @@ public class AccountController : Controller
                 return View(model);
 
             case LoginResult.AccountLocked:
-                ViewBag.Error = "Your account has been locked";
+                ViewBag.Error = "Your account has been locked. Please contact support.";
                 return View(model);
+        }
+
+        // DOUBLE-CHECK SAFETY LOCK AT CONTROLLER LEVEL IN CASE SERVICE DOES NOT BLOCK IT
+        if (account != null && !account.Status)
+        {
+            ViewBag.Error = "Your account has been locked. Please contact support.";
+            return View(model);
         }
 
         var userRole = account.Role.Trim().ToLower() == "admin" ? "Admin" : account.Role.Trim();
@@ -126,6 +133,24 @@ public class AccountController : Controller
         {
             ViewBag.Error = "This email is already registered";
             return View(model);
+        }
+
+        // ENSURE NEWLY REGISTERED USER STATUS IS ALWAYS ACTIVE (TRUE) IN DATABASE
+        if (account != null)
+        {
+            account.Status = true;
+            _context.Accounts.Update(account);
+            await _context.SaveChangesAsync();
+        }
+        else
+        {
+            var createdAccount = await _context.Accounts.FirstOrDefaultAsync(a => a.Email == model.Email);
+            if (createdAccount != null && !createdAccount.Status)
+            {
+                createdAccount.Status = true;
+                _context.Accounts.Update(createdAccount);
+                await _context.SaveChangesAsync();
+            }
         }
 
         TempData["SuccessMessage"] = "Registration successful, please login";

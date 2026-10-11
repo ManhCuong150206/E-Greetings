@@ -140,7 +140,7 @@ namespace E_Greeting.Controllers
                     Name = u.Name,
                     Email = u.Email,
                     Role = u.Role,
-                    Status = u.Status,
+                    Status = u.Status, // Ensures current status state is accurately bound
                     CurrentVipPackage = activeSub?.Service != null ? activeSub.Service.Name : "Free Package",
                     VipEndDate = endDate,
                     SentCardsCount = sentCardCounts.ContainsKey(u.Id) ? sentCardCounts[u.Id] : 0
