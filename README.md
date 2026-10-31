@@ -117,6 +117,4 @@ Mở đường dẫn hiện trong console (ví dụ `https://localhost:xxxx`).
 | Thiếu thư viện CSS/JS | Chạy `libman restore` |
 | Không gửi được email | Kiểm tra cấu hình SMTP; Gmail cần dùng App Password |
 
-## Nguồn yêu cầu
 
-Dựa trên đề bài và bản đặc tả dự án eProject *E-Greetings* của Aptech.
